@@ -31,21 +31,23 @@ const Layout = ({ children, user, onLogout }) => {
       icon: DocumentTextIcon,
       children: [
         { name: 'Мои заявки', href: '/requests/my' },
-        { name: 'Рассмотрение заявок', href: '/requests/assigned' }
+        { name: 'Рассмотрение заявок', href: '/requests/assigned' },
+        ...(user?.roles?.includes('admin') ? [
+          { name: 'Конструктор заявок', href: '/request-builder' }
+        ] : [])
       ]
     },
     ...(user?.roles?.includes('admin') ? [
       {
-        name: 'Администрирование',
+        name: 'Управление системой',
         icon: CogIcon,
         children: [
-          { name: 'Конструктор заявок', href: '/request-builder' },
           { name: 'Управление ролями', href: '/admin/roles' },
           { name: 'Структура организации', href: '/admin/structure' }
         ]
       },
       {
-        name: 'Пользователи',
+        name: 'Управление пользователями',
         icon: UsersIcon,
         children: [
           { name: 'Все пользователи', href: '/users/all' },
@@ -136,7 +138,27 @@ const Layout = ({ children, user, onLogout }) => {
         {/* Навигация */}
         <div className="flex-1 overflow-y-auto">
           <nav className="px-2 py-4 space-y-1">
-            {navigation.map((item) => renderNavigationItem(item, false))}
+            {/* Личные разделы */}
+            {navigation.slice(0, 2).map((item) => renderNavigationItem(item, false))}
+            
+            {/* Разделитель */}
+            <div className="border-t border-gray-200 my-3"></div>
+            
+            {/* Рабочие разделы */}
+            {navigation.slice(2, 3).map((item) => renderNavigationItem(item, false))}
+            
+            {/* Административные разделы */}
+            {user?.roles?.includes('admin') && navigation.length > 3 && (
+              <>
+                <div className="border-t border-gray-200 my-3"></div>
+                <div className="px-3 py-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Администрирование
+                  </p>
+                </div>
+                {navigation.slice(3).map((item) => renderNavigationItem(item, false))}
+              </>
+            )}
           </nav>
         </div>
         
