@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { 
   PlusIcon, 
   DocumentIcon, 
@@ -11,16 +12,19 @@ import {
   PaperClipIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
+import api from '../services/api';
 
 const Portfolio = () => {
   const [achievements, setAchievements] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [uploading, setUploading] = useState(false);
   const [newAchievement, setNewAchievement] = useState({
     title: '',
     description: '',
     category: 'academic',
-    date: '',
+    achievement_date: '',
     organization: '',
     files: []
   });
@@ -35,47 +39,107 @@ const Portfolio = () => {
     { id: 'professional', name: 'Профессиональные', icon: DocumentIcon, color: 'text-indigo-500' }
   ];
 
-  // Пример данных
+  // Загрузка достижений при монтировании компонента и изменении категории
   useEffect(() => {
-    setAchievements([
-      {
-        id: 1,
-        title: 'Победа в олимпиаде по математике',
-        description: 'Занял 1-е место в региональной олимпиаде по математике',
-        category: 'academic',
-        date: '2024-03-15',
-        organization: 'Министерство образования РБ',
-        files: ['diploma.pdf', 'certificate.jpg']
-      },
-      {
-        id: 2,
-        title: 'Участие в конференции "IT-будущее"',
-        description: 'Выступил с докладом о машинном обучении',
-        category: 'professional',
-        date: '2024-02-10',
-        organization: 'МелГУ',
-        files: ['presentation.pptx']
-      }
-    ]);
-  }, []);
+    loadAchievements();
+  }, [selectedCategory]);
 
-  const handleAddAchievement = (e) => {
+  const loadAchievements = async () => {
+    try {
+      setLoading(true);
+      const category = selectedCategory === 'all' ? null : selectedCategory;
+      const response = await api.getPortfolioAchievements(category);
+      setAchievements(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки достижений:', error);
+      toast.error('Ошибка загрузки достижений');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddAchievement = async (e) => {
     e.preventDefault();
-    const achievement = {
-      id: achievements.length + 1,
-      ...newAchievement,
-      files: newAchievement.files.map(file => file.name)
-    };
-    setAchievements([...achievements, achievement]);
-    setNewAchievement({
-      title: '',
-      description: '',
-      category: 'academic',
-      date: '',
-      organization: '',
-      files: []
-    });
-    setShowAddForm(false);
+    
+    try {
+      setUploading(true);
+      
+      // Создаем достижение
+      const achievementData = {
+        title: newAchievement.title,
+        description: newAchievement.description,
+        category: newAchievement.category,
+        achievement_date: new Date(newAchievement.achievement_date).toISOString(),
+        organization: newAchievement.organization
+      };
+      
+      const response = await api.createAchievement(achievementData);
+      const createdAchievement = response.data;
+      
+      // Загружаем файлы если есть
+      const uploadedFiles = [];
+      for (const file of newAchievement.files) {
+        try {
+          const fileResponse = await api.uploadPortfolioFile(createdAchievement.id, file);
+          uploadedFiles.push(fileResponse.data);
+        } catch (fileError) {
+          console.error('Ошибка загрузки файла:', fileError);
+          toast.error(`Ошибка загрузки файла ${file.name}`);
+        }
+      }
+      
+      // Обновляем локальное состояние
+      await loadAchievements();
+      
+      // Сброс формы
+      setNewAchievement({
+        title: '',
+        description: '',
+        category: 'academic',
+        achievement_date: '',
+        organization: '',
+        files: []
+      });
+      setShowAddForm(false);
+      
+      toast.success('Достижение успешно добавлено!');
+      
+    } catch (error) {
+      console.error('Ошибка создания достижения:', error);
+      toast.error('Ошибка при добавлении достижения');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteAchievement = async (achievementId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это достижение?')) {
+      return;
+    }
+
+    try {
+      await api.deleteAchievement(achievementId);
+      await loadAchievements();
+      toast.success('Достижение удалено');
+    } catch (error) {
+      console.error('Ошибка удаления достижения:', error);
+      toast.error('Ошибка при удалении достижения');
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот файл?')) {
+      return;
+    }
+
+    try {
+      await api.deletePortfolioFile(fileId);
+      await loadAchievements();
+      toast.success('Файл удален');
+    } catch (error) {
+      console.error('Ошибка удаления файла:', error);
+      toast.error('Ошибка при удалении файла');
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -93,13 +157,27 @@ const Portfolio = () => {
     }));
   };
 
-  const filteredAchievements = selectedCategory === 'all' 
-    ? achievements 
-    : achievements.filter(achievement => achievement.category === selectedCategory);
+  const filteredAchievements = achievements;
 
   const getCategoryInfo = (categoryId) => {
     return categories.find(cat => cat.id === categoryId) || categories[0];
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -181,7 +259,7 @@ const Portfolio = () => {
                           <span className="mx-2 text-gray-400">•</span>
                           <span className="text-sm text-gray-500 flex items-center">
                             <CalendarIcon className="h-4 w-4 mr-1" />
-                            {new Date(achievement.date).toLocaleDateString('ru-RU')}
+                            {new Date(achievement.achievement_date).toLocaleDateString('ru-RU')}
                           </span>
                         </div>
                         
@@ -193,18 +271,24 @@ const Portfolio = () => {
                           {achievement.description}
                         </p>
                         
-                        <div className="text-sm text-gray-600 mb-3">
-                          <strong>Организация:</strong> {achievement.organization}
-                        </div>
+                        {achievement.organization && (
+                          <div className="text-sm text-gray-600 mb-3">
+                            <strong>Организация:</strong> {achievement.organization}
+                          </div>
+                        )}
 
                         {achievement.files && achievement.files.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-3">
                             {achievement.files.map((file, index) => (
-                              <div key={index} className="inline-flex items-center px-3 py-1 bg-white border border-gray-200 rounded-md text-sm">
+                              <div key={file.id || index} className="inline-flex items-center px-3 py-1 bg-white border border-gray-200 rounded-md text-sm">
                                 <PaperClipIcon className="h-4 w-4 mr-1 text-gray-400" />
-                                {file}
-                                <button className="ml-2 text-gray-400 hover:text-gray-600">
-                                  <EyeIcon className="h-4 w-4" />
+                                {file.original_filename || file.filename || file}
+                                <button 
+                                  onClick={() => handleDeleteFile(file.id)}
+                                  className="ml-2 text-red-400 hover:text-red-600"
+                                  title="Удалить файл"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
                                 </button>
                               </div>
                             ))}
@@ -213,10 +297,17 @@ const Portfolio = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2 ml-4">
-                        <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <button 
+                          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Редактировать"
+                        >
                           <PencilIcon className="h-4 w-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                        <button 
+                          onClick={() => handleDeleteAchievement(achievement.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Удалить"
+                        >
                           <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
@@ -294,8 +385,8 @@ const Portfolio = () => {
                     <input
                       type="date"
                       required
-                      value={newAchievement.date}
-                      onChange={(e) => setNewAchievement(prev => ({...prev, date: e.target.value}))}
+                      value={newAchievement.achievement_date}
+                      onChange={(e) => setNewAchievement(prev => ({...prev, achievement_date: e.target.value}))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     />
                   </div>
@@ -323,7 +414,7 @@ const Portfolio = () => {
                     multiple
                     onChange={handleFileUpload}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.ppt,.pptx"
                   />
                   {newAchievement.files.length > 0 && (
                     <div className="mt-2 space-y-1">
@@ -349,14 +440,16 @@ const Portfolio = () => {
                   type="button"
                   onClick={() => setShowAddForm(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  disabled={uploading}
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  disabled={uploading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Добавить
+                  {uploading ? 'Добавление...' : 'Добавить'}
                 </button>
               </div>
             </form>
