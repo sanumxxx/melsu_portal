@@ -9,7 +9,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children, user, onLogout }) => {
@@ -26,6 +27,9 @@ const Layout = ({ children, user, onLogout }) => {
   const navigation = [
     { name: 'Профиль', href: '/profile', icon: UserIcon },
     { name: 'Расписание', href: '/schedule', icon: CalendarDaysIcon },
+    ...(user?.roles?.includes('student') ? [
+      { name: 'Портфолио', href: '/portfolio', icon: FolderIcon }
+    ] : []),
     {
       name: 'Заявки',
       icon: DocumentTextIcon,
@@ -139,16 +143,16 @@ const Layout = ({ children, user, onLogout }) => {
         <div className="flex-1 overflow-y-auto">
           <nav className="px-2 py-4 space-y-1">
             {/* Личные разделы */}
-            {navigation.slice(0, 2).map((item) => renderNavigationItem(item, false))}
+            {navigation.slice(0, user?.roles?.includes('student') ? 3 : 2).map((item) => renderNavigationItem(item, false))}
             
             {/* Разделитель */}
             <div className="border-t border-gray-200 my-3"></div>
             
             {/* Рабочие разделы */}
-            {navigation.slice(2, 3).map((item) => renderNavigationItem(item, false))}
+            {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
             
             {/* Административные разделы */}
-            {user?.roles?.includes('admin') && navigation.length > 3 && (
+            {user?.roles?.includes('admin') && navigation.length > (user?.roles?.includes('student') ? 4 : 3) && (
               <>
                 <div className="border-t border-gray-200 my-3"></div>
                 <div className="px-3 py-2">
@@ -156,7 +160,7 @@ const Layout = ({ children, user, onLogout }) => {
                     Администрирование
                   </p>
                 </div>
-                {navigation.slice(3).map((item) => renderNavigationItem(item, false))}
+                {navigation.slice(user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
               </>
             )}
           </nav>
