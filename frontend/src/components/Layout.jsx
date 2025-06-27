@@ -279,7 +279,30 @@ const Layout = ({ children, user, onLogout }) => {
                 <h1 className="ml-2 text-lg font-bold text-gray-900">my.melsu</h1>
               </div>
               <nav className="mt-5 px-2 space-y-1">
-                {navigation.map((item) => renderNavigationItem(item, true))}
+                {/* Личные разделы */}
+                {navigation.slice(0, user?.roles?.includes('student') ? 3 : 2).map((item) => renderNavigationItem(item, true))}
+                
+                {/* Разделитель */}
+                <div className="border-t border-gray-200 my-3"></div>
+                
+                {/* Заявки */}
+                {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, true))}
+                
+                {/* Остальные разделы */}
+                {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => !item.children || !item.children.some(child => child.href.includes('/admin/'))).map((item) => renderNavigationItem(item, true))}
+                
+                {/* Административные разделы */}
+                {user?.roles?.includes('admin') && (
+                  <>
+                    <div className="border-t border-gray-200 my-3"></div>
+                    <div className="px-3 py-2">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Администрирование
+                      </p>
+                    </div>
+                    {navigation.filter(item => item.children && item.children.some(child => child.href.includes('/admin/') || child.href.includes('/users/'))).map((item) => renderNavigationItem(item, true))}
+                  </>
+                )}
               </nav>
             </div>
             <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
