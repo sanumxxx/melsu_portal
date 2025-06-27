@@ -4,7 +4,7 @@ import asyncio
 from typing import Dict, List
 from datetime import datetime
 from ..dependencies import get_current_user
-from ..models.user_profile import User
+from ..models.user import User
 
 class ConnectionManager:
     def __init__(self):
