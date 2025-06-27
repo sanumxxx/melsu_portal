@@ -131,52 +131,52 @@ const Profile = ({ user }) => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6">
       {/* Заголовок */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Профиль</h1>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Профиль</h1>
         <p className="text-gray-600 mt-2">Личная информация и назначения</p>
       </div>
 
       {/* Основная информация */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <div className="flex items-center space-x-6 mb-6">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
-            <UserIcon className="w-10 h-10 text-red-600" />
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <UserIcon className="w-8 h-8 sm:w-10 sm:h-10 text-red-600" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">{getFullName()}</h2>
+          <div className="text-center sm:text-left">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{getFullName()}</h2>
             <p className="text-gray-600">{profileData.email || 'Email не указан'}</p>
             <p className="text-sm text-gray-500">{getRoleText(profileData.roles)}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 text-center">
           <div>
-            <div className="text-2xl font-bold text-red-600">{Array.isArray(assignments) ? assignments.length : 0}</div>
-            <div className="text-sm text-gray-500">Назначений</div>
+            <div className="text-xl sm:text-2xl font-bold text-red-600">{Array.isArray(assignments) ? assignments.length : 0}</div>
+            <div className="text-xs sm:text-sm text-gray-500">Назначений</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-red-600">{profileData.is_verified ? 'Да' : 'Нет'}</div>
-            <div className="text-sm text-gray-500">Email подтвержден</div>
+            <div className="text-xl sm:text-2xl font-bold text-red-600">{profileData.is_verified ? 'Да' : 'Нет'}</div>
+            <div className="text-xs sm:text-sm text-gray-500">Email подтвержден</div>
           </div>
-          <div>
-            <div className={`text-2xl font-bold ${profileData.is_active ? 'text-green-600' : 'text-gray-400'}`}>
+          <div className="col-span-2 sm:col-span-1">
+            <div className={`text-xl sm:text-2xl font-bold ${profileData.is_active ? 'text-green-600' : 'text-gray-400'}`}>
               {profileData.is_active ? 'Активен' : 'Неактивен'}
             </div>
-            <div className="text-sm text-gray-500">Статус</div>
+            <div className="text-xs sm:text-sm text-gray-500">Статус</div>
           </div>
         </div>
       </div>
 
       {/* Назначения */}
       {loadingAssignments ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <BuildingOfficeIcon className="w-5 h-5 text-red-600 mr-2" />
             Назначения в подразделения
           </h3>
@@ -186,14 +186,14 @@ const Profile = ({ user }) => {
           ) : (
             <div className="space-y-3">
               {assignments.map((assignment) => (
-                <div key={assignment.id} className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-start">
+                <div key={assignment.id} className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
                     <div>
                       <h4 className="font-medium text-gray-900">{assignment.department.name}</h4>
                       <p className="text-gray-600">{assignment.role.display_name}</p>
                       <p className="text-sm text-gray-500">Занятость: {assignment.workload_percentage}%</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {assignment.is_primary && (
                         <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Основное</span>
                       )}
@@ -212,83 +212,83 @@ const Profile = ({ user }) => {
       )}
 
       {/* Детальная информация */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Личные данные */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <UserIcon className="w-5 h-5 text-red-600 mr-2" />
             Личные данные
           </h3>
           
           <div className="space-y-3">
-                         <div>
-               <label className="block text-sm font-medium text-gray-700">Имя</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.first_name)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Фамилия</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.last_name)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Отчество</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.middle_name)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Дата рождения</label>
-               <p className="text-gray-900">{formatDate(profileData.birth_date)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Пол</label>
-               <p className="text-gray-900">
-                 {profileData.gender === 'male' ? 'Мужской' : 
-                  profileData.gender === 'female' ? 'Женский' : renderNotSpecified()}
-               </p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Телефон</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.phone)}</p>
-             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Имя</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.first_name)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Фамилия</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.last_name)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Отчество</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.middle_name)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Дата рождения</label>
+              <p className="text-gray-900">{formatDate(profileData.birth_date)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Пол</label>
+              <p className="text-gray-900">
+                {profileData.gender === 'male' ? 'Мужской' : 
+                 profileData.gender === 'female' ? 'Женский' : renderNotSpecified()}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Телефон</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.phone)}</p>
+            </div>
           </div>
         </div>
 
         {/* Документы */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <IdentificationIcon className="w-5 h-5 text-red-600 mr-2" />
             Документы
           </h3>
           
           <div className="space-y-3">
-                         <div>
-               <label className="block text-sm font-medium text-gray-700">Серия паспорта</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_series)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Номер паспорта</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_number)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Дата выдачи паспорта</label>
-               <p className="text-gray-900">{formatDate(profileData.passport_issued_date)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">Кем выдан</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_issued_by)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">СНИЛС</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.snils)}</p>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-gray-700">ИНН</label>
-               <p className="text-gray-900">{getValueOrNotSpecified(profileData.inn)}</p>
-             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Серия паспорта</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_series)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Номер паспорта</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_number)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Дата выдачи паспорта</label>
+              <p className="text-gray-900">{formatDate(profileData.passport_issued_date)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Кем выдан</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_issued_by)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">СНИЛС</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.snils)}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">ИНН</label>
+              <p className="text-gray-900">{getValueOrNotSpecified(profileData.inn)}</p>
+            </div>
           </div>
         </div>
 
         {/* Адресная информация */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <MapPinIcon className="w-5 h-5 text-red-600 mr-2" />
             Адресная информация
           </h3>
@@ -297,44 +297,44 @@ const Profile = ({ user }) => {
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Адрес регистрации</h4>
               <div className="space-y-2">
-                                 <div>
-                   <label className="block text-sm text-gray-700">Регион</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_region)}</p>
-                 </div>
-                 <div>
-                   <label className="block text-sm text-gray-700">Город</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_city)}</p>
-                 </div>
-                 <div>
-                   <label className="block text-sm text-gray-700">Адрес</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_address)}</p>
-                 </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Регион</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_region)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Город</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_city)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Адрес</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.registration_address)}</p>
+                </div>
               </div>
             </div>
 
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Адрес проживания</h4>
               <div className="space-y-2">
-                                 <div>
-                   <label className="block text-sm text-gray-700">Регион</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_region)}</p>
-                 </div>
-                 <div>
-                   <label className="block text-sm text-gray-700">Город</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_city)}</p>
-                 </div>
-                 <div>
-                   <label className="block text-sm text-gray-700">Адрес</label>
-                   <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_address)}</p>
-                 </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Регион</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_region)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Город</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_city)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700">Адрес</label>
+                  <p className="text-gray-900">{getValueOrNotSpecified(profileData.residence_address)}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Профессиональная/Академическая информация */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
             {(profileData.roles?.includes('student') || profileData.roles?.includes('schoolchild')) ? (
               <AcademicCapIcon className="w-5 h-5 text-red-600 mr-2" />
             ) : (
