@@ -4,11 +4,11 @@ from datetime import datetime
 from enum import Enum
 
 class AchievementCategory(str, Enum):
-    ACADEMIC = "academic"
-    SPORTS = "sports"
-    CREATIVE = "creative"
-    VOLUNTEER = "volunteer"
-    PROFESSIONAL = "professional"
+    academic = "academic"
+    sports = "sports"
+    creative = "creative"
+    volunteer = "volunteer"
+    professional = "professional"
 
 class PortfolioFileBase(BaseModel):
     filename: str

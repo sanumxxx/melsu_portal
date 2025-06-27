@@ -10,7 +10,17 @@ import {
   XMarkIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  FolderIcon
+  FolderIcon,
+  AcademicCapIcon,
+  CurrencyDollarIcon,
+  BookOpenIcon,
+  BuildingLibraryIcon,
+  ComputerDesktopIcon,
+  BanknotesIcon,
+  DocumentIcon,
+  ClipboardDocumentListIcon,
+  ClipboardDocumentCheckIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children, user, onLogout }) => {
@@ -24,26 +34,80 @@ const Layout = ({ children, user, onLogout }) => {
     }));
   };
 
-  const navigation = [
+  // Функция для получения навигации без дублирования
+  const getNavigation = () => {
+    const baseNavigation = [
     { name: 'Профиль', href: '/profile', icon: UserIcon },
     { name: 'Расписание', href: '/schedule', icon: CalendarDaysIcon },
-    ...(user?.roles?.includes('student') ? [
-      { name: 'Портфолио', href: '/portfolio', icon: FolderIcon }
-    ] : []),
+      ...(user?.roles?.includes('student') ? [
+        { name: 'Портфолио', href: '/portfolio', icon: FolderIcon }
+      ] : []),
     {
       name: 'Заявки',
       icon: DocumentTextIcon,
       children: [
         { name: 'Мои заявки', href: '/requests/my' },
-        { name: 'Рассмотрение заявок', href: '/requests/assigned' },
-        ...(user?.roles?.includes('admin') ? [
-          { name: 'Конструктор заявок', href: '/request-builder' }
-        ] : [])
-      ]
-    },
-    ...(user?.roles?.includes('admin') ? [
-      {
-        name: 'Управление системой',
+          { name: 'Назначенные мне', href: '/requests/assigned' },
+          ...(user?.roles?.includes('admin') ? [
+            { name: 'Конструктор заявок', href: '/request-builder' }
+          ] : [])
+        ]
+      }
+    ];
+
+    // Общие разделы для всех ролей (кроме admin)
+    const hasNonAdminRole = user?.roles?.some(role => ['student', 'teacher', 'employee'].includes(role));
+    if (hasNonAdminRole) {
+      baseNavigation.push(
+        { name: 'Мероприятия', href: '/events', icon: CalendarDaysIcon },
+        { name: 'Библиотечные системы', href: '/library', icon: BuildingLibraryIcon },
+        { name: 'Цифровые ресурсы', href: '/digital-resources', icon: ComputerDesktopIcon }
+      );
+    }
+
+    // Специфичные студенческие разделы
+    if (user?.roles?.includes('student')) {
+      // Определяем путь для ведомостей в зависимости от ролей
+      const gradesHref = user?.roles?.includes('teacher') ? '/teacher/grades' : '/student/grades';
+      
+      baseNavigation.push(
+        { name: 'Ведомости', href: gradesHref, icon: ClipboardDocumentCheckIcon },
+        { name: 'Стипендия', href: '/student/scholarship', icon: CurrencyDollarIcon },
+        { name: 'Учебные материалы', href: '/student/materials', icon: BookOpenIcon }
+      );
+    }
+
+    // Специфичные преподавательские разделы
+    if (user?.roles?.includes('teacher')) {
+      baseNavigation.push(
+        { name: 'Учебные планы', href: '/teacher/curriculum', icon: AcademicCapIcon },
+        { name: 'Учебная нагрузка', href: '/teacher/workload', icon: ClipboardDocumentListIcon }
+      );
+      
+      // Добавляем ведомости только если нет роли студента
+      if (!user?.roles?.includes('student')) {
+        baseNavigation.push(
+          { name: 'Ведомости', href: '/teacher/grades', icon: ClipboardDocumentCheckIcon }
+        );
+      }
+    }
+
+    // Специфичные сотруднические разделы
+    if (user?.roles?.includes('employee')) {
+      baseNavigation.push(
+        { name: 'Зарплатные ведомости', href: '/employee/payroll', icon: BanknotesIcon },
+        { name: 'Отпуск', href: '/employee/vacation', icon: CalendarDaysIcon },
+        { name: 'Отсутствия', href: '/employee/absences', icon: ClipboardDocumentListIcon },
+        { name: 'Документы', href: '/employee/documents', icon: DocumentIcon },
+        { name: 'Университет', href: '/university', icon: BuildingOfficeIcon }
+      );
+    }
+
+    // Административные разделы
+    if (user?.roles?.includes('admin')) {
+      baseNavigation.push(
+        {
+          name: 'Управление системой',
         icon: CogIcon,
         children: [
           { name: 'Управление ролями', href: '/admin/roles' },
@@ -51,7 +115,7 @@ const Layout = ({ children, user, onLogout }) => {
         ]
       },
       {
-        name: 'Управление пользователями',
+          name: 'Управление пользователями',
         icon: UsersIcon,
         children: [
           { name: 'Все пользователи', href: '/users/all' },
@@ -61,8 +125,13 @@ const Layout = ({ children, user, onLogout }) => {
           { name: 'Студенты', href: '/users/students' }
         ]
       }
-    ] : [])
-  ];
+      );
+    }
+
+    return baseNavigation;
+  };
+
+  const navigation = getNavigation();
 
   const renderNavigationItem = (item, mobile = false) => {
     const baseClasses = mobile 
@@ -148,11 +217,14 @@ const Layout = ({ children, user, onLogout }) => {
             {/* Разделитель */}
             <div className="border-t border-gray-200 my-3"></div>
             
-            {/* Рабочие разделы */}
+            {/* Заявки */}
             {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
             
+            {/* Остальные разделы */}
+            {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => !item.children || !item.children.some(child => child.href.includes('/admin/'))).map((item) => renderNavigationItem(item, false))}
+            
             {/* Административные разделы */}
-            {user?.roles?.includes('admin') && navigation.length > (user?.roles?.includes('student') ? 4 : 3) && (
+            {user?.roles?.includes('admin') && (
               <>
                 <div className="border-t border-gray-200 my-3"></div>
                 <div className="px-3 py-2">
@@ -160,7 +232,7 @@ const Layout = ({ children, user, onLogout }) => {
                     Администрирование
                   </p>
                 </div>
-                {navigation.slice(user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
+                {navigation.filter(item => item.children && item.children.some(child => child.href.includes('/admin/') || child.href.includes('/users/'))).map((item) => renderNavigationItem(item, false))}
               </>
             )}
           </nav>

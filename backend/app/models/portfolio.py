@@ -5,11 +5,11 @@ from ..database import Base
 import enum
 
 class AchievementCategory(enum.Enum):
-    ACADEMIC = "academic"
-    SPORTS = "sports"
-    CREATIVE = "creative"
-    VOLUNTEER = "volunteer"
-    PROFESSIONAL = "professional"
+    academic = "academic"
+    sports = "sports"
+    creative = "creative"
+    volunteer = "volunteer"
+    professional = "professional"
 
 class PortfolioAchievement(Base):
     __tablename__ = "portfolio_achievements"

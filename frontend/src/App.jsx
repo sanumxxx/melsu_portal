@@ -15,7 +15,30 @@ import RequestForm from './components/RequestForm';
 import MyRequests from './components/requests/MyRequests';
 import AssignedRequests from './components/requests/AssignedRequests';
 import RequestRouter from './components/requests/RequestRouter';
- 
+
+// Общие компоненты
+import Events from './components/Events';
+import Library from './components/Library';
+import DigitalResources from './components/DigitalResources';
+import University from './components/University';
+
+// Объединенные компоненты
+import Grades from './components/Grades';
+
+// Студенческие компоненты
+import Scholarship from './components/student/Scholarship';
+import StudyMaterials from './components/student/StudyMaterials';
+
+// Преподавательские компоненты
+import Curriculum from './components/teacher/Curriculum';
+import Workload from './components/teacher/Workload';
+
+// Сотруднические компоненты
+import Payroll from './components/employee/Payroll';
+import Vacation from './components/employee/Vacation';
+import Absences from './components/employee/Absences';
+import Documents from './components/employee/Documents';
+
 import api from './services/api';
 
 function App() {
@@ -71,9 +94,46 @@ function App() {
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/requests" element={<RequestForm />} />
+              <Route path="/requests/edit/:id" element={<RequestForm />} />
               <Route path="/requests/my" element={<MyRequests />} />
               <Route path="/requests/assigned" element={<AssignedRequests />} />
               <Route path="/requests/:id" element={<RequestRouter />} />
+
+              {/* Общие маршруты */}
+              <Route path="/events" element={<Events />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/digital-resources" element={<DigitalResources />} />
+              <Route path="/university" element={<University />} />
+
+              {/* Объединенные маршруты для ведомостей */}
+              <Route path="/student/grades" element={<Grades user={user} />} />
+              <Route path="/teacher/grades" element={<Grades user={user} />} />
+
+              {/* Студенческие маршруты */}
+              {user?.roles?.includes('student') && (
+                <>
+                  <Route path="/student/scholarship" element={<Scholarship />} />
+                  <Route path="/student/materials" element={<StudyMaterials />} />
+                </>
+              )}
+
+              {/* Преподавательские маршруты */}
+              {user?.roles?.includes('teacher') && (
+                <>
+                  <Route path="/teacher/curriculum" element={<Curriculum />} />
+                  <Route path="/teacher/workload" element={<Workload />} />
+                </>
+              )}
+
+              {/* Сотруднические маршруты */}
+              {user?.roles?.includes('employee') && (
+                <>
+                  <Route path="/employee/payroll" element={<Payroll />} />
+                  <Route path="/employee/vacation" element={<Vacation />} />
+                  <Route path="/employee/absences" element={<Absences />} />
+                  <Route path="/employee/documents" element={<Documents />} />
+                </>
+              )}
 
               {/* Маршруты для админов */}
               {user?.roles?.includes('admin') && (

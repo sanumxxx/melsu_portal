@@ -208,13 +208,12 @@ const Portfolio = () => {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   selectedCategory === category.id
-                    ? 'bg-red-100 text-red-700 border border-red-200'
-                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                 }`}
               >
-                <category.icon className={`h-4 w-4 mr-2 ${category.color}`} />
                 {category.name}
               </button>
             ))}
