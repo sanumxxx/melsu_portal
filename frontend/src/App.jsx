@@ -16,6 +16,9 @@ import MyRequests from './components/requests/MyRequests';
 import AssignedRequests from './components/requests/AssignedRequests';
 import RequestRouter from './components/requests/RequestRouter';
 
+// WebSocket для уведомлений
+import WebSocketService from './services/websocketService';
+
 // Общие компоненты
 import Events from './components/Events';
 import Library from './components/Library';
@@ -68,8 +71,40 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    // Отключаем WebSocket при выходе
+    WebSocketService.disconnect();
     setUser(null);
   };
+
+  // WebSocket подключение при авторизации
+  useEffect(() => {
+    if (user?.id) {
+      // Подключаемся к WebSocket для уведомлений
+      WebSocketService.connect(user.id);
+      
+      // Запрашиваем разрешение на Browser Push уведомления
+      if ('Notification' in window && Notification.permission === 'default') {
+        // Небольшая задержка, чтобы пользователь успел освоиться
+        setTimeout(() => {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              console.log('✅ Разрешение на уведомления получено');
+            } else {
+              console.log('❌ Разрешение на уведомления отклонено');
+            }
+          });
+        }, 2000);
+      }
+    } else {
+      // Отключаемся от WebSocket при выходе
+      WebSocketService.disconnect();
+    }
+
+    // Cleanup при размонтировании компонента
+    return () => {
+      WebSocketService.disconnect();
+    };
+  }, [user?.id]);
 
   if (loading) {
     return (

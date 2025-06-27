@@ -6,7 +6,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 env_path = os.path.join(project_root, '.env')
 load_dotenv(dotenv_path=env_path)
 
-from fastapi import FastAPI, HTTPException, Depends, status, Request
+from fastapi import FastAPI, HTTPException, Depends, status, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -21,6 +21,9 @@ from .models.user import User as UserModel, UserRole
 from .schemas.user import UserRoleUpdate
 from sqlalchemy.orm import Session
 from .database import get_db
+
+# WebSocket для уведомлений
+from .api.websocket import websocket_endpoint
 
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
@@ -147,6 +150,12 @@ app.include_router(assignments.router, tags=["assignments"])
 # Система портфолио
 from .api import portfolio
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
+
+# WebSocket для уведомлений
+@app.websocket("/ws/{user_id}")
+async def websocket_notifications(websocket: WebSocket, user_id: int):
+    """WebSocket endpoint для real-time уведомлений"""
+    await websocket_endpoint(websocket, user_id)
 
 @app.get("/")
 async def root():

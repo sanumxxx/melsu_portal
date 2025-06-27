@@ -21,6 +21,7 @@ import {
   ClipboardDocumentListIcon,
   ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
+import NotificationStatus from './common/NotificationStatus';
 
 const Layout = ({ children, user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -239,6 +240,11 @@ const Layout = ({ children, user, onLogout }) => {
           </nav>
         </div>
         
+        {/* Статус уведомлений */}
+        <div className="px-4 py-2">
+          <NotificationStatus />
+        </div>
+        
         {/* Пользователь */}
         <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
           <div className="flex items-center">
@@ -305,6 +311,12 @@ const Layout = ({ children, user, onLogout }) => {
                 )}
               </nav>
             </div>
+            
+            {/* Статус уведомлений */}
+            <div className="px-4 py-2">
+              <NotificationStatus />
+            </div>
+            
             <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
