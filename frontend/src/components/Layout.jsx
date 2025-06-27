@@ -19,8 +19,7 @@ import {
   BanknotesIcon,
   DocumentIcon,
   ClipboardDocumentListIcon,
-  ClipboardDocumentCheckIcon,
-  BuildingOfficeIcon
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 
 const Layout = ({ children, user, onLogout }) => {
@@ -37,16 +36,19 @@ const Layout = ({ children, user, onLogout }) => {
   // Функция для получения навигации без дублирования
   const getNavigation = () => {
     const baseNavigation = [
-    { name: 'Профиль', href: '/profile', icon: UserIcon },
-    { name: 'Расписание', href: '/schedule', icon: CalendarDaysIcon },
+      { name: 'Профиль', href: '/profile', icon: UserIcon },
+      // Расписание только для студентов и преподавателей
+      ...(user?.roles?.some(role => ['student', 'teacher'].includes(role)) ? [
+        { name: 'Расписание', href: '/schedule', icon: CalendarDaysIcon }
+      ] : []),
       ...(user?.roles?.includes('student') ? [
         { name: 'Портфолио', href: '/portfolio', icon: FolderIcon }
       ] : []),
-    {
-      name: 'Заявки',
-      icon: DocumentTextIcon,
-      children: [
-        { name: 'Мои заявки', href: '/requests/my' },
+      {
+        name: 'Заявки',
+        icon: DocumentTextIcon,
+        children: [
+          { name: 'Мои заявки', href: '/requests/my' },
           { name: 'Назначенные мне', href: '/requests/assigned' },
           ...(user?.roles?.includes('admin') ? [
             { name: 'Конструктор заявок', href: '/request-builder' }
@@ -98,8 +100,7 @@ const Layout = ({ children, user, onLogout }) => {
         { name: 'Зарплатные ведомости', href: '/employee/payroll', icon: BanknotesIcon },
         { name: 'Отпуск', href: '/employee/vacation', icon: CalendarDaysIcon },
         { name: 'Отсутствия', href: '/employee/absences', icon: ClipboardDocumentListIcon },
-        { name: 'Документы', href: '/employee/documents', icon: DocumentIcon },
-        { name: 'Университет', href: '/university', icon: BuildingOfficeIcon }
+        { name: 'Документы', href: '/employee/documents', icon: DocumentIcon }
       );
     }
 
@@ -108,23 +109,23 @@ const Layout = ({ children, user, onLogout }) => {
       baseNavigation.push(
         {
           name: 'Управление системой',
-        icon: CogIcon,
-        children: [
-          { name: 'Управление ролями', href: '/admin/roles' },
-          { name: 'Структура организации', href: '/admin/structure' }
-        ]
-      },
-      {
+          icon: CogIcon,
+          children: [
+            { name: 'Управление ролями', href: '/admin/roles' },
+            { name: 'Структура организации', href: '/admin/structure' }
+          ]
+        },
+        {
           name: 'Управление пользователями',
-        icon: UsersIcon,
-        children: [
-          { name: 'Все пользователи', href: '/users/all' },
-          { name: 'Сотрудники', href: '/users/employees' },
-          { name: 'Преподаватели', href: '/users/teachers' },
-          { name: 'Школьники', href: '/users/schoolchildren' },
-          { name: 'Студенты', href: '/users/students' }
-        ]
-      }
+          icon: UsersIcon,
+          children: [
+            { name: 'Все пользователи', href: '/users/all' },
+            { name: 'Сотрудники', href: '/users/employees' },
+            { name: 'Преподаватели', href: '/users/teachers' },
+            { name: 'Школьники', href: '/users/schoolchildren' },
+            { name: 'Студенты', href: '/users/students' }
+          ]
+        }
       );
     }
 

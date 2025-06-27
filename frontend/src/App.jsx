@@ -20,7 +20,6 @@ import RequestRouter from './components/requests/RequestRouter';
 import Events from './components/Events';
 import Library from './components/Library';
 import DigitalResources from './components/DigitalResources';
-import University from './components/University';
 
 // Объединенные компоненты
 import Grades from './components/Grades';
@@ -103,7 +102,6 @@ function App() {
               <Route path="/events" element={<Events />} />
               <Route path="/library" element={<Library />} />
               <Route path="/digital-resources" element={<DigitalResources />} />
-              <Route path="/university" element={<University />} />
 
               {/* Объединенные маршруты для ведомостей */}
               <Route path="/student/grades" element={<Grades user={user} />} />
