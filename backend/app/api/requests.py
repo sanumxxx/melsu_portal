@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request as FastAPIRequest
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, func, cast, text
 from typing import List, Optional
@@ -17,6 +17,7 @@ from ..schemas import (
 )
 from ..dependencies import get_current_user, UserInfo
 from ..services.profile_update_service import ProfileUpdateService
+from ..services.activity_service import ActivityService
 
 # WebSocket уведомления
 from .websocket import notify_request_assigned, notify_request_updated
@@ -135,9 +136,10 @@ async def get_assigned_requests(
     
     return result
 
-@router.post("/", response_model=RequestSchema)
+@router.post("", response_model=RequestSchema)
 async def create_request(
     request_data: RequestCreate,
+    request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -173,6 +175,22 @@ async def create_request(
     db.add(db_request)
     db.commit()
     db.refresh(db_request)
+    
+    # Логирование создания заявки
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_create",
+        description=f"Создана заявка: {db_request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(db_request.id),
+        details={
+            "template_name": template.name,
+            "status": db_request.status,
+            "deadline": deadline.isoformat() if deadline else None
+        },
+        request=request
+    )
     
     # Загружаем связанные данные
     db_request = db.query(Request).options(
@@ -227,6 +245,7 @@ async def get_request(
 async def update_request(
     request_id: int,
     request_update: RequestUpdate,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -313,6 +332,41 @@ async def update_request(
     db.commit()
     db.refresh(request)
     
+    # Логирование изменений статуса заявки
+    if old_status != request.status:
+        activity_service = ActivityService(db)
+        action_description = ""
+        action_type = "request_status_change"
+        
+        if request.status == RequestStatus.COMPLETED.value:
+            action_description = f"Заявка завершена: {request.title}"
+            action_type = "request_complete"
+        elif request.status == RequestStatus.REJECTED.value:
+            action_description = f"Заявка отклонена: {request.title}"
+            action_type = "request_reject"
+        elif request.status == RequestStatus.IN_REVIEW.value:
+            action_description = f"Заявка отправлена на рассмотрение: {request.title}"
+            action_type = "request_submit"
+        elif request.status == RequestStatus.APPROVED.value:
+            action_description = f"Заявка одобрена: {request.title}"
+            action_type = "request_approve"
+        else:
+            action_description = f"Изменен статус заявки {request.title}: {old_status} → {request.status}"
+        
+        activity_service.log_activity(
+            action=action_type,
+            description=action_description,
+            user_id=current_user.id,
+            resource_type="request",
+            resource_id=str(request.id),
+            details={
+                "old_status": old_status,
+                "new_status": request.status,
+                "updated_via": "PUT_request"
+            },
+            request=http_request
+        )
+    
     # Загружаем связанные данные
     request = db.query(Request).options(
         joinedload(Request.author),
@@ -325,6 +379,7 @@ async def update_request(
 @router.post("/{request_id}/submit", response_model=RequestSchema)
 async def submit_request(
     request_id: int,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -391,6 +446,22 @@ async def submit_request(
     db.commit()
     db.refresh(request)
     
+    # Логирование отправки заявки
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_submit",
+        description=f"Отправлена заявка на рассмотрение: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request.id),
+        details={
+            "old_status": "draft",
+            "new_status": request.status,
+            "possible_assignees": request.possible_assignees
+        },
+        request=http_request
+    )
+    
     # Отправляем WebSocket уведомления возможным исполнителям
     if request.possible_assignees:
         request_data = {
@@ -424,6 +495,7 @@ async def submit_request(
 async def assign_request(
     request_id: int,
     assign_data: RequestAssign,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -457,6 +529,7 @@ async def assign_request(
         )
     
     # Назначаем исполнителя
+    old_assignee_id = request.assignee_id
     request.assignee_id = assign_data.assignee_id
     request.updated_at = datetime.utcnow()
     
@@ -465,6 +538,22 @@ async def assign_request(
     
     db.commit()
     db.refresh(request)
+    
+    # Логирование назначения ответственного
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_assign",
+        description=f"Назначен ответственный за заявку: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request.id),
+        details={
+            "old_assignee": old_assignee_id,
+            "new_assignee": assign_data.assignee_id,
+            "assignee_name": f"{assignee.first_name} {assignee.last_name}" if assignee.first_name else assignee.email
+        },
+        request=http_request
+    )
     
     # Загружаем связанные данные
     request = db.query(Request).options(
@@ -478,6 +567,7 @@ async def assign_request(
 @router.post("/{request_id}/take", response_model=RequestSchema)
 async def take_request(
     request_id: int,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -503,55 +593,33 @@ async def take_request(
     if not can_take:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="У вас нет прав для взятия этой заявки в работу"
-        )
-    
-    # Проверяем статус заявки
-    if request.status not in [RequestStatus.IN_REVIEW.value]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Нельзя взять в работу заявку в текущем статусе"
-        )
-    
-    # Проверяем, что заявка еще не взята кем-то другим
-    if request.assignee_id and request.assignee_id != current_user.id:
-        assigned_user = db.query(User).filter(User.id == request.assignee_id).first()
-        assigned_name = f"{assigned_user.first_name} {assigned_user.last_name}" if assigned_user else "Неизвестный"
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Заявка уже взята в работу пользователем: {assigned_name}"
+            detail="Недостаточно прав для принятия заявки в работу"
         )
     
     # Берем заявку в работу
+    old_assignee = request.assignee_id
     request.assignee_id = current_user.id
-    request.status = RequestStatus.APPROVED.value  # Меняем статус на "Взят в работу"
+    request.status = RequestStatus.APPROVED.value
     request.updated_at = datetime.utcnow()
     
     db.commit()
     db.refresh(request)
     
-    # Отправляем WebSocket уведомление автору заявки
-    if request.author_id:
-        request_data = {
-            'id': request.id,
-            'title': request.title,
-            'description': request.description,
-            'status': request.status,
-            'assignee_name': f"{current_user.first_name} {current_user.last_name}" if current_user.first_name else current_user.email,
-            'updated_at': request.updated_at.isoformat() if request.updated_at else None
-        }
-        
-        try:
-            import asyncio
-            asyncio.create_task(notify_request_updated(
-                request.id, 
-                [request.author_id], 
-                request_data, 
-                old_status=RequestStatus.IN_REVIEW.value, 
-                new_status=RequestStatus.APPROVED.value
-            ))
-        except Exception as e:
-            print(f"Ошибка отправки WebSocket уведомления автору заявки {request.author_id}: {e}")
+    # Логирование взятия заявки в работу
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_take",
+        description=f"Взял заявку в работу: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request.id),
+        details={
+            "old_assignee": old_assignee,
+            "new_assignee": current_user.id,
+            "status": request.status
+        },
+        request=http_request
+    )
     
     # Загружаем связанные данные
     request = db.query(Request).options(
@@ -565,6 +633,7 @@ async def take_request(
 @router.post("/{request_id}/complete", response_model=RequestSchema)
 async def complete_request(
     request_id: int,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -615,6 +684,22 @@ async def complete_request(
     db.commit()
     db.refresh(request)
     
+    # Логирование завершения заявки
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_complete",
+        description=f"Завершена заявка: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request.id),
+        details={
+            "old_status": old_status,
+            "new_status": request.status,
+            "completed_by": current_user.id
+        },
+        request=http_request
+    )
+    
     # Отправляем WebSocket уведомление автору заявки о завершении
     if request.author_id:
         request_data = {
@@ -647,6 +732,97 @@ async def complete_request(
     
     return request
 
+@router.post("/{request_id}/reject", response_model=RequestSchema)
+async def reject_request(
+    request_id: int,
+    http_request: FastAPIRequest,
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Отклонить заявку"""
+    request = db.query(Request).filter(Request.id == request_id).first()
+    
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заявка не найдена"
+        )
+    
+    # Проверяем права на отклонение (только исполнитель или админ)
+    can_reject = (
+        request.assignee_id == current_user.id or  # Исполнитель
+        "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])  # Админ
+    )
+    
+    if not can_reject:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав для отклонения заявки"
+        )
+    
+    # Проверяем статус заявки
+    if request.status in [RequestStatus.COMPLETED.value, RequestStatus.REJECTED.value]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя отклонить уже завершенную или отклоненную заявку"
+        )
+    
+    # Отклоняем заявку
+    old_status = request.status
+    request.status = RequestStatus.REJECTED.value
+    request.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(request)
+    
+    # Логирование отклонения заявки
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_reject",
+        description=f"Отклонена заявка: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request.id),
+        details={
+            "old_status": old_status,
+            "new_status": request.status,
+            "rejected_by": current_user.id
+        },
+        request=http_request
+    )
+    
+    # Отправляем WebSocket уведомление автору заявки об отклонении
+    if request.author_id:
+        request_data = {
+            'id': request.id,
+            'title': request.title,
+            'description': request.description,
+            'status': request.status,
+            'assignee_name': f"{current_user.first_name} {current_user.last_name}" if current_user.first_name else current_user.email,
+            'rejected_at': request.updated_at.isoformat() if request.updated_at else None
+        }
+        
+        try:
+            import asyncio
+            asyncio.create_task(notify_request_updated(
+                request.id, 
+                [request.author_id], 
+                request_data, 
+                old_status=old_status, 
+                new_status=RequestStatus.REJECTED.value
+            ))
+        except Exception as e:
+            print(f"Ошибка отправки WebSocket уведомления автору заявки {request.author_id}: {e}")
+    
+    # Загружаем связанные данные
+    request = db.query(Request).options(
+        joinedload(Request.author),
+        joinedload(Request.assignee),
+        joinedload(Request.comments).joinedload(RequestComment.user)
+    ).filter(Request.id == request.id).first()
+    
+    return request
+
 # ===========================================
 # КОММЕНТАРИИ
 # ===========================================
@@ -655,6 +831,7 @@ async def complete_request(
 async def add_comment(
     request_id: int,
     comment_data: RequestCommentCreate,
+    http_request: FastAPIRequest,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
@@ -691,6 +868,22 @@ async def add_comment(
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
+    
+    # Логирование добавления комментария
+    activity_service = ActivityService(db)
+    activity_service.log_activity(
+        action="request_comment",
+        description=f"Добавлен комментарий к заявке: {request.title}",
+        user_id=current_user.id,
+        resource_type="request",
+        resource_id=str(request_id),
+        details={
+            "comment_id": db_comment.id,
+            "is_internal": comment_data.is_internal,
+            "comment_length": len(comment_data.text)
+        },
+        request=http_request
+    )
     
     # Загружаем с пользователем
     db_comment = db.query(RequestComment).options(

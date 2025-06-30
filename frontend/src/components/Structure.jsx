@@ -17,7 +17,10 @@ import {
   RectangleGroupIcon,
   UsersIcon,
   PhoneIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  UserPlusIcon,
+  EyeIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
@@ -33,6 +36,19 @@ const Structure = () => {
   const [departmentTypes, setDepartmentTypes] = useState([]);
   const [departmentEmployees, setDepartmentEmployees] = useState({}); // Кеш сотрудников по ID подразделения
   const [loadingEmployees, setLoadingEmployees] = useState(new Set()); // Загружаемые подразделения
+  
+  // Состояния для управления доступом к студентам
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [selectedDepartmentForAccess, setSelectedDepartmentForAccess] = useState(null);
+  const [accessAssignments, setAccessAssignments] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [accessLevels, setAccessLevels] = useState([]);
+  const [loadingAccess, setLoadingAccess] = useState(false);
+  const [accessFormData, setAccessFormData] = useState({
+    employee_id: '',
+    access_level: 'read',
+    notes: ''
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -86,6 +102,8 @@ const Structure = () => {
   useEffect(() => {
     fetchDepartments();
     fetchDepartmentTypes();
+    fetchEmployees();
+    fetchAccessLevels();
   }, []);
 
   const fetchDepartments = async () => {
@@ -248,6 +266,99 @@ const Structure = () => {
     }
   };
 
+  // Функции для управления доступом к студентам
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get('/api/users?role=employee');
+      setEmployees(response.data.users || []);
+    } catch (err) {
+      console.error('Ошибка загрузки сотрудников:', err);
+    }
+  };
+
+  const fetchAccessLevels = async () => {
+    try {
+      const response = await api.get('/api/student-access/access-levels');
+      setAccessLevels(response.data.levels || []);
+    } catch (err) {
+      console.error('Ошибка загрузки уровней доступа:', err);
+    }
+  };
+
+  const fetchAccessAssignments = async (departmentId) => {
+    try {
+      setLoadingAccess(true);
+      const response = await api.get(`/api/student-access/assignments?department_id=${departmentId}`);
+      setAccessAssignments(response.data);
+    } catch (err) {
+      console.error('Ошибка загрузки назначений:', err);
+    } finally {
+      setLoadingAccess(false);
+    }
+  };
+
+  const openAccessModal = (department) => {
+    // Проверяем, что это факультет или кафедра
+    if (!['faculty', 'department'].includes(department.department_type)) {
+      setError('Доступ к студентам можно назначать только для факультетов и кафедр');
+      return;
+    }
+
+    setSelectedDepartmentForAccess(department);
+    setAccessFormData({
+      employee_id: '',
+      access_level: 'read',
+      notes: ''
+    });
+    fetchAccessAssignments(department.id);
+    setShowAccessModal(true);
+  };
+
+  const closeAccessModal = () => {
+    setShowAccessModal(false);
+    setSelectedDepartmentForAccess(null);
+    setAccessAssignments([]);
+  };
+
+  const handleAssignAccess = async (e) => {
+    e.preventDefault();
+
+    try {
+      await api.post('/api/student-access/assign', {
+        employee_id: parseInt(accessFormData.employee_id),
+        department_id: selectedDepartmentForAccess.id,
+        access_level: accessFormData.access_level,
+        notes: accessFormData.notes
+      });
+
+      await fetchAccessAssignments(selectedDepartmentForAccess.id);
+      setAccessFormData({
+        employee_id: '',
+        access_level: 'read',
+        notes: ''
+      });
+      setError(null);
+    } catch (err) {
+      console.error('Ошибка назначения доступа:', err);
+      setError('Не удалось назначить доступ');
+    }
+  };
+
+  const handleDeleteAccess = async (assignmentId) => {
+    if (!window.confirm('Вы уверены, что хотите удалить это назначение?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/student-access/assignments/${assignmentId}`);
+      await fetchAccessAssignments(selectedDepartmentForAccess.id);
+      setError(null);
+    } catch (err) {
+      console.error('Ошибка удаления назначения:', err);
+      setError('Не удалось удалить назначение');
+    }
+  };
+
   const renderDepartmentNode = (department, level = 0) => {
     const hasChildren = department.children && department.children.length > 0;
     const isExpanded = expandedNodes.has(department.id);
@@ -309,6 +420,16 @@ const Structure = () => {
 
           {/* Кнопки действий */}
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+            {/* Кнопка управления доступом (только для факультетов и кафедр) */}
+            {['faculty', 'department'].includes(department.department_type) && (
+              <button
+                onClick={() => openAccessModal(department)}
+                className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded"
+                title="Управление доступом к студентам"
+              >
+                <ShieldCheckIcon className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={() => openCreateModal(department)}
               className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded"
@@ -687,6 +808,151 @@ const Structure = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно управления доступом к студентам */}
+      {showAccessModal && selectedDepartmentForAccess && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeAccessModal}></div>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                <div className="flex items-center mb-4">
+                  <ShieldCheckIcon className="h-6 w-6 text-purple-600 mr-2" />
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Управление доступом к студентам: {selectedDepartmentForAccess.name}
+                  </h3>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-6">
+                  Назначайте сотрудникам доступ к студентам данного {selectedDepartmentForAccess.department_type === 'faculty' ? 'факультета' : 'кафедры'}
+                </p>
+
+                {/* Форма назначения доступа */}
+                <form onSubmit={handleAssignAccess} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="text-md font-medium text-gray-800 mb-3">Назначить доступ сотруднику</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Сотрудник</label>
+                      <select
+                        value={accessFormData.employee_id}
+                        onChange={(e) => setAccessFormData(prev => ({ ...prev, employee_id: e.target.value }))}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        required
+                      >
+                        <option value="">Выберите сотрудника</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.first_name} {emp.last_name} ({emp.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Уровень доступа</label>
+                      <select
+                        value={accessFormData.access_level}
+                        onChange={(e) => setAccessFormData(prev => ({ ...prev, access_level: e.target.value }))}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        {accessLevels.map(level => (
+                          <option key={level.value} value={level.value}>
+                            {level.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        type="submit"
+                        className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        <UserPlusIcon className="h-4 w-4 mr-1" />
+                        Назначить
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700">Примечание</label>
+                    <input
+                      type="text"
+                      value={accessFormData.notes}
+                      onChange={(e) => setAccessFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Дополнительная информация о назначении..."
+                    />
+                  </div>
+                </form>
+
+                {/* Список текущих назначений */}
+                <div>
+                  <h4 className="text-md font-medium text-gray-800 mb-3 flex items-center">
+                    <EyeIcon className="h-5 w-5 mr-2 text-gray-600" />
+                    Текущие назначения доступа
+                  </h4>
+                  
+                  {loadingAccess ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                      <span className="ml-2 text-sm text-gray-600">Загрузка назначений...</span>
+                    </div>
+                  ) : accessAssignments.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-500">Нет назначений доступа</p>
+                      <p className="text-xs text-gray-400">Назначьте первого сотрудника используя форму выше</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {accessAssignments.map(assignment => (
+                        <div key={assignment.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                              <span className="text-purple-600 font-medium text-sm">
+                                {assignment.employee_name.split(' ').map(n => n.charAt(0)).join('')}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{assignment.employee_name}</p>
+                              <div className="flex items-center text-sm text-gray-600 space-x-4">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                  {accessLevels.find(l => l.value === assignment.access_level)?.label || assignment.access_level}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  Назначено: {new Date(assignment.assigned_at).toLocaleDateString('ru-RU')}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteAccess(assignment.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            title="Удалить назначение"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={closeAccessModal}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Закрыть
+                </button>
+              </div>
             </div>
           </div>
         </div>

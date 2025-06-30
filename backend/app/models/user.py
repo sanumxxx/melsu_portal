@@ -56,6 +56,8 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     department_assignments = relationship("UserDepartmentAssignment", foreign_keys="UserDepartmentAssignment.user_id", back_populates="user", cascade="all, delete-orphan")
     portfolio_achievements = relationship("PortfolioAchievement", back_populates="user", cascade="all, delete-orphan")
+    created_announcements = relationship("Announcement", back_populates="created_by", cascade="all, delete-orphan")
+    announcement_views = relationship("AnnouncementView", back_populates="user", cascade="all, delete-orphan")
     
     # Свойства для работы с назначениями
     @property

@@ -355,7 +355,16 @@ const Profile = ({ user }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Группа</label>
-                  <p className="text-gray-900">{profileData.group_number || 'Не указано'}</p>
+                  <p className="text-gray-900">
+                    {profileData.group ? (
+                      <span>
+                        {profileData.group.name}
+                        {profileData.group.specialization && (
+                          <span className="text-gray-500 text-sm ml-2">({profileData.group.specialization})</span>
+                        )}
+                      </span>
+                    ) : 'Не указано'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Курс</label>
@@ -364,6 +373,10 @@ const Profile = ({ user }) => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Факультет</label>
                   <p className="text-gray-900">{profileData.faculty || 'Не указано'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Кафедра</label>
+                  <p className="text-gray-900">{profileData.department || 'Не указано'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Специальность</label>

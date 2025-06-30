@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import AnnouncementModal from './AnnouncementModal';
 import { 
   UserIcon, 
   UsersIcon,
@@ -19,9 +20,14 @@ import {
   BanknotesIcon,
   DocumentIcon,
   ClipboardDocumentListIcon,
-  ClipboardDocumentCheckIcon
+  ClipboardDocumentCheckIcon,
+  ClipboardDocumentIcon,
+  BuildingOfficeIcon,
+  ShieldCheckIcon,
+  UserGroupIcon,
+  WrenchScrewdriverIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
-import NotificationStatus from './common/NotificationStatus';
 
 const Layout = ({ children, user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,21 +56,31 @@ const Layout = ({ children, user, onLogout }) => {
         icon: DocumentTextIcon,
         children: [
           { name: 'Мои заявки', href: '/requests/my' },
-          { name: 'Назначенные мне', href: '/requests/assigned' },
-          ...(user?.roles?.includes('admin') ? [
-            { name: 'Конструктор заявок', href: '/request-builder' }
-          ] : [])
+          { name: 'Назначенные мне', href: '/requests/assigned' }
         ]
-      }
+      },
+      // Отчеты - для всех сотрудников, учителей и админов (вне администрирования)
+      ...(user?.roles?.some(role => ['employee', 'teacher', 'admin'].includes(role)) ? [{
+        name: 'Отчеты',
+        icon: ClipboardDocumentListIcon,
+        children: [
+          { name: 'Мои отчеты', href: '/reports' },
+          { name: 'Просмотр отчетов', href: '/reports/view' }
+        ]
+      }] : [])
     ];
 
+    // Создаем раздел "В разработке" для неразработанных функций
+    const developmentItems = [];
+    
     // Общие разделы для всех ролей (кроме admin)
     const hasNonAdminRole = user?.roles?.some(role => ['student', 'teacher', 'employee'].includes(role));
     if (hasNonAdminRole) {
-      baseNavigation.push(
+      developmentItems.push(
         { name: 'Мероприятия', href: '/events', icon: CalendarDaysIcon },
         { name: 'Библиотечные системы', href: '/library', icon: BuildingLibraryIcon },
-        { name: 'Цифровые ресурсы', href: '/digital-resources', icon: ComputerDesktopIcon }
+        { name: 'Цифровые ресурсы', href: '/digital-resources', icon: ComputerDesktopIcon },
+        { name: 'Моя активность', href: '/my-activity', icon: ClipboardDocumentIcon }
       );
     }
 
@@ -73,7 +89,7 @@ const Layout = ({ children, user, onLogout }) => {
       // Определяем путь для ведомостей в зависимости от ролей
       const gradesHref = user?.roles?.includes('teacher') ? '/teacher/grades' : '/student/grades';
       
-      baseNavigation.push(
+      developmentItems.push(
         { name: 'Ведомости', href: gradesHref, icon: ClipboardDocumentCheckIcon },
         { name: 'Стипендия', href: '/student/scholarship', icon: CurrencyDollarIcon },
         { name: 'Учебные материалы', href: '/student/materials', icon: BookOpenIcon }
@@ -82,14 +98,14 @@ const Layout = ({ children, user, onLogout }) => {
 
     // Специфичные преподавательские разделы
     if (user?.roles?.includes('teacher')) {
-      baseNavigation.push(
+      developmentItems.push(
         { name: 'Учебные планы', href: '/teacher/curriculum', icon: AcademicCapIcon },
         { name: 'Учебная нагрузка', href: '/teacher/workload', icon: ClipboardDocumentListIcon }
       );
       
       // Добавляем ведомости только если нет роли студента
       if (!user?.roles?.includes('student')) {
-        baseNavigation.push(
+        developmentItems.push(
           { name: 'Ведомости', href: '/teacher/grades', icon: ClipboardDocumentCheckIcon }
         );
       }
@@ -97,7 +113,7 @@ const Layout = ({ children, user, onLogout }) => {
 
     // Специфичные сотруднические разделы
     if (user?.roles?.includes('employee')) {
-      baseNavigation.push(
+      developmentItems.push(
         { name: 'Зарплатные ведомости', href: '/employee/payroll', icon: BanknotesIcon },
         { name: 'Отпуск', href: '/employee/vacation', icon: CalendarDaysIcon },
         { name: 'Отсутствия', href: '/employee/absences', icon: ClipboardDocumentListIcon },
@@ -105,19 +121,46 @@ const Layout = ({ children, user, onLogout }) => {
       );
     }
 
-    // Административные разделы
+    // Добавляем раздел "В разработке" если есть неразработанные элементы
+    if (developmentItems.length > 0) {
+      baseNavigation.push({
+        name: 'В разработке',
+        icon: WrenchScrewdriverIcon,
+        children: developmentItems
+      });
+    }
+
+    // Справочники для сотрудников, преподавателей, кураторов и админов
+    if (user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role))) {
+      baseNavigation.push({
+        name: 'Справочники',
+        icon: FolderIcon,
+        children: [
+          { name: 'Список студентов', href: '/references/students' },
+          { name: 'Список групп', href: '/references/groups' }
+        ]
+      });
+    }
+
+    // Административные разделы - объединяем управление системой и пользователями
     if (user?.roles?.includes('admin')) {
       baseNavigation.push(
         {
-          name: 'Управление системой',
+          name: 'Администрирование',
           icon: CogIcon,
           children: [
+            { name: 'Конструктор заявок', href: '/request-builder' },
+            { name: 'Шаблоны отчетов', href: '/admin/report-templates' },
             { name: 'Управление ролями', href: '/admin/roles' },
-            { name: 'Структура организации', href: '/admin/structure' }
+            { name: 'Структура организации', href: '/admin/structure' },
+            { name: 'Группы', href: '/admin/groups' },
+            { name: 'Объявления', href: '/admin/announcements' },
+            { name: 'Кураторы', href: '/admin/curator-manager' },
+            { name: 'Журнал активности', href: '/admin/activity-logs' }
           ]
         },
         {
-          name: 'Управление пользователями',
+          name: 'Пользователи',
           icon: UsersIcon,
           children: [
             { name: 'Все пользователи', href: '/users/all' },
@@ -160,20 +203,31 @@ const Layout = ({ children, user, onLogout }) => {
           {expandedMenus[item.name] && (
             <div className={mobile ? "ml-10 space-y-1" : "ml-8 space-y-1"}>
               {item.children.map((child) => (
-                <NavLink
-                  key={child.name}
-                  to={child.href}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 text-sm font-medium rounded-md ${
-                      isActive
-                        ? 'bg-red-100 text-red-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`
-                  }
-                  onClick={() => mobile && setMobileMenuOpen(false)}
-                >
-                  {child.name}
-                </NavLink>
+                child.href ? (
+                  <NavLink
+                    key={child.name}
+                    to={child.href}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 text-sm font-medium rounded-md ${
+                        isActive
+                          ? 'bg-red-100 text-red-900'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                    onClick={() => mobile && setMobileMenuOpen(false)}
+                  >
+                    {child.name}
+                  </NavLink>
+                ) : (
+                  <div
+                    key={child.name}
+                    className="block px-3 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
+                    title="В разработке"
+                  >
+                    {child.name}
+                    <span className="ml-2 text-xs text-gray-400">🚧</span>
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -222,8 +276,11 @@ const Layout = ({ children, user, onLogout }) => {
             {/* Заявки */}
             {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
             
-            {/* Остальные разделы */}
-            {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => !item.children || !item.children.some(child => child.href.includes('/admin/'))).map((item) => renderNavigationItem(item, false))}
+            {/* Отчеты */}
+            {navigation.filter(item => item.name === 'Отчеты').map((item) => renderNavigationItem(item, false))}
+            
+            {/* Справочники */}
+            {navigation.filter(item => item.name === 'Справочники').map((item) => renderNavigationItem(item, false))}
             
             {/* Административные разделы */}
             {user?.roles?.includes('admin') && (
@@ -234,15 +291,48 @@ const Layout = ({ children, user, onLogout }) => {
                     Администрирование
                   </p>
                 </div>
-                {navigation.filter(item => item.children && item.children.some(child => child.href.includes('/admin/') || child.href.includes('/users/'))).map((item) => renderNavigationItem(item, false))}
+                {navigation.filter(item => item.children && (item.children.some(child => child.href && child.href.includes('/admin/')) || item.children.some(child => child.href && child.href.includes('/users/')))).map((item) => renderNavigationItem(item, false))}
               </>
             )}
+            
+            {/* Разделы "В разработке" */}
+            <div className="border-t border-gray-200 my-3"></div>
+            <div className="px-3 py-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                В разработке
+              </p>
+            </div>
+            {navigation.filter(item => item.name === 'В разработке').length > 0 && 
+             navigation.find(item => item.name === 'В разработке').children.map((child) => (
+               child.href ? (
+                 <NavLink
+                   key={child.name}
+                   to={child.href}
+                   className={({ isActive }) =>
+                     `flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                       isActive
+                         ? 'bg-red-100 text-red-900'
+                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                     }`
+                   }
+                 >
+                   {child.icon && <child.icon className="mr-3 h-6 w-6 flex-shrink-0" />}
+                   {child.name}
+                 </NavLink>
+               ) : (
+                 <div
+                   key={child.name}
+                   className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-400 cursor-not-allowed"
+                   title="В разработке"
+                 >
+                   {child.icon && <child.icon className="mr-3 h-6 w-6 flex-shrink-0" />}
+                   {child.name}
+                   <span className="ml-2 text-xs text-gray-400">🚧</span>
+                 </div>
+               )
+             ))
+            }
           </nav>
-        </div>
-        
-        {/* Статус уведомлений */}
-        <div className="px-4 py-2">
-          <NotificationStatus />
         </div>
         
         {/* Пользователь */}
@@ -268,13 +358,17 @@ const Layout = ({ children, user, onLogout }) => {
 
       {/* МОБИЛЬНОЕ МЕНЮ OVERLAY */}
       {mobileMenuOpen && (
-                 <div className="sm:hidden fixed inset-0 z-50">
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 flex flex-col max-w-xs w-full bg-white">
+        <div className="sm:hidden fixed inset-0 z-50">
+          <div 
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity" 
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+          <div className="fixed inset-y-0 left-0 flex flex-col max-w-xs w-full bg-white shadow-xl">
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <button
-                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white bg-gray-700 hover:bg-gray-600"
                 onClick={() => setMobileMenuOpen(false)}
+                aria-label="Закрыть меню"
               >
                 <XMarkIcon className="h-6 w-6 text-white" />
               </button>
@@ -294,8 +388,11 @@ const Layout = ({ children, user, onLogout }) => {
                 {/* Заявки */}
                 {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, true))}
                 
-                {/* Остальные разделы */}
-                {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => !item.children || !item.children.some(child => child.href.includes('/admin/'))).map((item) => renderNavigationItem(item, true))}
+                {/* Отчеты */}
+                {navigation.filter(item => item.name === 'Отчеты').map((item) => renderNavigationItem(item, true))}
+                
+                {/* Справочники */}
+                {navigation.filter(item => item.name === 'Справочники').map((item) => renderNavigationItem(item, true))}
                 
                 {/* Административные разделы */}
                 {user?.roles?.includes('admin') && (
@@ -306,15 +403,49 @@ const Layout = ({ children, user, onLogout }) => {
                         Администрирование
                       </p>
                     </div>
-                    {navigation.filter(item => item.children && item.children.some(child => child.href.includes('/admin/') || child.href.includes('/users/'))).map((item) => renderNavigationItem(item, true))}
+                    {navigation.filter(item => item.children && (item.children.some(child => child.href.includes('/admin/')) || item.children.some(child => child.href.includes('/users/')))).map((item) => renderNavigationItem(item, true))}
                   </>
                 )}
+                
+                {/* Разделы "В разработке" */}
+                <div className="border-t border-gray-200 my-3"></div>
+                <div className="px-3 py-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    В разработке
+                  </p>
+                </div>
+                {navigation.filter(item => item.name === 'В разработке').length > 0 && 
+                 navigation.find(item => item.name === 'В разработке').children.map((child) => (
+                   child.href ? (
+                     <NavLink
+                       key={child.name}
+                       to={child.href}
+                       className={({ isActive }) =>
+                         `flex items-center px-3 py-2 text-base font-medium rounded-md ${
+                           isActive
+                             ? 'bg-red-100 text-red-900'
+                             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                         }`
+                       }
+                       onClick={() => setMobileMenuOpen(false)}
+                     >
+                       {child.icon && <child.icon className="mr-4 h-6 w-6 flex-shrink-0" />}
+                       {child.name}
+                     </NavLink>
+                   ) : (
+                     <div
+                       key={child.name}
+                       className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-400 cursor-not-allowed"
+                       title="В разработке"
+                     >
+                       {child.icon && <child.icon className="mr-4 h-6 w-6 flex-shrink-0" />}
+                       {child.name}
+                       <span className="ml-2 text-xs text-gray-400">🚧</span>
+                     </div>
+                   )
+                 ))
+                }
               </nav>
-            </div>
-            
-            {/* Статус уведомлений */}
-            <div className="px-4 py-2">
-              <NotificationStatus />
             </div>
             
             <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
@@ -352,8 +483,9 @@ const Layout = ({ children, user, onLogout }) => {
               <h1 className="ml-2 text-lg font-semibold text-gray-900">my.melsu</h1>
             </div>
             <button
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+              className="p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[44px] min-w-[44px] flex items-center justify-center"
               onClick={() => setMobileMenuOpen(true)}
+              aria-label="Открыть меню"
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
@@ -369,6 +501,9 @@ const Layout = ({ children, user, onLogout }) => {
           </div>
         </main>
       </div>
+
+      {/* Модальное окно объявлений */}
+      <AnnouncementModal />
     </div>
   );
 };

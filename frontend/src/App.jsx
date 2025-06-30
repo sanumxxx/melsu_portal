@@ -15,6 +15,17 @@ import RequestForm from './components/RequestForm';
 import MyRequests from './components/requests/MyRequests';
 import AssignedRequests from './components/requests/AssignedRequests';
 import RequestRouter from './components/requests/RequestRouter';
+import Groups from './components/admin/Groups';
+import AnnouncementManager from './components/admin/AnnouncementManager';
+import StudentList from './components/StudentList';
+import GroupList from './components/GroupList';
+import CuratorManager from './components/admin/CuratorManager';
+import Reports from './components/Reports';
+import ReportViewer from './components/ReportViewer';
+import ReportTemplateManager from './components/admin/ReportTemplateManager';
+import ActivityLogs from './components/admin/ActivityLogs';
+import MyActivity from './components/common/MyActivity';
+import TestRoles from './components/TestRoles';
 
 // WebSocket для уведомлений
 import WebSocketService from './services/websocketService';
@@ -86,13 +97,7 @@ function App() {
       if ('Notification' in window && Notification.permission === 'default') {
         // Небольшая задержка, чтобы пользователь успел освоиться
         setTimeout(() => {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              console.log('✅ Разрешение на уведомления получено');
-            } else {
-              console.log('❌ Разрешение на уведомления отклонено');
-            }
-          });
+          Notification.requestPermission();
         }, 2000);
       }
     } else {
@@ -133,10 +138,28 @@ function App() {
               <Route path="/requests/assigned" element={<AssignedRequests />} />
               <Route path="/requests/:id" element={<RequestRouter />} />
 
+              {/* Отчеты */}
+              {user?.roles?.some(role => ['employee', 'teacher', 'admin'].includes(role)) && (
+                <>
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports/edit/:id" element={<Reports />} />
+                  <Route path="/reports/view" element={<ReportViewer />} />
+                </>
+              )}
+
               {/* Общие маршруты */}
               <Route path="/events" element={<Events />} />
               <Route path="/library" element={<Library />} />
               <Route path="/digital-resources" element={<DigitalResources />} />
+              <Route path="/my-activity" element={<MyActivity />} />
+
+              {/* Справочники */}
+              {user?.roles?.some(role => ['employee', 'teacher', 'admin'].includes(role)) && (
+                <>
+                  <Route path="/references/students" element={<StudentList />} />
+                  <Route path="/references/groups" element={<GroupList />} />
+                </>
+              )}
 
               {/* Объединенные маршруты для ведомостей */}
               <Route path="/student/grades" element={<Grades user={user} />} />
@@ -177,6 +200,12 @@ function App() {
                   <Route path="/admin/structure" element={<Structure />} />
                   <Route path="/request-builder" element={<RequestBuilder />} />
                   <Route path="/admin/roles" element={<RoleManagement />} />
+                  <Route path="/admin/groups" element={<Groups />} />
+                  <Route path="/admin/announcements" element={<AnnouncementManager />} />
+                  <Route path="/admin/curator-manager" element={<CuratorManager />} />
+                  <Route path="/admin/report-templates" element={<ReportTemplateManager />} />
+                  <Route path="/admin/activity-logs" element={<ActivityLogs />} />
+                  <Route path="/test-roles" element={<TestRoles />} />
                 </>
               )}
               

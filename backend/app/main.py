@@ -10,29 +10,38 @@ from fastapi import FastAPI, HTTPException, Depends, status, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import traceback
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from .database import engine, Base
+from .startup import startup_application, check_required_environment
 from .api import auth, profile, dev, users, departments
 from .dependencies import get_current_user, UserInfo
 from .models.user import User as UserModel, UserRole
 from .schemas.user import UserRoleUpdate
 from sqlalchemy.orm import Session
 from .database import get_db
+from .middleware.activity_middleware import ActivityLoggingMiddleware
 
 # WebSocket для уведомлений
 from .api.websocket import websocket_endpoint
 
-# Создаем таблицы
-Base.metadata.create_all(bind=engine)
+# Проверяем переменные окружения
+check_required_environment()
+
+# Инициализируем приложение (база данных, роли и т.д.)
+startup_application()
 
 app = FastAPI(
     title="MelSU Portal Backend",
     description="Portal API for my.melsu.ru",
     version="1.0.0"
 )
+
+# Добавляем middleware для логирования активности
+app.add_middleware(ActivityLoggingMiddleware)
 
 # Добавляем обработчик ошибок валидации для диагностики
 @app.exception_handler(RequestValidationError)
@@ -75,6 +84,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:3001", 
         "http://127.0.0.1:3000",
+        "http://10.128.7.101:3000",  # Локальная сеть
         "https://my.melsu.ru"  
     ],
     allow_credentials=True,
@@ -150,6 +160,42 @@ app.include_router(assignments.router, tags=["assignments"])
 # Система портфолио
 from .api import portfolio
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
+
+# Система доступа к студентам
+from .api import student_access
+app.include_router(student_access.router, prefix="/api", tags=["student-access"])
+
+# Система доступа к группам
+from .api import group_access
+app.include_router(group_access.router, prefix="/api", tags=["group-access"])
+
+# Система групп
+from .api import groups
+app.include_router(groups.router, prefix="/api", tags=["groups"])
+
+# Система объявлений
+from .api import announcements
+app.include_router(announcements.router, prefix="/api", tags=["announcements"])
+
+# Система кураторского доступа
+from .api import curator_access
+app.include_router(curator_access.router, prefix="/api", tags=["curator-access"])
+
+# Система отчетов
+from .api import report_templates, reports
+app.include_router(report_templates.router, prefix="/api", tags=["report-templates"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
+
+# Журнал активности
+from .api import activity_logs
+app.include_router(activity_logs.router, prefix="/api/activity-logs", tags=["activity-logs"])
+
+# Статическая раздача файлов
+import os
+uploads_dir = "uploads"
+if not os.path.exists(uploads_dir):
+    os.makedirs(uploads_dir)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # WebSocket для уведомлений
 @app.websocket("/ws/{user_id}")
@@ -366,6 +412,67 @@ async def update_user_roles(user_id: int, role_data: UserRoleUpdate, current_use
     db.refresh(target_user)
     
     return {"message": "Роли пользователя обновлены", "user": target_user}
+
+@app.post("/api/users/{user_id}/roles")
+async def manage_user_role(
+    user_id: int, 
+    role_data: dict,
+    current_user: UserInfo = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Добавление или удаление роли пользователя"""
+    
+    # Проверяем админские права
+    user_full = db.query(UserModel).filter(UserModel.email == current_user.email).first()
+    if not user_full or "admin" not in (user_full.roles or []):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: требуются права администратора")
+    
+    # Получаем пользователя для обновления
+    target_user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    role = role_data.get("role")
+    action = role_data.get("action", "add")  # add или remove
+    
+    if not role:
+        raise HTTPException(status_code=400, detail="Не указана роль")
+    
+    # Валидируем роль
+    valid_roles = [r.value for r in UserRole]
+    if role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Недопустимая роль: {role}")
+    
+    # Получаем текущие роли
+    current_roles = target_user.roles or []
+    
+    if action == "add":
+        if role not in current_roles:
+            current_roles.append(role)
+            message = f"Роль '{role}' добавлена пользователю"
+        else:
+            message = f"Пользователь уже имеет роль '{role}'"
+    elif action == "remove":
+        if role in current_roles:
+            current_roles.remove(role)
+            message = f"Роль '{role}' удалена у пользователя"
+        else:
+            message = f"Пользователь не имеет роль '{role}'"
+    else:
+        raise HTTPException(status_code=400, detail="Недопустимое действие. Используйте 'add' или 'remove'")
+    
+    # Обновляем роли
+    target_user.roles = current_roles
+    db.commit()
+    db.refresh(target_user)
+    
+    return {
+        "message": message, 
+        "user_id": user_id,
+        "role": role,
+        "action": action,
+        "current_roles": current_roles
+    }
 
 if __name__ == "__main__":
     import uvicorn

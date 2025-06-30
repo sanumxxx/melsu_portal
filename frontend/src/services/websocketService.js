@@ -23,22 +23,25 @@ class WebSocketService {
       // Запрашиваем разрешение на уведомления при первом подключении
       await this.requestNotificationPermission();
 
-      const wsUrl = `ws://localhost:8000/ws/${userId}`;
-      console.log(`🔌 Подключение WebSocket: ${wsUrl}`);
+      // Определяем WebSocket URL в зависимости от текущего хоста
+      const currentHost = window.location.hostname;
+      let wsHost = 'localhost:8000';
+      
+      if (currentHost === '10.128.7.101') {
+        wsHost = '10.128.7.101:8000';
+      } else if (currentHost === '127.0.0.1') {
+        wsHost = '127.0.0.1:8000';
+      }
+      
+      const wsUrl = `ws://${wsHost}/ws/${userId}`;
+
       
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
-        console.log('✅ WebSocket подключен');
         this.reconnectAttempts = 0;
         this.isConnecting = false;
         this.startHeartbeat();
-        
-        // Показываем уведомление о подключении
-        toast.success('🔔 Уведомления включены', {
-          duration: 3000,
-          position: 'top-right'
-        });
       };
 
       this.ws.onmessage = (event) => {
@@ -51,7 +54,6 @@ class WebSocketService {
       };
 
       this.ws.onclose = (event) => {
-        console.log('❌ WebSocket отключен:', event.code, event.reason);
         this.isConnecting = false;
         this.stopHeartbeat();
         
@@ -91,7 +93,6 @@ class WebSocketService {
 
   attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ Превышено максимальное количество попыток переподключения');
       toast.error('Не удалось подключиться к серверу уведомлений', {
         duration: 5000
       });
@@ -100,8 +101,6 @@ class WebSocketService {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1); // Exponential backoff
-    
-    console.log(`🔄 Попытка переподключения ${this.reconnectAttempts}/${this.maxReconnectAttempts} через ${delay}ms`);
     
     setTimeout(() => {
       if (this.userId) {
@@ -136,11 +135,8 @@ class WebSocketService {
   }
 
   handleMessage(data) {
-    console.log('📨 Получено WebSocket сообщение:', data);
-
     switch (data.type) {
       case 'connection_established':
-        console.log('✅ Соединение установлено:', data.message);
         break;
 
       case 'new_request':
@@ -161,7 +157,8 @@ class WebSocketService {
         break;
 
       default:
-        console.log('🤷 Неизвестный тип сообщения:', data.type, data);
+        // Неизвестный тип сообщения - игнорируем
+        break;
     }
   }
 
@@ -178,7 +175,7 @@ class WebSocketService {
       onClick: () => {
         // Переход к заявке при клике
         if (data.request_id) {
-          window.location.href = `/requests/${data.request_id}`;
+          window.location.href = `/requests/${data.request_id}?from=notification&type=new_request`;
         }
       }
     });
@@ -206,7 +203,7 @@ class WebSocketService {
       },
       onClick: () => {
         if (data.request_id) {
-          window.location.href = `/requests/${data.request_id}`;
+          window.location.href = `/requests/${data.request_id}?from=notification&type=status_change`;
         }
       }
     });
@@ -233,7 +230,7 @@ class WebSocketService {
       position: 'top-right',
       onClick: () => {
         if (data.request_id) {
-          window.location.href = `/requests/${data.request_id}`;
+          window.location.href = `/requests/${data.request_id}?from=notification&type=request_updated`;
         }
       }
     });
@@ -272,7 +269,8 @@ class WebSocketService {
         
         if (data.request_id) {
           // Переходим к заявке
-          window.location.href = `/requests/${data.request_id}`;
+          const notificationType = data.type || 'unknown';
+          window.location.href = `/requests/${data.request_id}?from=notification&type=${notificationType}`;
         }
         
         notification.close();
@@ -324,7 +322,6 @@ class WebSocketService {
   }
 
   disconnect() {
-    console.log('🔌 Отключение WebSocket...');
     this.stopHeartbeat();
     
     if (this.ws) {
