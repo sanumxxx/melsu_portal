@@ -10,7 +10,7 @@ load_dotenv(dotenv_path=env_path)
 class DatabaseConfig:
     """Конфигурация базы данных"""
     # По умолчанию используем PostgreSQL для производства  
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://melsu_dev:Yandex200515_@localhost:5432/university_portal")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://melsu_user:MelsuPortal2024!@localhost/melsu_db")
     
     # Для PostgreSQL используйте:
     # DATABASE_URL=postgresql://postgres:password@localhost:5432/university_portal

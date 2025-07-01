@@ -164,11 +164,20 @@ class EmailService:
     
     def send_verification_code(self, to_email: str, code: str, user_name: str = None) -> bool:
         """Отправляет код подтверждения на email"""
+        print(f"[EMAIL] 🚀 Начинаем отправку кода {code} на {to_email}")
+        print(f"[EMAIL] 📋 Настройки SMTP:")
+        print(f"[EMAIL]    Сервер: {self.smtp_server}")
+        print(f"[EMAIL]    Порт: {self.smtp_port}")
+        print(f"[EMAIL]    Пользователь: {self.username}")
+        print(f"[EMAIL]    Отправитель: {self.from_email}")
+        
         try:
             # Создаем содержимое письма
+            print(f"[EMAIL] 📝 Создаем содержимое письма...")
             html_body, text_body = self._create_verification_email_body(code, user_name)
             
             # Создаем сообщение
+            print(f"[EMAIL] 📧 Формируем MIME сообщение...")
             message = MIMEMultipart("alternative")
             message["Subject"] = f"Код подтверждения МелГУ: {code}"
             message["From"] = f"{self.from_name} <{self.from_email}>"
@@ -180,21 +189,49 @@ class EmailService:
             
             message.attach(text_part)
             message.attach(html_part)
+            print(f"[EMAIL] ✅ MIME сообщение сформировано")
             
             # Отправляем через SMTP с STARTTLS
+            print(f"[EMAIL] 🔗 Подключаемся к SMTP серверу {self.smtp_server}:{self.smtp_port}...")
             context = ssl.create_default_context()
             
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls(context=context)  # Включаем STARTTLS
+                print(f"[EMAIL] ✅ Подключение к SMTP установлено")
+                
+                print(f"[EMAIL] 🔐 Включаем STARTTLS...")
+                server.starttls(context=context)
+                print(f"[EMAIL] ✅ STARTTLS активирован")
+                
+                print(f"[EMAIL] 👤 Аутентификация пользователя {self.username}...")
                 server.login(self.username, self.password)
+                print(f"[EMAIL] ✅ Аутентификация успешна")
+                
+                print(f"[EMAIL] 📤 Отправляем письмо от {self.from_email} к {to_email}...")
                 text = message.as_string()
                 server.sendmail(self.from_email, to_email, text)
+                print(f"[EMAIL] ✅ Письмо отправлено успешно!")
             
-            print(f"[EMAIL] Verification code sent successfully to {to_email}")
+            print(f"[EMAIL] 🎉 Код подтверждения успешно отправлен на {to_email}")
             return True
             
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"[EMAIL ERROR] ❌ Ошибка аутентификации SMTP: {str(e)}")
+            print(f"[EMAIL ERROR] 🔍 Проверьте логин/пароль: {self.username}")
+            return False
+        except smtplib.SMTPConnectError as e:
+            print(f"[EMAIL ERROR] ❌ Ошибка подключения к SMTP серверу: {str(e)}")
+            print(f"[EMAIL ERROR] 🔍 Проверьте сервер/порт: {self.smtp_server}:{self.smtp_port}")
+            return False
+        except smtplib.SMTPRecipientsRefused as e:
+            print(f"[EMAIL ERROR] ❌ Получатель отклонен: {str(e)}")
+            print(f"[EMAIL ERROR] 🔍 Проверьте email адрес: {to_email}")
+            return False
+        except smtplib.SMTPException as e:
+            print(f"[EMAIL ERROR] ❌ Общая ошибка SMTP: {str(e)}")
+            return False
         except Exception as e:
-            print(f"[EMAIL ERROR] Failed to send verification code to {to_email}: {str(e)}")
+            print(f"[EMAIL ERROR] ❌ Неожиданная ошибка при отправке кода на {to_email}: {str(e)}")
+            print(f"[EMAIL ERROR] 🐞 Тип ошибки: {type(e).__name__}")
             return False
     
     def send_password_reset_code(self, to_email: str, code: str, user_name: str = None) -> bool:

@@ -1,23 +1,6 @@
 // Простая авторизация для портала МелГУ
 
-// Динамически определяем API URL в зависимости от хоста
-const getApiBaseUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  
-  const currentHost = window.location.hostname;
-  if (currentHost === '10.128.7.101') {
-    return 'http://10.128.7.101:8000';
-  } else if (currentHost === '127.0.0.1') {
-    return 'http://127.0.0.1:8000';
-  }
-  
-  return 'http://localhost:8000';
-};
-
-const API_BASE_URL = getApiBaseUrl();
-
+const API_BASE_URL = 'http://82.202.130.12';
 class ApiService {
   constructor() {
     this.accessToken = localStorage.getItem('token');
