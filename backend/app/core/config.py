@@ -23,12 +23,14 @@ class JWTConfig:
 
 class EmailConfig:
     """Конфигурация email"""
-    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
-    MAIL_FROM: str = os.getenv("MAIL_FROM", "noreply@melgu.ru")
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "help@melsu.ru")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "fl_92||LII_O")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "help@melsu.ru")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
-    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "МелГУ - Система управления")
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "email.melsu.ru")
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "МелГУ - Техническая поддержка")
+    MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
+    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
 
 class ServerConfig:
     """Конфигурация сервера"""
@@ -55,6 +57,8 @@ class Settings:
     MAIL_PORT = EmailConfig.MAIL_PORT
     MAIL_SERVER = EmailConfig.MAIL_SERVER
     MAIL_FROM_NAME = EmailConfig.MAIL_FROM_NAME
+    MAIL_STARTTLS = EmailConfig.MAIL_STARTTLS
+    MAIL_SSL_TLS = EmailConfig.MAIL_SSL_TLS
     
     # Сервер
     HOST = ServerConfig.HOST
