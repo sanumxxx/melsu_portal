@@ -194,6 +194,9 @@ class EmailService:
             # Отправляем через SMTP с STARTTLS
             print(f"[EMAIL] 🔗 Подключаемся к SMTP серверу {self.smtp_server}:{self.smtp_port}...")
             context = ssl.create_default_context()
+            # Отключаем проверку SSL сертификата для серверов с самоподписанными сертификатами
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
             
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 print(f"[EMAIL] ✅ Подключение к SMTP установлено")
@@ -295,6 +298,9 @@ class EmailService:
             message.attach(html_part)
             
             context = ssl.create_default_context()
+            # Отключаем проверку SSL сертификата для серверов с самоподписанными сертификатами
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
             
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls(context=context)

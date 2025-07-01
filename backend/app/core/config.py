@@ -24,7 +24,7 @@ class JWTConfig:
 class EmailConfig:
     """Конфигурация email"""
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "help@melsu.ru")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "fl_92||LII_O")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "fl_92||LII_O") 
     MAIL_FROM: str = os.getenv("MAIL_FROM", "help@melsu.ru")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "email.melsu.ru")
