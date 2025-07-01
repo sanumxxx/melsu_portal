@@ -31,24 +31,33 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 @router.post("/send-verification-code")
 async def send_code(request: EmailVerificationRequest, db: Session = Depends(get_db)):
+    print(f"[API] 📨 Запрос на отправку кода для {request.email}")
     try:
         # Проверяем, не зарегистрирован ли уже пользователь
         existing_user = db.query(UserModel).filter(UserModel.email == request.email).first()
         if existing_user:
+            print(f"[API] ❌ Пользователь {request.email} уже существует")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Пользователь с таким email уже существует"
             )
         
+        print(f"[API] ✅ Пользователь {request.email} не найден, отправляем код")
         code = await send_verification_code(request.email, db)
+        print(f"[API] 🎉 Код для {request.email} сгенерирован и отправлен")
         return {
             "message": "Код подтверждения отправлен на email", 
             "code": code  # В продакшене убрать!
         }
+    except HTTPException:
+        # Пропускаем HTTP исключения как есть
+        raise
     except Exception as e:
+        print(f"[API] 💥 Неожиданная ошибка при отправке кода для {request.email}: {str(e)}")
+        print(f"[API] 🐞 Тип ошибки: {type(e).__name__}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка отправки кода"
+            detail=f"Ошибка отправки кода: {str(e)}"
         )
 
 @router.post("/verify-code")

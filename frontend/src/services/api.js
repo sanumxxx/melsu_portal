@@ -1,6 +1,7 @@
 // Простая авторизация для портала МелГУ
 
-const API_BASE_URL = 'http://82.202.130.12';
+// Автоматически определяем базовый URL на основе текущего домена и протокола
+const API_BASE_URL = window.location.origin;
 class ApiService {
   constructor() {
     this.accessToken = localStorage.getItem('token');
