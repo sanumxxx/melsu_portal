@@ -633,21 +633,30 @@ const RequestForm = () => {
         </Button>
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-            <span className="md:hidden">{isEditing ? 'Редактирование' : selectedTemplate.name}</span>
-            <span className="hidden md:inline">{isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}</span>
+            <span className="max-sm:block hidden">{isEditing ? 'Редактирование' : selectedTemplate.name}</span>
+            <span className="max-sm:hidden">{isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}</span>
           </h1>
-          <p className="text-gray-600 mt-1">
+          <div className="mt-1 space-y-1">
             {currentRequest && (
-              <span className="text-blue-600 font-medium">
-                Черновик заявки №{currentRequest.id} • 
-              </span>
+              <div className="text-blue-600 font-medium text-sm">
+                Черновик заявки №{currentRequest.id}
+              </div>
             )}
-            {selectedTemplate.description && `${selectedTemplate.description} • `}
-            Срок рассмотрения: {selectedTemplate.deadline_days} {
-              selectedTemplate.deadline_days === 1 ? 'день' : 
-              selectedTemplate.deadline_days < 5 ? 'дня' : 'дней'
-            }
-          </p>
+            <div className="text-gray-600 text-sm">
+              {selectedTemplate.description && (
+                <span className="block sm:inline">
+                  {selectedTemplate.description}
+                  <span className="hidden sm:inline"> • </span>
+                </span>
+              )}
+              <span className="block sm:inline">
+                Срок рассмотрения: {selectedTemplate.deadline_days} {
+                  selectedTemplate.deadline_days === 1 ? 'день' : 
+                  selectedTemplate.deadline_days < 5 ? 'дня' : 'дней'
+                }
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -21,6 +21,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import AssignmentManager from './admin/AssignmentManager';
+import PixelCard from './common/PixelCard';
 
 // Компонент для отображения "Не указано" с иконкой
 const NotSpecified = () => (
@@ -1073,7 +1074,13 @@ const Users = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Телефон</label>
-                              <p className="text-gray-900">{userDetails.profile.phone || 'Не указано'}</p>
+                              {userDetails.profile.phone ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.phone}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Дополнительный email</label>
@@ -1092,11 +1099,23 @@ const Users = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Серия паспорта</label>
-                              <p className="text-gray-900">{userDetails.profile.passport_series || 'Не указано'}</p>
+                              {userDetails.profile.passport_series ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.passport_series}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Номер паспорта</label>
-                              <p className="text-gray-900">{userDetails.profile.passport_number || 'Не указано'}</p>
+                              {userDetails.profile.passport_number ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.passport_number}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div className="md:col-span-2">
                               <label className="block text-sm font-medium text-gray-700 mb-2">Кем выдан паспорт</label>
@@ -1108,11 +1127,23 @@ const Users = () => {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">СНИЛС</label>
-                              <p className="text-gray-900">{userDetails.profile.snils || 'Не указано'}</p>
+                              {userDetails.profile.snils ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.snils}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">ИНН</label>
-                              <p className="text-gray-900">{userDetails.profile.inn || 'Не указано'}</p>
+                              {userDetails.profile.inn ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.inn}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1172,7 +1203,13 @@ const Users = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Студенческий билет</label>
-                              <p className="text-gray-900">{userDetails.profile.student_id || 'Не указано'}</p>
+                              {userDetails.profile.student_id ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.student_id}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Группа</label>
@@ -1244,7 +1281,13 @@ const Users = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Табельный номер</label>
-                              <p className="text-gray-900">{userDetails.profile.employee_id || 'Не указано'}</p>
+                              {userDetails.profile.employee_id ? (
+                                <PixelCard variant="black" className="inline-block min-w-24">
+                                  <p className="pixel-card-content text-gray-900">{userDetails.profile.employee_id}</p>
+                                </PixelCard>
+                              ) : (
+                                <p className="text-gray-900">Не указано</p>
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Тип трудоустройства</label>

@@ -13,6 +13,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
+import PixelCard from './common/PixelCard';
 
 const Profile = ({ user }) => {
   const [profileData, setProfileData] = useState({});
@@ -246,7 +247,13 @@ const Profile = ({ user }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Телефон</label>
-              <p className="text-gray-900">{getValueOrNotSpecified(profileData.phone)}</p>
+              {profileData.phone ? (
+                <PixelCard variant="black" className="inline-block min-w-24">
+                  <p className="pixel-card-content text-gray-900">{profileData.phone}</p>
+                </PixelCard>
+              ) : (
+                <p className="text-gray-900">{renderNotSpecified()}</p>
+              )}
             </div>
           </div>
         </div>
@@ -261,11 +268,23 @@ const Profile = ({ user }) => {
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700">Серия паспорта</label>
-              <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_series)}</p>
+              {profileData.passport_series ? (
+                <PixelCard variant="black" className="inline-block min-w-24">
+                  <p className="pixel-card-content text-gray-900">{profileData.passport_series}</p>
+                </PixelCard>
+              ) : (
+                <p className="text-gray-900">{renderNotSpecified()}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Номер паспорта</label>
-              <p className="text-gray-900">{getValueOrNotSpecified(profileData.passport_number)}</p>
+              {profileData.passport_number ? (
+                <PixelCard variant="black" className="inline-block min-w-24">
+                  <p className="pixel-card-content text-gray-900">{profileData.passport_number}</p>
+                </PixelCard>
+              ) : (
+                <p className="text-gray-900">{renderNotSpecified()}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Дата выдачи паспорта</label>
@@ -277,11 +296,23 @@ const Profile = ({ user }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">СНИЛС</label>
-              <p className="text-gray-900">{getValueOrNotSpecified(profileData.snils)}</p>
+              {profileData.snils ? (
+                <PixelCard variant="black" className="inline-block min-w-24">
+                  <p className="pixel-card-content text-gray-900">{profileData.snils}</p>
+                </PixelCard>
+              ) : (
+                <p className="text-gray-900">{renderNotSpecified()}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">ИНН</label>
-              <p className="text-gray-900">{getValueOrNotSpecified(profileData.inn)}</p>
+              {profileData.inn ? (
+                <PixelCard variant="black" className="inline-block min-w-24">
+                  <p className="pixel-card-content text-gray-900">{profileData.inn}</p>
+                </PixelCard>
+              ) : (
+                <p className="text-gray-900">{renderNotSpecified()}</p>
+              )}
             </div>
           </div>
         </div>
@@ -351,7 +382,13 @@ const Profile = ({ user }) => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Студенческий билет</label>
-                  <p className="text-gray-900">{profileData.student_id || 'Не указано'}</p>
+                  {profileData.student_id ? (
+                    <PixelCard variant="black" className="inline-block min-w-24">
+                      <p className="pixel-card-content text-gray-900">{profileData.student_id}</p>
+                    </PixelCard>
+                  ) : (
+                    <p className="text-gray-900">Не указано</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Группа</label>
@@ -398,7 +435,13 @@ const Profile = ({ user }) => {
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Табельный номер</label>
-                  <p className="text-gray-900">{profileData.employee_id || 'Не указано'}</p>
+                  {profileData.employee_id ? (
+                    <PixelCard variant="black" className="inline-block min-w-24">
+                      <p className="pixel-card-content text-gray-900">{profileData.employee_id}</p>
+                    </PixelCard>
+                  ) : (
+                    <p className="text-gray-900">Не указано</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Дата трудоустройства</label>
