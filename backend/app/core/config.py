@@ -19,7 +19,7 @@ except Exception as e:
     print("ℹ️ Используем переменные окружения и значения по умолчанию")
 
 class DatabaseConfig:
-    """Конфигурация базы данных"""
+    """Конфигурация базы данных """
     # По умолчанию используем PostgreSQL для производства  
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://melsu_user:MelsuPortal2024!@localhost/melsu_db")
     
