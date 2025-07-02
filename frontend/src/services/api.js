@@ -9,15 +9,17 @@ class ApiService {
   // Метод для получения актуального токена
   getCurrentToken() {
     const token = localStorage.getItem('token');
+    console.log('🔍 getCurrentToken: Retrieved from localStorage:', token ? 'Present' : 'Not found');
     
     // Проверяем валидность токена
     if (token && !this.isTokenValid(token)) {
-      console.warn('Token expired, clearing token');
+      console.warn('⚠️ getCurrentToken: Token expired, clearing token');
       this.clearToken();
       return null;
     }
     
     this.accessToken = token; // Обновляем внутренний токен
+    console.log('✅ getCurrentToken: Valid token ready for use');
     return token;
   }
 
@@ -168,6 +170,14 @@ class ApiService {
    */
   async getUserProfile() {
     const token = this.getCurrentToken(); // Получаем актуальный токен
+    console.log('🔐 getUserProfile: Token status:', token ? 'Valid' : 'Invalid/Missing');
+    
+    if (!token) {
+      console.log('❌ getUserProfile: No valid token found');
+      throw new Error('No valid token available');
+    }
+    
+    console.log('📞 getUserProfile: Making request to', `${API_BASE_URL}/api/profile/basic`);
     
     const response = await fetch(`${API_BASE_URL}/api/profile/basic`, {
       method: 'GET',
@@ -177,15 +187,22 @@ class ApiService {
       }
     });
 
+    console.log('📡 getUserProfile: Response status:', response.status);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ getUserProfile: Error response:', errorText);
+      
       if (response.status === 401) {
+        console.log('🚪 getUserProfile: Token expired, logging out');
         this.logout();
         throw new Error('Сессия истекла, войдите снова');
       }
-      throw new Error('Ошибка получения профиля');
+      throw new Error(`Ошибка получения профиля: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('✅ getUserProfile: Success', data);
     return { data };
   }
 
@@ -242,10 +259,11 @@ class ApiService {
   }
 
   logout() {
+    console.log('🚪 logout: Clearing token and redirecting if needed');
     this.clearToken();
     // Перенаправляем на страницу входа если мы не находимся на ней
-    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-      console.log('Session expired, redirecting to login');
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/' && window.location.pathname !== '/register') {
+      console.log('🔄 logout: Redirecting to login from', window.location.pathname);
       window.location.href = '/login';
     }
   }

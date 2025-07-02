@@ -63,23 +63,34 @@ function App() {
   }, []);
 
   const checkAuth = async () => {
+    console.log('🔍 Starting auth check...');
     const token = localStorage.getItem('token');
+    console.log('🔑 Token from localStorage:', token ? 'Present' : 'Not found');
+    
     if (token) {
       try {
+        console.log('📡 Making auth request to API...');
         // Проверяем токен через API
         const response = await api.getUserProfile();
         setUser(response.data);
-        console.log('Auth check successful:', response.data);
+        console.log('✅ Auth check successful:', response.data);
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('❌ Auth check failed:', error);
+        console.error('Error details:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
         // Токен недействителен, очищаем его
         localStorage.removeItem('token');
         setUser(null);
       }
     } else {
+      console.log('ℹ️ No token found, user not authenticated');
       setUser(null);
     }
     setLoading(false);
+    console.log('🏁 Auth check completed');
   };
 
   const handleLogin = (userData) => {
