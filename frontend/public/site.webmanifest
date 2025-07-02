@@ -25,17 +25,12 @@
       "purpose": "maskable any"
     },
     {
-      "src": "/favicon-16x16.png",
-      "sizes": "16x16",
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
       "type": "image/png"
     },
     {
-      "src": "/favicon-32x32.png",
-      "sizes": "32x32",
-      "type": "image/png"
-    },
-    {
-      "src": "/apple-touch-icon-180x180.png",
+      "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
     }
@@ -56,8 +51,8 @@
       "url": "/profile",
       "icons": [
         {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32"
+          "src": "/favicon-96x96.png",
+          "sizes": "96x96"
         }
       ]
     },
@@ -68,8 +63,8 @@
       "url": "/requests",
       "icons": [
         {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32"
+          "src": "/favicon-96x96.png",
+          "sizes": "96x96"
         }
       ]
     },
@@ -80,10 +75,10 @@
       "url": "/schedule",
       "icons": [
         {
-          "src": "/favicon-32x32.png",
-          "sizes": "32x32"
+          "src": "/favicon-96x96.png",
+          "sizes": "96x96"
         }
       ]
     }
   ]
-} 
+}
