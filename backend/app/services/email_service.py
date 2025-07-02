@@ -142,8 +142,14 @@ class EmailService:
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">МелГУ</div>
-            <div>Мелитопольский государственный университет</div>
+            <div style="margin-bottom: 15px;">
+                <img src="{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/logo.png" 
+                     alt="Логотип МелГУ" 
+                     style="max-width: 150px; height: auto; display: block; margin: 0 auto; border-radius: 4px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                <div class="logo" style="display: none;">МелГУ</div>
+            </div>
+            <div style="font-size: 16px; color: #666;">Мелитопольский государственный университет</div>
         </div>
         
         <h1 style="color: #dc2626; text-align: center;">Код подтверждения</h1>
@@ -351,8 +357,14 @@ class EmailService:
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">МелГУ</div>
-            <div>Мелитопольский государственный университет</div>
+            <div style="margin-bottom: 15px;">
+                <img src="{getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')}/logo.png" 
+                     alt="Логотип МелГУ" 
+                     style="max-width: 150px; height: auto; display: block; margin: 0 auto; border-radius: 4px;"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                <div class="logo" style="display: none;">МелГУ</div>
+            </div>
+            <div style="font-size: 16px; color: #666;">Мелитопольский государственный университет</div>
         </div>
         <h1 style="color: #dc2626; text-align: center;">Сброс пароля</h1>
         <p>{user_greeting}</p>

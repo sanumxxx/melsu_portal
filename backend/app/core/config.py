@@ -42,6 +42,7 @@ class EmailConfig:
     MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "МелГУ - Техническая поддержка")
     MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
     MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 class ServerConfig:
     """Конфигурация сервера"""
@@ -68,6 +69,7 @@ class Settings:
     MAIL_PORT = EmailConfig.MAIL_PORT
     MAIL_SERVER = EmailConfig.MAIL_SERVER
     MAIL_FROM_NAME = EmailConfig.MAIL_FROM_NAME
+    FRONTEND_URL = EmailConfig.FRONTEND_URL
     
     # Сервер
     HOST = ServerConfig.HOST
