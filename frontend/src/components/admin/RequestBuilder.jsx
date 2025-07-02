@@ -8,6 +8,7 @@ import Select from '../common/Select';
 import UserSearch from '../common/UserSearch';
 import { Loader } from '../common/Loader';
 import { Alert } from '../common/Alert';
+import MaskConstructor from './MaskConstructor';
 import {
   PlusIcon,
   PencilIcon,
@@ -94,7 +95,16 @@ const RequestBuilder = () => {
     conditional_operator: 'equals',
     profile_field_mapping: '',
     update_profile_on_submit: false,
-    update_profile_on_approve: false
+    update_profile_on_approve: false,
+    // Поля маски
+    mask_enabled: false,
+    mask_type: null,
+    mask_pattern: null,
+    mask_placeholder: null,
+    mask_validation_regex: null,
+    mask_validation_message: null,
+    mask_guide: true,
+    mask_keep_char_positions: false
   });
   const [fieldOptions, setFieldOptions] = useState([]);
   const [newOption, setNewOption] = useState('');
@@ -512,7 +522,16 @@ const RequestBuilder = () => {
       conditional_operator: 'equals',
       profile_field_mapping: '',
       update_profile_on_submit: false,
-      update_profile_on_approve: false
+      update_profile_on_approve: false,
+      // Поля маски
+      mask_enabled: false,
+      mask_type: null,
+      mask_pattern: null,
+      mask_placeholder: null,
+      mask_validation_regex: null,
+      mask_validation_message: null,
+      mask_guide: true,
+      mask_keep_char_positions: false
     });
     setFieldOptions([]);
     setNewOption('');
@@ -537,7 +556,16 @@ const RequestBuilder = () => {
       conditional_operator: field.conditional_operator || 'equals',
       profile_field_mapping: field.profile_field_mapping || '',
       update_profile_on_submit: field.update_profile_on_submit || false,
-      update_profile_on_approve: field.update_profile_on_approve || false
+      update_profile_on_approve: field.update_profile_on_approve || false,
+      // Поля маски
+      mask_enabled: field.mask_enabled || false,
+      mask_type: field.mask_type || null,
+      mask_pattern: field.mask_pattern || null,
+      mask_placeholder: field.mask_placeholder || null,
+      mask_validation_regex: field.mask_validation_regex || null,
+      mask_validation_message: field.mask_validation_message || null,
+      mask_guide: field.mask_guide !== undefined ? field.mask_guide : true,
+      mask_keep_char_positions: field.mask_keep_char_positions || false
     });
     setFieldOptions(field.options || []);
     setNewOption('');
@@ -1714,6 +1742,31 @@ const RequestBuilder = () => {
                                   disabled={loading}
                                 />
                               </div>
+
+                              {/* Конструктор масок для текстовых полей */}
+                              {getSelectedFieldType()?.input_type && ['text', 'email', 'number', 'date', 'tel'].includes(getSelectedFieldType().input_type) && (
+                                <div className="space-y-4">
+                                  <MaskConstructor
+                                    value={{
+                                      mask_enabled: fieldData.mask_enabled,
+                                      mask_type: fieldData.mask_type,
+                                      mask_pattern: fieldData.mask_pattern,
+                                      mask_placeholder: fieldData.mask_placeholder,
+                                      mask_validation_regex: fieldData.mask_validation_regex,
+                                      mask_validation_message: fieldData.mask_validation_message,
+                                      mask_guide: fieldData.mask_guide,
+                                      mask_keep_char_positions: fieldData.mask_keep_char_positions
+                                    }}
+                                    onChange={(maskSettings) => {
+                                      setFieldData(prev => ({
+                                        ...prev,
+                                        ...maskSettings
+                                      }));
+                                    }}
+                                    className="border-t pt-4"
+                                  />
+                                </div>
+                              )}
 
                               {/* Секция для вариантов ответов */}
                               {hasOptions() && (

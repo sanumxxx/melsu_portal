@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
+import MediaPlayer from './common/MediaPlayer';
 
 const AnnouncementModal = () => {
   const [announcement, setAnnouncement] = useState(null);
@@ -94,17 +95,32 @@ const AnnouncementModal = () => {
 
           {/* Содержимое */}
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
-            {/* Изображение */}
-            {announcement.image_url && (
+            {/* Медиафайл или изображение */}
+            {(announcement.has_media || announcement.image_url) && (
               <div className="mb-4">
-                <img
-                  src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
-                  alt=""
-                  className="w-full h-48 object-cover rounded-lg"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
+                {announcement.has_media ? (
+                  <MediaPlayer
+                    src={announcement.media_url.startsWith('http') ? announcement.media_url : `http://localhost:8000${announcement.media_url}`}
+                    type={announcement.media_type}
+                    thumbnail={announcement.media_thumbnail_url}
+                    autoplay={announcement.media_autoplay}
+                    loop={announcement.media_loop}
+                    muted={announcement.media_muted}
+                    controls={announcement.media_type === 'video'}
+                    className="w-full max-h-64 rounded-lg"
+                    showOverlay={true}
+                    lazy={false}
+                  />
+                ) : (
+                  <img
+                    src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
+                    alt=""
+                    className="w-full h-48 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
               </div>
             )}
 

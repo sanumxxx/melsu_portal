@@ -9,7 +9,21 @@ class Announcement(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False, comment="Заголовок объявления")
     description = Column(Text, nullable=True, comment="Описание объявления")
-    image_url = Column(String(500), nullable=True, comment="URL изображения")
+    image_url = Column(String(500), nullable=True, comment="URL изображения (устарело, используйте media_url)")
+    
+    # Медиафайлы (GIF/видео)
+    has_media = Column(Boolean, default=False, nullable=False, comment="Есть ли медиафайл")
+    media_type = Column(String(20), nullable=True, comment="Тип медиа: image, gif, video")
+    media_url = Column(Text, nullable=True, comment="URL медиафайла")
+    media_filename = Column(String(255), nullable=True, comment="Оригинальное имя файла")
+    media_size = Column(Integer, nullable=True, comment="Размер файла в байтах")
+    media_duration = Column(Integer, nullable=True, comment="Длительность видео в секундах")
+    media_thumbnail_url = Column(Text, nullable=True, comment="URL превью для видео")
+    media_width = Column(Integer, nullable=True, comment="Ширина медиа")
+    media_height = Column(Integer, nullable=True, comment="Высота медиа")
+    media_autoplay = Column(Boolean, default=True, nullable=False, comment="Автопроигрывание")
+    media_loop = Column(Boolean, default=True, nullable=False, comment="Зацикливание")
+    media_muted = Column(Boolean, default=True, nullable=False, comment="Без звука по умолчанию")
     
     # Настройки видимости
     is_active = Column(Boolean, default=True, nullable=False, comment="Активно ли объявление")

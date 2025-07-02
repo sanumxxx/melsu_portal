@@ -38,6 +38,15 @@ class FieldBase(BaseModel):
     profile_field_mapping: Optional[str] = None
     update_profile_on_submit: bool = False
     update_profile_on_approve: bool = False
+    # Поля для масок ввода
+    mask_enabled: bool = False
+    mask_type: Optional[str] = None
+    mask_pattern: Optional[str] = None
+    mask_placeholder: Optional[str] = None
+    mask_validation_regex: Optional[str] = None
+    mask_validation_message: Optional[str] = None
+    mask_guide: bool = True
+    mask_keep_char_positions: bool = False
 
 class FieldCreate(FieldBase):
     field_type_id: int
@@ -60,6 +69,15 @@ class FieldUpdate(BaseModel):
     profile_field_mapping: Optional[str] = None
     update_profile_on_submit: Optional[bool] = None
     update_profile_on_approve: Optional[bool] = None
+    # Поля для масок ввода
+    mask_enabled: Optional[bool] = None
+    mask_type: Optional[str] = None
+    mask_pattern: Optional[str] = None
+    mask_placeholder: Optional[str] = None
+    mask_validation_regex: Optional[str] = None
+    mask_validation_message: Optional[str] = None
+    mask_guide: Optional[bool] = None
+    mask_keep_char_positions: Optional[bool] = None
 
 class Field(FieldBase):
     id: int

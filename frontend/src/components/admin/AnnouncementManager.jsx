@@ -6,26 +6,42 @@ import {
   PhotoIcon,
   EyeIcon,
   SpeakerWaveIcon,
-  XMarkIcon
+  XMarkIcon,
+  PlayIcon,
+  FilmIcon
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import MediaPlayer, { MediaPreview, useMediaType, validateMediaFile } from '../common/MediaPlayer';
 
 const AnnouncementManager = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    image_url: '',
+    image_url: '', // Старое поле для совместимости
     target_roles: [],
-    is_active: true
+    is_active: true,
+    // Новые поля для медиафайлов
+    has_media: false,
+    media_type: null,
+    media_url: null,
+    media_filename: null,
+    media_size: null,
+    media_duration: null,
+    media_thumbnail_url: null,
+    media_width: null,
+    media_height: null,
+    media_autoplay: true,
+    media_loop: true,
+    media_muted: true
   });
 
   const [availableRoles, setAvailableRoles] = useState([]);
@@ -109,37 +125,87 @@ const AnnouncementManager = () => {
     }
   };
 
-  const handleImageUpload = async (file) => {
+  const handleMediaUpload = async (file) => {
     if (!file) return;
+
+    // Валидация файла
+    const errors = validateMediaFile(file, 100 * 1024 * 1024); // 100MB
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
 
     try {
       setUploading(true);
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
-      // Не устанавливаем Content-Type вручную - браузер сам добавит boundary
-      const response = await api.post('/api/announcements/upload-image', uploadFormData);
+      // Используем новый эндпоинт для медиафайлов
+      const response = await api.post('/api/announcements/upload-media', uploadFormData);
 
-      const imageUrl = response.data.file_url;
-      setFormData(prev => ({ ...prev, image_url: imageUrl }));
-      // Устанавливаем полный URL для предварительного просмотра
-      setImagePreview(`http://localhost:8000${imageUrl}`);
-      toast.success('Изображение загружено');
+      const mediaData = response.data;
+      const mediaUrl = mediaData.file_url;
+      const mediaType = useMediaType(file.name) || mediaData.media_type;
+
+      // Обновляем формData с информацией о медиафайле
+      setFormData(prev => ({
+        ...prev,
+        has_media: true,
+        media_type: mediaType,
+        media_url: mediaUrl,
+        media_filename: mediaData.filename,
+        media_size: mediaData.size,
+        media_duration: mediaData.media_duration || null,
+        media_width: mediaData.media_width || null,
+        media_height: mediaData.media_height || null,
+        // Сбрасываем старое поле изображения
+        image_url: null
+      }));
+
+      // Устанавливаем данные для предпросмотра
+      setMediaPreview({
+        src: `http://localhost:8000${mediaUrl}`,
+        type: mediaType,
+        filename: mediaData.filename,
+        size: mediaData.size,
+        duration: mediaData.media_duration,
+        width: mediaData.media_width,
+        height: mediaData.media_height
+      });
+
+      toast.success(`${mediaType === 'video' ? 'Видео' : mediaType === 'gif' ? 'GIF' : 'Изображение'} загружено`);
     } catch (error) {
-      console.error('Ошибка загрузки изображения:', error);
-      toast.error('Не удалось загрузить изображение');
+      console.error('Ошибка загрузки медиафайла:', error);
+      const errorMessage = error.response?.data?.detail || 'Не удалось загрузить медиафайл';
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleMediaChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
-      // Убираем FileReader - будем использовать URL с сервера после загрузки
-      handleImageUpload(file);
+      setMediaFile(file);
+      handleMediaUpload(file);
     }
+  };
+
+  const clearMedia = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setFormData(prev => ({
+      ...prev,
+      has_media: false,
+      media_type: null,
+      media_url: null,
+      media_filename: null,
+      media_size: null,
+      media_duration: null,
+      media_thumbnail_url: null,
+      media_width: null,
+      media_height: null
+    }));
   };
 
   const openModal = (announcement = null) => {
@@ -150,14 +216,52 @@ const AnnouncementManager = () => {
         description: announcement.description || '',
         image_url: announcement.image_url || '',
         target_roles: announcement.target_roles || [],
-        is_active: announcement.is_active
+        is_active: announcement.is_active,
+        // Медиафайлы
+        has_media: announcement.has_media || false,
+        media_type: announcement.media_type || null,
+        media_url: announcement.media_url || null,
+        media_filename: announcement.media_filename || null,
+        media_size: announcement.media_size || null,
+        media_duration: announcement.media_duration || null,
+        media_thumbnail_url: announcement.media_thumbnail_url || null,
+        media_width: announcement.media_width || null,
+        media_height: announcement.media_height || null,
+        media_autoplay: announcement.media_autoplay !== undefined ? announcement.media_autoplay : true,
+        media_loop: announcement.media_loop !== undefined ? announcement.media_loop : true,
+        media_muted: announcement.media_muted !== undefined ? announcement.media_muted : true
       });
-      // Исправляем URL изображения для предварительного просмотра
-      const imageUrl = announcement.image_url || '';
-      if (imageUrl && !imageUrl.startsWith('http')) {
-        setImagePreview(`http://localhost:8000${imageUrl}`);
+      
+      // Настраиваем предпросмотр медиафайла
+      if (announcement.has_media && announcement.media_url) {
+        const mediaUrl = announcement.media_url.startsWith('http') 
+          ? announcement.media_url 
+          : `http://localhost:8000${announcement.media_url}`;
+        
+        setMediaPreview({
+          src: mediaUrl,
+          type: announcement.media_type,
+          filename: announcement.media_filename,
+          size: announcement.media_size,
+          duration: announcement.media_duration,
+          width: announcement.media_width,
+          height: announcement.media_height,
+          thumbnail: announcement.media_thumbnail_url
+        });
+      } else if (announcement.image_url) {
+        // Поддержка старых объявлений с image_url
+        const imageUrl = announcement.image_url.startsWith('http') 
+          ? announcement.image_url 
+          : `http://localhost:8000${announcement.image_url}`;
+        
+        setMediaPreview({
+          src: imageUrl,
+          type: 'image',
+          filename: 'image',
+          size: null
+        });
       } else {
-        setImagePreview(imageUrl);
+        setMediaPreview(null);
       }
     } else {
       setEditingAnnouncement(null);
@@ -166,11 +270,23 @@ const AnnouncementManager = () => {
         description: '',
         image_url: '',
         target_roles: [],
-        is_active: true
+        is_active: true,
+        has_media: false,
+        media_type: null,
+        media_url: null,
+        media_filename: null,
+        media_size: null,
+        media_duration: null,
+        media_thumbnail_url: null,
+        media_width: null,
+        media_height: null,
+        media_autoplay: true,
+        media_loop: true,
+        media_muted: true
       });
-      setImagePreview('');
+      setMediaPreview(null);
     }
-    setImageFile(null);
+    setMediaFile(null);
     setUploading(false);
     setShowModal(true);
   };
@@ -178,15 +294,27 @@ const AnnouncementManager = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingAnnouncement(null);
-    setImageFile(null);
-    setImagePreview('');
+    setMediaFile(null);
+    setMediaPreview(null);
     setUploading(false);
     setFormData({
       title: '',
       description: '',
       image_url: '',
       target_roles: [],
-      is_active: true
+      is_active: true,
+      has_media: false,
+      media_type: null,
+      media_url: null,
+      media_filename: null,
+      media_size: null,
+      media_duration: null,
+      media_thumbnail_url: null,
+      media_width: null,
+      media_height: null,
+      media_autoplay: true,
+      media_loop: true,
+      media_muted: true
     });
   };
 
@@ -272,20 +400,50 @@ const AnnouncementManager = () => {
                   <tr key={announcement.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-start">
-                        {announcement.image_url && (
-                          <img
-                            src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
-                            alt=""
-                            className="h-12 w-12 rounded-lg object-cover mr-4 flex-shrink-0"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
+                        {/* Медиафайл или старое изображение */}
+                        {(announcement.has_media || announcement.image_url) && (
+                          <div className="h-12 w-12 rounded-lg overflow-hidden mr-4 flex-shrink-0 bg-gray-100 relative">
+                            {announcement.has_media ? (
+                              <>
+                                <MediaPlayer
+                                  src={announcement.media_url.startsWith('http') ? announcement.media_url : `http://localhost:8000${announcement.media_url}`}
+                                  type={announcement.media_type}
+                                  thumbnail={announcement.media_thumbnail_url}
+                                  autoplay={false}
+                                  controls={false}
+                                  className="w-full h-full"
+                                  showOverlay={false}
+                                />
+                                {/* Индикатор типа медиа */}
+                                <div className="absolute top-0 right-0 bg-black bg-opacity-60 text-white text-xs px-1 rounded-bl">
+                                  {announcement.media_type === 'video' && <FilmIcon className="w-3 h-3" />}
+                                  {announcement.media_type === 'gif' && <PlayIcon className="w-3 h-3" />}
+                                  {announcement.media_type === 'image' && <PhotoIcon className="w-3 h-3" />}
+                                </div>
+                              </>
+                            ) : (
+                              <img
+                                src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                }}
+                              />
+                            )}
+                          </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {announcement.title}
-                          </p>
+                          <div className="flex items-center">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {announcement.title}
+                            </p>
+                            {announcement.has_media && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                {announcement.media_type?.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
                           {announcement.description && (
                             <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                               {announcement.description}
@@ -414,26 +572,40 @@ const AnnouncementManager = () => {
                       />
                     </div>
 
-                    {/* Изображение */}
+                    {/* Медиафайлы */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Изображение
+                        Медиафайл (изображение, GIF, видео)
                       </label>
                       <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          {imagePreview ? (
+                        <div className="space-y-1 text-center w-full">
+                          {mediaPreview ? (
                             <div className="relative">
-                              <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="mx-auto h-32 w-auto rounded-lg"
-                              />
+                              <div className="mx-auto" style={{ maxWidth: '300px', maxHeight: '200px' }}>
+                                <MediaPlayer
+                                  src={mediaPreview.src}
+                                  type={mediaPreview.type}
+                                  thumbnail={mediaPreview.thumbnail}
+                                  autoplay={false}
+                                  controls={true}
+                                  className="rounded-lg border border-gray-200"
+                                />
+                              </div>
+                              <div className="mt-2 text-xs text-gray-500 space-y-1">
+                                <div><strong>Файл:</strong> {mediaPreview.filename}</div>
+                                {mediaPreview.size && (
+                                  <div><strong>Размер:</strong> {(mediaPreview.size / 1024 / 1024).toFixed(1)} МБ</div>
+                                )}
+                                {mediaPreview.duration && (
+                                  <div><strong>Длительность:</strong> {mediaPreview.duration}с</div>
+                                )}
+                                {mediaPreview.width && mediaPreview.height && (
+                                  <div><strong>Разрешение:</strong> {mediaPreview.width}×{mediaPreview.height}</div>
+                                )}
+                              </div>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setImagePreview('');
-                                  setFormData(prev => ({ ...prev, image_url: '' }));
-                                }}
+                                onClick={clearMedia}
                                 className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-500 text-white rounded-full p-1"
                               >
                                 <XMarkIcon className="h-4 w-4" />
@@ -441,28 +613,74 @@ const AnnouncementManager = () => {
                             </div>
                           ) : (
                             <>
-                              <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                              <FilmIcon className="mx-auto h-12 w-12 text-gray-400" />
                               <div className="flex text-sm text-gray-600">
                                 <label className="relative cursor-pointer bg-white rounded-md font-medium text-red-600 hover:text-red-500">
-                                  <span>Загрузить файл</span>
+                                  <span>Загрузить медиафайл</span>
                                   <input
                                     type="file"
                                     className="sr-only"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
+                                    accept="image/*,video/*"
+                                    onChange={handleMediaChange}
                                     disabled={uploading}
                                   />
                                 </label>
                               </div>
-                              <p className="text-xs text-gray-500">PNG, JPG, GIF до 5MB</p>
+                              <p className="text-xs text-gray-500">
+                                JPEG, PNG, GIF (до 50МБ), MP4, WebM, MOV (до 100МБ)
+                              </p>
                             </>
                           )}
                         </div>
                       </div>
                       {uploading && (
-                        <div className="mt-2 text-sm text-gray-500">Загрузка изображения...</div>
+                        <div className="mt-2 text-sm text-gray-500">Загрузка медиафайла...</div>
                       )}
                     </div>
+
+                    {/* Настройки медиафайлов */}
+                    {formData.has_media && formData.media_type === 'video' && (
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">Настройки видео</h4>
+                        <div className="space-y-3">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.media_autoplay}
+                              onChange={(e) => setFormData(prev => ({ ...prev, media_autoplay: e.target.checked }))}
+                              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Автопроигрывание при показе объявления
+                            </span>
+                          </label>
+                          
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.media_loop}
+                              onChange={(e) => setFormData(prev => ({ ...prev, media_loop: e.target.checked }))}
+                              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Зацикливание видео
+                            </span>
+                          </label>
+                          
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.media_muted}
+                              onChange={(e) => setFormData(prev => ({ ...prev, media_muted: e.target.checked }))}
+                              className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              Отключить звук по умолчанию
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Целевые роли */}
                     <div>

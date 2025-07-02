@@ -48,6 +48,16 @@ class Field(Base):
     update_profile_on_submit = Column(Boolean, default=False)   # Обновлять ли профиль при подаче заявки
     update_profile_on_approve = Column(Boolean, default=False)  # Обновлять ли профиль при одобрении заявки
     
+    # Настройки масок ввода
+    mask_enabled = Column(Boolean, default=False, nullable=False)  # Включена ли маска
+    mask_type = Column(String(50), nullable=True)  # Тип маски (phone_ru, passport_rf, custom, etc.)
+    mask_pattern = Column(Text, nullable=True)  # Паттерн маски (+7 (999) 999-99-99)
+    mask_placeholder = Column(Text, nullable=True)  # Плейсхолдер маски (+7 (___) ___-__-__)
+    mask_validation_regex = Column(Text, nullable=True)  # Regex для валидации
+    mask_validation_message = Column(Text, nullable=True)  # Сообщение об ошибке валидации
+    mask_guide = Column(Boolean, default=True, nullable=False)  # Показывать ли направляющие символы
+    mask_keep_char_positions = Column(Boolean, default=False, nullable=False)  # Сохранять ли позиции символов
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

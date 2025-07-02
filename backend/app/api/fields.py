@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
+from pydantic import BaseModel
+import re
 from ..database import get_db
 from ..models.field import FieldType as FieldTypeModel, Field as FieldModel
 from ..schemas.field import FieldType, FieldTypeCreate, Field, FieldCreate, FieldUpdate
@@ -277,4 +279,238 @@ async def get_group_options(
             }
             for group in groups
         ]
+    }
+
+# ===========================================
+# ВАЛИДАЦИЯ МАСОК
+# ===========================================
+
+class FieldValueValidationRequest(BaseModel):
+    field_id: int
+    value: str
+
+class FieldValueValidationResponse(BaseModel):
+    is_valid: bool
+    error_message: str = None
+    formatted_value: str = None
+
+class MaskTemplateRequest(BaseModel):
+    mask_pattern: str
+    value: str
+
+class MaskTemplateResponse(BaseModel):
+    is_valid: bool
+    error_message: str = None
+
+def validate_mask_value(value: str, mask_pattern: str, validation_regex: str = None) -> Dict[str, Any]:
+    """Валидация значения по маске"""
+    if not value or not mask_pattern:
+        return {"is_valid": True}
+    
+    # Если есть regex для валидации, используем его
+    if validation_regex:
+        try:
+            pattern = re.compile(validation_regex)
+            if pattern.match(value):
+                return {"is_valid": True, "formatted_value": value}
+            else:
+                return {
+                    "is_valid": False, 
+                    "error_message": "Значение не соответствует формату маски"
+                }
+        except re.error:
+            # Если regex некорректный, используем простую проверку длины
+            pass
+    
+    # Простая валидация по длине маски
+    mask_length = len(mask_pattern)
+    if len(value) != mask_length:
+        return {
+            "is_valid": False,
+            "error_message": f"Значение должно содержать {mask_length} символов"
+        }
+    
+    return {"is_valid": True, "formatted_value": value}
+
+@router.post("/validate-field-value", response_model=FieldValueValidationResponse)
+async def validate_field_value(
+    validation_request: FieldValueValidationRequest,
+    db: Session = Depends(get_db)
+):
+    """Валидация значения поля с маской"""
+    field = db.query(FieldModel).filter(FieldModel.id == validation_request.field_id).first()
+    
+    if not field:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Поле не найдено"
+        )
+    
+    # Если маска не включена, считаем значение валидным
+    if not field.mask_enabled:
+        return FieldValueValidationResponse(
+            is_valid=True,
+            formatted_value=validation_request.value
+        )
+    
+    # Валидируем по маске
+    result = validate_mask_value(
+        validation_request.value,
+        field.mask_pattern,
+        field.mask_validation_regex
+    )
+    
+    return FieldValueValidationResponse(
+        is_valid=result["is_valid"],
+        error_message=result.get("error_message"),
+        formatted_value=result.get("formatted_value", validation_request.value)
+    )
+
+@router.post("/validate-mask", response_model=MaskTemplateResponse)
+async def validate_mask_template(
+    mask_request: MaskTemplateRequest,
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Валидация значения по шаблону маски (для тестирования в конструкторе)"""
+    check_admin_role(current_user)
+    
+    # Создаем временный regex из маски
+    try:
+        # Конвертируем маску в regex
+        regex_pattern = mask_request.mask_pattern
+        regex_pattern = regex_pattern.replace('9', r'\d')  # 9 -> цифра
+        regex_pattern = regex_pattern.replace('A', r'[A-Za-z]')  # A -> буква
+        regex_pattern = regex_pattern.replace('a', r'[a-z]')  # a -> строчная буква
+        regex_pattern = regex_pattern.replace('S', r'[A-Za-z0-9]')  # S -> буква или цифра
+        regex_pattern = regex_pattern.replace('Я', r'[А-Яа-я]')  # Я -> кириллица
+        regex_pattern = regex_pattern.replace('я', r'[а-я]')  # я -> строчная кириллица
+        regex_pattern = regex_pattern.replace('*', r'.')  # * -> любой символ
+        
+        # Экранируем спецсимволы regex
+        for char in '.^$+?{}[]|()\\':
+            if char in regex_pattern and char not in ['.', '^', '$', '\\']:
+                regex_pattern = regex_pattern.replace(char, f'\\{char}')
+        
+        regex_pattern = f'^{regex_pattern}$'
+        
+        # Валидируем значение
+        result = validate_mask_value(
+            mask_request.value,
+            mask_request.mask_pattern,
+            regex_pattern
+        )
+        
+        return MaskTemplateResponse(
+            is_valid=result["is_valid"],
+            error_message=result.get("error_message")
+        )
+        
+    except Exception as e:
+        return MaskTemplateResponse(
+            is_valid=False,
+            error_message=f"Ошибка валидации маски: {str(e)}"
+        )
+
+@router.get("/mask-templates")
+async def get_mask_templates(
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение доступных шаблонов масок"""
+    check_admin_role(current_user)
+    
+    templates = {
+        # Телефоны
+        "phone_ru": {
+            "id": "phone_ru",
+            "name": "Телефон России",
+            "pattern": "+7 (999) 999-99-99",
+            "placeholder": "+7 (___) ___-__-__",
+            "regex": r"^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$",
+            "example": "+7 (123) 456-78-90",
+            "category": "phone"
+        },
+        "phone_ua": {
+            "id": "phone_ua",
+            "name": "Телефон Украины",
+            "pattern": "+38 (999) 999-99-99",
+            "placeholder": "+38 (___) ___-__-__",
+            "regex": r"^\+38 \(\d{3}\) \d{3}-\d{2}-\d{2}$",
+            "example": "+38 (123) 456-78-90",
+            "category": "phone"
+        },
+        
+        # Документы РФ
+        "passport_rf": {
+            "id": "passport_rf",
+            "name": "Паспорт РФ",
+            "pattern": "99 99 999999",
+            "placeholder": "__ __ ______",
+            "regex": r"^\d{2} \d{2} \d{6}$",
+            "example": "12 34 567890",
+            "category": "document"
+        },
+        "snils": {
+            "id": "snils",
+            "name": "СНИЛС",
+            "pattern": "999-999-999 99",
+            "placeholder": "___-___-___ __",
+            "regex": r"^\d{3}-\d{3}-\d{3} \d{2}$",
+            "example": "123-456-789 01",
+            "category": "document"
+        },
+        "inn_personal": {
+            "id": "inn_personal",
+            "name": "ИНН физ. лица",
+            "pattern": "999999999999",
+            "placeholder": "____________",
+            "regex": r"^\d{12}$",
+            "example": "123456789012",
+            "category": "document"
+        },
+        
+        # Банковские данные
+        "card_number": {
+            "id": "card_number",
+            "name": "Номер банковской карты",
+            "pattern": "9999 9999 9999 9999",
+            "placeholder": "____ ____ ____ ____",
+            "regex": r"^\d{4} \d{4} \d{4} \d{4}$",
+            "example": "1234 5678 9012 3456",
+            "category": "bank"
+        },
+        
+        # Образовательные коды
+        "student_id": {
+            "id": "student_id",
+            "name": "Студенческий билет",
+            "pattern": "9999999999",
+            "placeholder": "__________",
+            "regex": r"^\d{10}$",
+            "example": "1234567890",
+            "category": "education"
+        },
+        
+        # Даты
+        "date_ru": {
+            "id": "date_ru",
+            "name": "Дата (ДД.ММ.ГГГГ)",
+            "pattern": "99.99.9999",
+            "placeholder": "__.__.____",
+            "regex": r"^\d{2}\.\d{2}\.\d{4}$",
+            "example": "01.01.2025",
+            "category": "date"
+        }
+    }
+    
+    categories = {
+        "phone": {"name": "Телефоны", "icon": "phone"},
+        "document": {"name": "Документы", "icon": "document"},
+        "bank": {"name": "Банковские данные", "icon": "credit-card"},
+        "education": {"name": "Образование", "icon": "academic-cap"},
+        "date": {"name": "Дата и время", "icon": "calendar"}
+    }
+    
+    return {
+        "templates": templates,
+        "categories": categories
     } 

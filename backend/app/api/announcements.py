@@ -52,7 +52,20 @@ async def create_announcement(
         image_url=announcement_data.image_url,
         target_roles=announcement_data.target_roles,
         is_active=announcement_data.is_active,
-        created_by_id=current_user.id
+        created_by_id=current_user.id,
+        # Медиафайлы
+        has_media=announcement_data.has_media,
+        media_type=announcement_data.media_type,
+        media_url=announcement_data.media_url,
+        media_filename=announcement_data.media_filename,
+        media_size=announcement_data.media_size,
+        media_duration=announcement_data.media_duration,
+        media_thumbnail_url=announcement_data.media_thumbnail_url,
+        media_width=announcement_data.media_width,
+        media_height=announcement_data.media_height,
+        media_autoplay=announcement_data.media_autoplay,
+        media_loop=announcement_data.media_loop,
+        media_muted=announcement_data.media_muted
     )
     
     db.add(announcement)
@@ -377,12 +390,115 @@ async def delete_announcement(
     
     return {"message": "Объявление удалено"}
 
+@router.post("/upload-media")
+async def upload_announcement_media(
+    file: UploadFile = File(...),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Загрузка медиафайла для объявления: изображения, GIF, видео (только для админов)"""
+    check_admin_role(current_user)
+    
+    # Определяем допустимые типы файлов и их размеры
+    allowed_types = {
+        # Изображения
+        'image/jpeg': {'max_size': 10 * 1024 * 1024, 'type': 'image'},  # 10MB
+        'image/png': {'max_size': 10 * 1024 * 1024, 'type': 'image'},   # 10MB
+        'image/gif': {'max_size': 50 * 1024 * 1024, 'type': 'gif'},     # 50MB для GIF
+        'image/webp': {'max_size': 10 * 1024 * 1024, 'type': 'image'},  # 10MB
+        # Видео
+        'video/mp4': {'max_size': 100 * 1024 * 1024, 'type': 'video'},  # 100MB
+        'video/webm': {'max_size': 100 * 1024 * 1024, 'type': 'video'}, # 100MB
+        'video/mov': {'max_size': 100 * 1024 * 1024, 'type': 'video'},  # 100MB
+    }
+    
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неподдерживаемый тип файла. Разрешены: JPEG, PNG, GIF, WebP, MP4, WebM, MOV"
+        )
+    
+    file_config = allowed_types[file.content_type]
+    
+    # Проверяем размер файла
+    if file.size > file_config['max_size']:
+        max_size_mb = file_config['max_size'] / 1024 / 1024
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Размер файла не должен превышать {max_size_mb:.0f}MB"
+        )
+    
+    # Создаем директорию если её нет
+    upload_dir = "uploads/announcements"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Генерируем уникальное имя файла
+    file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+    filename = f"{uuid.uuid4()}.{file_extension}"
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Сохраняем файл
+    try:
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка сохранения файла: {str(e)}"
+        )
+    
+    # Возвращаем URL файла и метаданные
+    file_url = f"/uploads/announcements/{filename}"
+    
+    # Получаем дополнительную информацию о файле
+    result = {
+        "message": "Медиафайл загружен успешно",
+        "file_url": file_url,
+        "filename": file.filename,
+        "media_type": file_config['type'],
+        "content_type": file.content_type,
+        "size": file.size
+    }
+    
+    # Для видео пытаемся получить дополнительную информацию
+    if file_config['type'] == 'video':
+        try:
+            import subprocess
+            import json
+            
+            # Пытаемся получить информацию о видео через ffprobe
+            cmd = [
+                'ffprobe', '-v', 'quiet', '-print_format', 'json', 
+                '-show_format', '-show_streams', file_path
+            ]
+            
+            process = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if process.returncode == 0:
+                video_info = json.loads(process.stdout)
+                
+                # Извлекаем информацию о видео
+                for stream in video_info.get('streams', []):
+                    if stream.get('codec_type') == 'video':
+                        result['media_width'] = stream.get('width')
+                        result['media_height'] = stream.get('height')
+                        duration = stream.get('duration') or video_info.get('format', {}).get('duration')
+                        if duration:
+                            result['media_duration'] = int(float(duration))
+                        break
+                
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+            # Если ffprobe недоступен или произошла ошибка, продолжаем без метаданных
+            pass
+    
+    return result
+
 @router.post("/upload-image")
 async def upload_announcement_image(
     file: UploadFile = File(...),
     current_user: UserInfo = Depends(get_current_user)
 ):
-    """Загрузка изображения для объявления (только для админов)"""
+    """Загрузка изображения для объявления (устаревший эндпоинт, используйте /upload-media)"""
     check_admin_role(current_user)
     
     # Проверяем тип файла
@@ -392,12 +508,12 @@ async def upload_announcement_image(
             detail="Файл должен быть изображением"
         )
     
-    # Проверяем размер файла (максимум 5MB)
-    max_size = 5 * 1024 * 1024  # 5MB
+    # Проверяем размер файла (максимум 10MB)
+    max_size = 10 * 1024 * 1024  # 10MB
     if file.size > max_size:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Размер файла не должен превышать 5MB"
+            detail="Размер файла не должен превышать 10MB"
         )
     
     # Создаем директорию если её нет

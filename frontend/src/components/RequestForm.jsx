@@ -11,6 +11,8 @@ import { Loader } from './common/Loader';
 import { Alert } from './common/Alert';
 import FieldFileUpload from './common/FieldFileUpload';
 import MaskedInput from './common/MaskedInput';
+import InputMask from 'react-input-mask';
+import { validateMaskValue, MASK_TEMPLATES } from '../utils/maskTemplates';
 import {
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
@@ -73,6 +75,7 @@ const RequestForm = () => {
   const [success, setSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [dynamicOptions, setDynamicOptions] = useState({}); // Для хранения опций динамических полей
+  const [maskErrors, setMaskErrors] = useState({}); // Для хранения ошибок валидации масок
 
   useEffect(() => {
     if (id) {
@@ -218,6 +221,37 @@ const RequestForm = () => {
       ...prev,
       [fieldName]: value
     }));
+    
+    // Валидация маски если она есть
+    const field = fields.find(f => f.name === fieldName);
+    if (field?.mask_enabled && value) {
+      const template = {
+        pattern: field.mask_pattern,
+        regex: field.mask_validation_regex
+      };
+      
+      const validationResult = validateMaskValue(value, template);
+      
+      if (!validationResult.is_valid) {
+        setMaskErrors(prev => ({
+          ...prev,
+          [fieldName]: field.mask_validation_message || 'Значение не соответствует формату'
+        }));
+      } else {
+        setMaskErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
+    } else {
+      // Убираем ошибку если поле очищено
+      setMaskErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
   };
 
   // Функция для проверки условного отображения поля
@@ -294,6 +328,17 @@ const RequestForm = () => {
       setError(`Заполните обязательные поля: ${fieldNames}`);
       return;
     }
+    
+    // Проверяем ошибки валидации масок
+    const maskErrorFields = Object.keys(maskErrors);
+    if (maskErrorFields.length > 0) {
+      const fieldLabels = maskErrorFields.map(fieldName => {
+        const field = fields.find(f => f.name === fieldName);
+        return field?.label || fieldName;
+      }).join(', ');
+      setError(`Исправьте ошибки в полях: ${fieldLabels}`);
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -364,12 +409,48 @@ const RequestForm = () => {
   const renderField = (field) => {
     const fieldType = field.field_type;
     const value = formData[field.name] || '';
+    const maskError = maskErrors[field.name];
+
+    // Компонент с маской для текстовых полей
+    const renderMaskedField = () => {
+      return (
+        <div>
+          <InputMask
+            mask={field.mask_pattern}
+            value={value}
+            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+            placeholder={field.mask_placeholder || field.placeholder}
+            disabled={submitting}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              maskError 
+                ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            }`}
+            maskChar={field.mask_guide ? '_' : null}
+            alwaysShowMask={field.mask_guide}
+          />
+          {maskError && (
+            <p className="mt-1 text-sm text-red-600">{maskError}</p>
+          )}
+          {field.mask_enabled && !maskError && field.mask_type && (
+            <p className="mt-1 text-xs text-gray-500">
+              Формат: {MASK_TEMPLATES[field.mask_type]?.example || field.mask_placeholder}
+            </p>
+          )}
+        </div>
+      );
+    };
 
     switch (fieldType.input_type) {
       case 'text':
       case 'email':
       case 'number':
       case 'date':
+        // Если включена маска, используем маскированный ввод
+        if (field.mask_enabled && field.mask_pattern) {
+          return renderMaskedField();
+        }
+        
         return (
           <Input
             type={fieldType.input_type}
