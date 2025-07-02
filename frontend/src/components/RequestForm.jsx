@@ -628,8 +628,8 @@ const RequestForm = () => {
           disabled={submitting}
           className="w-full sm:w-auto"
         >
-          <span className="md:hidden">{isEditing ? '← К заявкам' : '← К списку'}</span>
-          <span className="hidden md:inline">{isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}</span>
+          <span className="max-sm:block hidden">{isEditing ? '← К заявкам' : '← К списку'}</span>
+          <span className="max-sm:hidden">{isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}</span>
         </Button>
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
@@ -702,8 +702,8 @@ const RequestForm = () => {
                 >
                   {submitting ? 'Отправка...' : (isEditing ? (
                     <>
-                      <span className="md:hidden">Обновить</span>
-                      <span className="hidden md:inline">Обновить и отправить</span>
+                      <span className="max-sm:block hidden">Обновить</span>
+                      <span className="max-sm:hidden">Обновить и отправить</span>
                     </>
                   ) : 'Отправить заявку')}
                 </Button>
@@ -714,8 +714,8 @@ const RequestForm = () => {
                   disabled={submitting || fields.length === 0}
                   className="w-full sm:w-auto sm:min-w-32"
                 >
-                  <span className="md:hidden">Сохранить</span>
-                  <span className="hidden md:inline">Сохранить черновик</span>
+                  <span className="max-sm:block hidden">Сохранить</span>
+                  <span className="max-sm:hidden">Сохранить черновик</span>
                 </Button>
                 <Button 
                   type="button"
