@@ -9,13 +9,13 @@ import sys
 import os
 from pathlib import Path
 
-# Добавляем путь к корневой директории проекта
+# Add path to project root directory
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from app.database import Base
 from app.core.config import settings
-import app.models  # Импортируем все модели
+import app.models  # Import all models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -48,7 +48,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -67,8 +67,13 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get configuration section and set DATABASE_URL if not present
+    configuration = config.get_section(config.config_ini_section, {})
+    if not configuration.get("sqlalchemy.url"):
+        configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
