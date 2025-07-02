@@ -66,12 +66,18 @@ function App() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
+        // Проверяем токен через API
         const response = await api.getUserProfile();
         setUser(response.data);
+        console.log('Auth check successful:', response.data);
       } catch (error) {
         console.error('Auth check failed:', error);
+        // Токен недействителен, очищаем его
         localStorage.removeItem('token');
+        setUser(null);
       }
+    } else {
+      setUser(null);
     }
     setLoading(false);
   };

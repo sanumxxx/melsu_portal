@@ -1,10 +1,45 @@
 // Простая авторизация для портала МелГУ
 
-// Автоматически определяем базовый URL на основе текущего домена и протокола
-const API_BASE_URL = window.location.origin;
+const API_BASE_URL = "http://localhost:8000";
 class ApiService {
   constructor() {
-    this.accessToken = localStorage.getItem('token');
+    this.accessToken = null; // Будем получать динамически
+  }
+
+  // Метод для получения актуального токена
+  getCurrentToken() {
+    const token = localStorage.getItem('token');
+    
+    // Проверяем валидность токена
+    if (token && !this.isTokenValid(token)) {
+      console.warn('Token expired, clearing token');
+      this.clearToken();
+      return null;
+    }
+    
+    this.accessToken = token; // Обновляем внутренний токен
+    return token;
+  }
+
+  // Проверка валидности токена
+  isTokenValid(token) {
+    if (!token) return false;
+    
+    try {
+      // Простая проверка структуры JWT токена
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      
+      // Декодируем payload без верификации подписи (для проверки времени)
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      
+      // Проверяем не истек ли токен
+      return payload.exp && payload.exp > now;
+    } catch (error) {
+      console.warn('Token validation error:', error);
+      return false;
+    }
   }
 
   // Методы авторизации
@@ -132,10 +167,12 @@ class ApiService {
    * Получает профиль пользователя через /api/profile/basic
    */
   async getUserProfile() {
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     const response = await fetch(`${API_BASE_URL}/api/profile/basic`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       }
     });
@@ -163,10 +200,12 @@ class ApiService {
    * Получает текущего пользователя через /auth/me
    */
   async getCurrentUser() {
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       }
     });
@@ -198,25 +237,33 @@ class ApiService {
   }
 
   isAuthenticated() {
-    return !!this.accessToken;
+    const token = this.getCurrentToken(); // Проверяем актуальный токен
+    return !!token && this.isTokenValid(token);
   }
 
   logout() {
     this.clearToken();
+    // Перенаправляем на страницу входа если мы не находимся на ней
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+      console.log('Session expired, redirecting to login');
+      window.location.href = '/login';
+    }
   }
 
   /**
    * Выполняет аутентифицированный запрос к API
    */
   async makeAuthenticatedRequest(url, options = {}) {
-    if (!this.accessToken) {
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
+    if (!token) {
       throw new Error('Not authenticated');
     }
 
     const config = {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         ...options.headers
       }
@@ -261,8 +308,10 @@ class ApiService {
       }
     }
 
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     const headers = {
-      'Authorization': `Bearer ${this.accessToken}`,
+      'Authorization': `Bearer ${token}`,
       ...fetchOptions.headers
     };
 
@@ -308,9 +357,11 @@ class ApiService {
     // Определяем, передается ли FormData
     const isFormData = data instanceof FormData;
     
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     // Для FormData не устанавливаем Content-Type и не используем JSON.stringify
     const headers = {
-      'Authorization': `Bearer ${this.accessToken}`,
+      'Authorization': `Bearer ${token}`,
       ...options.headers
     };
     
@@ -344,10 +395,12 @@ class ApiService {
    * PUT запрос
    */
   async put(endpoint, data = {}, options = {}) {
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         ...options.headers
       },
@@ -373,10 +426,12 @@ class ApiService {
    * DELETE запрос
    */
   async delete(endpoint, options = {}) {
+    const token = this.getCurrentToken(); // Получаем актуальный токен
+    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         ...options.headers
       },
