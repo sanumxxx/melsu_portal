@@ -39,8 +39,8 @@ const DynamicSelect = ({ value, onChange, fieldTypeName, loadOptions, placeholde
   if (loading) {
     return (
       <div className="flex items-center justify-center py-2 px-3 border border-gray-300 rounded-md bg-gray-50">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-        <span className="text-sm text-gray-500">Загрузка...</span>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+        <span className="text-sm text-gray-700 font-medium">Загрузка...</span>
       </div>
     );
   }
@@ -465,17 +465,17 @@ const RequestForm = () => {
         return (
           <div className="space-y-2">
             {field.options?.map((option, index) => (
-              <label key={index} className="flex items-center">
+              <label key={index} className="flex items-center cursor-pointer">
                 <input
                   type="radio"
                   name={field.name}
                   value={option.value}
                   checked={value === option.value}
                   onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
                   disabled={submitting}
                 />
-                <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                <span className="ml-2 text-sm text-gray-900 font-medium">{option.label}</span>
               </label>
             ))}
           </div>
@@ -489,7 +489,7 @@ const RequestForm = () => {
               const isChecked = currentValues.includes(option.value);
               
               return (
-                <label key={index} className="flex items-center">
+                <label key={index} className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     value={option.value}
@@ -500,10 +500,10 @@ const RequestForm = () => {
                         : [...currentValues, option.value];
                       handleFieldChange(field.name, newValues);
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                     disabled={submitting}
                   />
-                  <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                  <span className="ml-2 text-sm text-gray-900 font-medium">{option.label}</span>
                 </label>
               );
             })}
@@ -562,9 +562,9 @@ const RequestForm = () => {
         {templates.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
-              <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-medium text-gray-900">Нет доступных заявок</h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
+              <h3 className="mt-4 text-lg font-semibold text-gray-900">Нет доступных заявок</h3>
+              <p className="mt-2 text-sm text-gray-600">
                 В настоящее время нет активных шаблонов заявок
               </p>
             </CardContent>
@@ -579,8 +579,8 @@ const RequestForm = () => {
                   onClick={() => handleTemplateSelect(template)}
                 >
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <DocumentTextIcon className="h-6 w-6 text-blue-600 mr-2" />
+                    <CardTitle className="flex items-center text-gray-900">
+                      <DocumentTextIcon className="h-6 w-6 text-red-600 mr-2" />
                       {template.name}
                     </CardTitle>
                   </CardHeader>
@@ -590,8 +590,8 @@ const RequestForm = () => {
                     )}
                     
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <CalendarIcon className="h-4 w-4 mr-1" />
+                      <div className="flex items-center text-sm text-gray-700">
+                        <CalendarIcon className="h-4 w-4 mr-1 text-red-600" />
                         Срок рассмотрения: {template.deadline_days} {
                           template.deadline_days === 1 ? 'день' : 
                           template.deadline_days < 5 ? 'дня' : 'дней'
@@ -661,8 +661,8 @@ const RequestForm = () => {
           message={
             typeof success === 'string' ? success : (
               <div className="flex items-center">
-                <CheckCircleIcon className="h-5 w-5 mr-2" />
-                Заявка успешно отправлена!
+                <CheckCircleIcon className="h-5 w-5 mr-2 text-green-600" />
+                <span className="text-green-900 font-medium">Заявка успешно отправлена!</span>
               </div>
             )
           } 
@@ -680,13 +680,13 @@ const RequestForm = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {fields.filter(isFieldVisible).map((field) => (
                 <div key={field.id}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
                     {field.label}
-                    {field.is_required && <span className="text-red-500 ml-1">*</span>}
+                    {field.is_required && <span className="text-red-600 ml-1">*</span>}
                   </label>
                   
                   {field.description && (
-                    <p className="text-sm text-gray-500 mb-2">{field.description}</p>
+                    <p className="text-sm text-gray-600 mb-2">{field.description}</p>
                   )}
                   
                   {renderField(field)}
