@@ -451,6 +451,19 @@ html {
   }
 }
 
+/* Принудительные стили для исправления контрастности текста */
+.force-dark-text {
+  color: #111827 !important;
+}
+
+.force-gray-text {
+  color: #4b5563 !important;
+}
+
+.force-red-text {
+  color: #dc2626 !important;
+}
+
 /* Дополнительные стили для очень маленьких экранов */
 @media screen and (max-width: 480px) {
   .auth-card .form-group input {

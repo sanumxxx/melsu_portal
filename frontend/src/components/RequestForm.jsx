@@ -475,7 +475,7 @@ const RequestForm = () => {
                   className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
                   disabled={submitting}
                 />
-                <span className="ml-2 text-sm text-gray-900 font-medium">{option.label}</span>
+                <span className="ml-2 text-sm font-medium" style={{ color: '#111827' }}>{option.label}</span>
               </label>
             ))}
           </div>
@@ -503,7 +503,7 @@ const RequestForm = () => {
                     className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                     disabled={submitting}
                   />
-                  <span className="ml-2 text-sm text-gray-900 font-medium">{option.label}</span>
+                  <span className="ml-2 text-sm font-medium" style={{ color: '#111827' }}>{option.label}</span>
                 </label>
               );
             })}
@@ -628,13 +628,13 @@ const RequestForm = () => {
           disabled={submitting}
           className="w-full sm:w-auto"
         >
-          <span className="sm:hidden">{isEditing ? '← К заявкам' : '← К списку'}</span>
-          <span className="hidden sm:inline">{isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}</span>
+          <span className="md:hidden">{isEditing ? '← К заявкам' : '← К списку'}</span>
+          <span className="hidden md:inline">{isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}</span>
         </Button>
         <div>
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
-            <span className="sm:hidden">{isEditing ? 'Редактирование' : selectedTemplate.name}</span>
-            <span className="hidden sm:inline">{isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}</span>
+            <span className="md:hidden">{isEditing ? 'Редактирование' : selectedTemplate.name}</span>
+            <span className="hidden md:inline">{isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}</span>
           </h1>
           <p className="text-gray-600 mt-1">
             {currentRequest && (
@@ -671,7 +671,7 @@ const RequestForm = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Заполните форму заявки</CardTitle>
+          <CardTitle style={{ color: '#111827' }}>Заполните форму заявки</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -680,13 +680,13 @@ const RequestForm = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {fields.filter(isFieldVisible).map((field) => (
                 <div key={field.id}>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: '#111827' }}>
                     {field.label}
                     {field.is_required && <span className="text-red-600 ml-1">*</span>}
                   </label>
                   
                   {field.description && (
-                    <p className="text-sm text-gray-600 mb-2">{field.description}</p>
+                    <p className="text-sm mb-2" style={{ color: '#4b5563' }}>{field.description}</p>
                   )}
                   
                   {renderField(field)}
@@ -702,8 +702,8 @@ const RequestForm = () => {
                 >
                   {submitting ? 'Отправка...' : (isEditing ? (
                     <>
-                      <span className="sm:hidden">Обновить</span>
-                      <span className="hidden sm:inline">Обновить и отправить</span>
+                      <span className="md:hidden">Обновить</span>
+                      <span className="hidden md:inline">Обновить и отправить</span>
                     </>
                   ) : 'Отправить заявку')}
                 </Button>
@@ -714,8 +714,8 @@ const RequestForm = () => {
                   disabled={submitting || fields.length === 0}
                   className="w-full sm:w-auto sm:min-w-32"
                 >
-                  <span className="sm:hidden">Сохранить</span>
-                  <span className="hidden sm:inline">Сохранить черновик</span>
+                  <span className="md:hidden">Сохранить</span>
+                  <span className="hidden md:inline">Сохранить черновик</span>
                 </Button>
                 <Button 
                   type="button"
