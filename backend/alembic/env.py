@@ -69,11 +69,19 @@ def run_migrations_online() -> None:
     """
     # Get configuration section and set DATABASE_URL if not present
     configuration = config.get_section(config.config_ini_section, {})
-    if not configuration.get("sqlalchemy.url"):
-        configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    
+    # Explicitly set sqlalchemy.url from settings if not present
+    sqlalchemy_url = configuration.get("sqlalchemy.url") or settings.DATABASE_URL
+    
+    if not sqlalchemy_url:
+        raise ValueError("DATABASE_URL is not set in environment or config file")
+    
+    # Create a new configuration dict with correct URL
+    config_with_url = dict(configuration)
+    config_with_url["sqlalchemy.url"] = sqlalchemy_url
     
     connectable = engine_from_config(
-        configuration,
+        config_with_url,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
