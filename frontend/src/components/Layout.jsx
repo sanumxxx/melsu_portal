@@ -265,7 +265,7 @@ const Layout = ({ children, user, onLogout }) => {
         </div>
         
         {/* Навигация */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
           <nav className="px-2 py-4 space-y-1">
             {/* Личные разделы */}
             {navigation.slice(0, user?.roles?.includes('student') ? 3 : 2).map((item) => renderNavigationItem(item, false))}
@@ -370,7 +370,7 @@ const Layout = ({ children, user, onLogout }) => {
                 <XMarkIcon className="h-6 w-6 text-white" />
               </button>
             </div>
-            <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+            <div className="flex-1 min-h-0 pt-5 pb-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
               <div className="flex-shrink-0 flex items-center px-4">
                 <img className="h-8 w-auto" src="/logo.png" alt="МелГУ" />
                 <h1 className="ml-2 text-lg font-bold text-gray-900">my.melsu</h1>

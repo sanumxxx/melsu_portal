@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CodeInput from '../common/CodeInput';
 import api, { getErrorMessage } from '../../services/api';
@@ -10,6 +10,19 @@ const Register = ({ onLogin }) => {
   const [codeVerified, setCodeVerified] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Таймер обратного отсчета для повторной отправки
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => {
+        setResendCooldown(resendCooldown - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -79,6 +92,37 @@ const Register = ({ onLogin }) => {
       setError(getErrorMessage(error) || 'Ошибка отправки кода');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Повторная отправка кода
+  const resendCode = async () => {
+    if (resendCooldown > 0) {
+      setError(`Подождите ${resendCooldown} секунд перед повторной отправкой`);
+      return;
+    }
+
+    setResendLoading(true);
+    setError('');
+    try {
+      await api.sendVerificationCode(formData.email);
+      setMessage('Новый код отправлен на ваш email');
+      setResendCooldown(60); // Устанавливаем кулдаун 60 секунд
+      // Сбрасываем состояние проверки кода
+      setCodeVerified(false);
+      setVerificationCode(Array(6).fill(''));
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      
+      // Проверяем, это ли ошибка rate limiting
+      if (error.response?.status === 429 || errorMessage.includes('слишком часто')) {
+        setError('Слишком частые запросы. Попробуйте снова через минуту.');
+        setResendCooldown(60);
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -215,6 +259,38 @@ const Register = ({ onLogin }) => {
                   Введите 6-значный код из email
                 </p>
               )}
+              
+              {/* Кнопка повторной отправки */}
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={resendCode}
+                  disabled={resendLoading || resendCooldown > 0}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: resendLoading || resendCooldown > 0 ? '#9ca3af' : '#6b7280',
+                    textDecoration: resendLoading || resendCooldown > 0 ? 'none' : 'underline',
+                    cursor: resendLoading || resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  {resendLoading ? (
+                    <>
+                      <div className="spinner" style={{ width: '14px', height: '14px' }}></div>
+                      Отправка...
+                    </>
+                  ) : resendCooldown > 0 ? (
+                    `Отправить новый код (${resendCooldown}с)`
+                  ) : (
+                    'Отправить новый код'
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Блокируем поля до проверки кода */}

@@ -46,15 +46,28 @@ def verify_token(token: str):
         return None
 
 async def send_verification_code(email: str, db: Session):
-    # Проверяем, есть ли уже активный код
-    existing_verification = db.query(EmailVerification).filter(
+    # Проверяем, не запрашивал ли пользователь код слишком часто (защита от спама)
+    recent_verification = db.query(EmailVerification).filter(
         EmailVerification.email == email,
-        EmailVerification.expires_at > datetime.utcnow(),
-        EmailVerification.is_used == False
+        EmailVerification.created_at > datetime.utcnow() - timedelta(seconds=60)  # Последний код менее 60 сек назад
     ).first()
     
-    if existing_verification:
-        return existing_verification.code
+    if recent_verification:
+        print(f"[DEBUG] Rate limit: User {email} requested code too frequently")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Слишком частые запросы. Попробуйте снова через минуту."
+        )
+    
+    # Деактивируем все предыдущие коды для этого email
+    previous_verifications = db.query(EmailVerification).filter(
+        EmailVerification.email == email,
+        EmailVerification.is_used == False
+    ).all()
+    
+    for verification in previous_verifications:
+        verification.is_used = True
+        print(f"[DEBUG] Deactivating previous code {verification.code} for {email}")
     
     # Генерируем новый код
     code = generate_verification_code()
@@ -63,11 +76,14 @@ async def send_verification_code(email: str, db: Session):
     verification = EmailVerification(
         email=email,
         code=code,
-        expires_at=expires_at
+        expires_at=expires_at,
+        created_at=datetime.utcnow()  # Добавляем время создания для rate limiting
     )
     
     db.add(verification)
     db.commit()
+    
+    print(f"[DEBUG] Generated new verification code {code} for {email}")
     
     # Отправляем код на email через MELSU почту
     from .email_service import email_service

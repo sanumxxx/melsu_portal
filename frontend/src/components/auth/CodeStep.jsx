@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api, { getErrorMessage } from '../../services/api';
 import Button from '../common/Button';
@@ -8,6 +8,19 @@ const CodeStep = ({ onNext, onPrev, formData }) => {
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [errors, setErrors] = useState({});
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Таймер обратного отсчета для повторной отправки
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setTimeout(() => {
+        setResendCooldown(resendCooldown - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
@@ -32,11 +45,28 @@ const CodeStep = ({ onNext, onPrev, formData }) => {
   };
 
   const resendCode = async () => {
+    if (resendCooldown > 0) {
+      toast.error(`Подождите ${resendCooldown} секунд перед повторной отправкой`);
+      return;
+    }
+
+    setResendLoading(true);
     try {
       await api.sendVerificationCode(formData.email);
       toast.success('Новый код отправлен на email');
+      setResendCooldown(60); // Устанавливаем кулдаун 60 секунд
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const errorMessage = getErrorMessage(error);
+      
+      // Проверяем, это ли ошибка rate limiting
+      if (error.response?.status === 429 || errorMessage.includes('слишком часто')) {
+        toast.error('Слишком частые запросы. Попробуйте снова через минуту.');
+        setResendCooldown(60);
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -73,9 +103,23 @@ const CodeStep = ({ onNext, onPrev, formData }) => {
             <button
               type="button"
               onClick={resendCode}
-              className="text-gray-600 hover:text-gray-800 underline transition-colors"
+              disabled={resendLoading || resendCooldown > 0}
+              className={`transition-colors ${
+                resendLoading || resendCooldown > 0
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:text-gray-800 underline'
+              }`}
             >
-              Отправить новый код
+              {resendLoading ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  Отправка...
+                </span>
+              ) : resendCooldown > 0 ? (
+                `Отправить новый код (${resendCooldown}с)`
+              ) : (
+                'Отправить новый код'
+              )}
             </button>
           </div>
           
