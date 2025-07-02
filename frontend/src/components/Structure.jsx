@@ -111,7 +111,7 @@ const Structure = () => {
     setError(null);
 
     try {
-      const response = await api.get('/departments/tree');
+      const response = await api.get('/api/departments/tree');
       setDepartments(response.data);
     } catch (err) {
       console.error('Ошибка загрузки структуры:', err);
@@ -123,7 +123,7 @@ const Structure = () => {
 
   const fetchDepartmentTypes = async () => {
     try {
-      const response = await api.get('/departments/types');
+      const response = await api.get('/api/departments/types');
       setDepartmentTypes(response.data.types);
     } catch (err) {
       console.error('Ошибка загрузки типов подразделений:', err);
@@ -151,7 +151,7 @@ const Structure = () => {
     setLoadingEmployees(prev => new Set([...prev, departmentId]));
 
     try {
-      const response = await api.get(`/departments/${departmentId}/employees`);
+      const response = await api.get(`/api/departments/${departmentId}/employees`);
       setDepartmentEmployees(prev => ({
         ...prev,
         [departmentId]: response.data.employees
@@ -239,9 +239,9 @@ const Structure = () => {
       };
 
       if (modalMode === 'create') {
-        await api.post('/departments', submitData);
+        await api.post('/api/departments', submitData);
       } else {
-        await api.put(`/departments/${selectedDepartment.id}`, formData);
+        await api.put(`/api/departments/${selectedDepartment.id}`, formData);
       }
 
       await fetchDepartments();
@@ -258,7 +258,7 @@ const Structure = () => {
     }
 
     try {
-      await api.delete(`/departments/${department.id}`);
+      await api.delete(`/api/departments/${department.id}`);
       await fetchDepartments();
     } catch (err) {
       console.error('Ошибка удаления:', err);

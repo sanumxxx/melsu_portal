@@ -68,14 +68,27 @@ async def get_template(
     current_user: UserInfo = Depends(get_current_user)
 ):
     """Получение шаблона по ID"""
-    check_admin_role(current_user)
-    
     template = db.query(RequestTemplateModel).filter(RequestTemplateModel.id == template_id).first()
     if not template:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Шаблон не найден"
         )
+    
+    # Проверяем права доступа
+    is_admin = "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])
+    
+    # Админы могут получать любые шаблоны
+    if is_admin:
+        return template
+    
+    # Обычные пользователи могут получать только активные шаблоны
+    if not template.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ к неактивному шаблону запрещен"
+        )
+    
     return template
 
 @router.put("/{template_id}", response_model=RequestTemplate)

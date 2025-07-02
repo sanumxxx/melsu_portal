@@ -15,7 +15,8 @@ import {
   UserIcon,
   CalendarIcon,
   ChatBubbleLeftRightIcon,
-  PaperClipIcon
+  PaperClipIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 
 const MyRequestDetail = () => {
@@ -340,34 +341,48 @@ const MyRequestDetail = () => {
               <CardTitle>Статус заявки</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Кнопка отправки для черновиков */}
-              {request.status?.toUpperCase() === 'DRAFT' && (
-                <>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700 mb-3">
-                      Заявка в статусе черновика.<br/>
-                      Нажмите кнопку ниже, чтобы отправить её на рассмотрение.
-                    </p>
-                  </div>
+              {/* Кнопки для редактируемых заявок */}
+              {['DRAFT', 'SUBMITTED', 'IN_REVIEW'].includes(request.status?.toUpperCase()) && (
+                <div className="space-y-3">
                   <Button
-                    onClick={handleSubmitRequest}
-                    variant="primary"
+                    onClick={() => navigate(`/requests/edit/${request.id}`)}
+                    variant="outline"
                     className="w-full"
-                    disabled={submitLoading}
                   >
-                    {submitLoading ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Отправка...
-                      </div>
-                    ) : (
-                      <>
-                        <DocumentTextIcon className="h-4 w-4 mr-2" />
-                        Отправить заявку
-                      </>
-                    )}
+                    <PencilIcon className="h-4 w-4 mr-2" />
+                    Редактировать заявку
                   </Button>
-                </>
+                  
+                  {/* Кнопка отправки для черновиков */}
+                  {request.status?.toUpperCase() === 'DRAFT' && (
+                    <>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-700 mb-3">
+                          Заявка в статусе черновика.<br/>
+                          Нажмите кнопку ниже, чтобы отправить её на рассмотрение.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleSubmitRequest}
+                        variant="primary"
+                        className="w-full"
+                        disabled={submitLoading}
+                      >
+                        {submitLoading ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Отправка...
+                          </div>
+                        ) : (
+                          <>
+                            <DocumentTextIcon className="h-4 w-4 mr-2" />
+                            Отправить заявку
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
               )}
 
               {/* Информационные сообщения для других статусов */}

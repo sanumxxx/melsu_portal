@@ -44,8 +44,8 @@ const AssignmentManager = ({ userId, userName, onClose }) => {
     try {
       const [assignmentsRes, departmentsRes, userRes, allRolesRes] = await Promise.all([
         api.get(`/api/assignments/users/${userId}`),
-        api.get('/departments'),
-        api.get(`/users/${userId}`),
+        api.get('/api/departments'),
+                  api.get(`/api/users/${userId}`),
         api.get('/api/roles/')
       ]);
 

@@ -47,7 +47,7 @@ const Institutes = () => {
     setError(null);
 
     try {
-      const response = await api.get('/departments/tree');
+      const response = await api.get('/api/departments/tree');
       // Фильтруем только институты и их дочерние элементы
       const institutesData = response.data.filter(dept => dept.department_type === 'institute');
       setInstitutes(institutesData);
@@ -78,7 +78,7 @@ const Institutes = () => {
     setLoadingEmployees(prev => new Set([...prev, departmentId]));
 
     try {
-      const response = await api.get(`/departments/${departmentId}/employees`);
+      const response = await api.get(`/api/departments/${departmentId}/employees`);
       setDepartmentEmployees(prev => ({
         ...prev,
         [departmentId]: response.data.employees
@@ -158,9 +158,9 @@ const Institutes = () => {
 
     try {
       if (modalMode === 'create') {
-        await api.post('/departments', formData);
+        await api.post('/api/departments', formData);
       } else {
-        await api.put(`/departments/${selectedInstitute.id}`, formData);
+        await api.put(`/api/departments/${selectedInstitute.id}`, formData);
       }
 
       await fetchInstitutes();
@@ -177,7 +177,7 @@ const Institutes = () => {
     }
 
     try {
-      await api.delete(`/departments/${institute.id}`);
+      await api.delete(`/api/departments/${institute.id}`);
       await fetchInstitutes();
     } catch (err) {
       console.error('Ошибка удаления:', err);

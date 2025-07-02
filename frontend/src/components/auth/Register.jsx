@@ -92,7 +92,7 @@ const Register = ({ onLogin }) => {
     }
 
     if (!formData.password || !formData.confirmPassword || 
-        !formData.first_name || !formData.last_name || !formData.birth_date || !formData.gender) {
+        !formData.first_name || !formData.last_name || !formData.middle_name || !formData.birth_date || !formData.gender) {
       setError('Заполните все обязательные поля');
       return;
     }
@@ -219,10 +219,7 @@ const Register = ({ onLogin }) => {
 
             {/* Блокируем поля до проверки кода */}
             <fieldset disabled={!codeVerified} style={{ border: 'none', padding: 0, margin: 0 }}>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: '12px',
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ 
                 opacity: codeVerified ? 1 : 0.5,
                 transition: 'opacity 0.3s ease'
               }}>
@@ -257,21 +254,19 @@ const Register = ({ onLogin }) => {
                 opacity: codeVerified ? 1 : 0.5,
                 transition: 'opacity 0.3s ease'
               }}>
-                <label htmlFor="middle_name">Отчество</label>
+                <label htmlFor="middle_name">Отчество *</label>
                 <input
                   type="text"
                   id="middle_name"
                   name="middle_name"
                   value={formData.middle_name}
                   onChange={handleChange}
-                  placeholder="Ваше отчество (необязательно)"
+                  required
+                  placeholder="Ваше отчество"
                 />
               </div>
 
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: '12px',
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ 
                 opacity: codeVerified ? 1 : 0.5,
                 transition: 'opacity 0.3s ease'
               }}>
@@ -284,6 +279,8 @@ const Register = ({ onLogin }) => {
                     value={formData.birth_date}
                     onChange={handleChange}
                     required
+                    placeholder="дд.мм.гггг"
+                    max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
@@ -306,7 +303,6 @@ const Register = ({ onLogin }) => {
                     <option value="">Выберите пол</option>
                     <option value="male">Мужской</option>
                     <option value="female">Женский</option>
-                    <option value="other">Другой</option>
                   </select>
                 </div>
               </div>

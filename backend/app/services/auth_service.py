@@ -72,18 +72,15 @@ async def send_verification_code(email: str, db: Session):
     # Отправляем код на email через MELSU почту
     from .email_service import email_service
     
-    print(f"[AUTH] 📧 Инициируем отправку кода верификации для {email}")
     try:
         success = email_service.send_verification_code(email, code)
         if success:
-            print(f"[AUTH] ✅ Email с кодом {code} успешно отправлен на {email}")
+            print(f"[EMAIL] Verification code sent to {email}")
         else:
-            print(f"[AUTH] ❌ Не удалось отправить email на {email}")
-            print(f"[AUTH] 🔄 FALLBACK: показываем код в консоли для тестирования")
-            print(f"[DEV FALLBACK] Verification code for {email}: {code}")
+            print(f"[EMAIL ERROR] Failed to send code to {email}")
     except Exception as e:
-        print(f"[AUTH] 💥 Исключение при отправке email на {email}: {str(e)}")
-        print(f"[AUTH] 🔄 FALLBACK: показываем код в консоли для тестирования") 
+        print(f"[EMAIL ERROR] Exception while sending to {email}: {str(e)}")
+        # В случае ошибки отправки показываем код в консоли для разработки
         print(f"[DEV FALLBACK] Verification code for {email}: {code}")
     
     return code

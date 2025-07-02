@@ -26,6 +26,7 @@ const RegistrationStep = ({ onPrev, formData, setFormData, verificationCode, onS
     const newErrors = {};
     if (!formData.first_name) newErrors.first_name = 'Имя обязательно';
     if (!formData.last_name) newErrors.last_name = 'Фамилия обязательна';
+    if (!formData.middle_name) newErrors.middle_name = 'Отчество обязательно';
     if (!formData.birth_date) newErrors.birth_date = 'Дата рождения обязательна';
     if (!formData.gender) newErrors.gender = 'Пол обязателен';
     if (!formData.password) newErrors.password = 'Пароль обязателен';
@@ -118,26 +119,27 @@ const RegistrationStep = ({ onPrev, formData, setFormData, verificationCode, onS
           />
           
           <Input
-            placeholder="Отчество (необязательно)"
+            placeholder="Отчество"
             value={formData.middle_name || ''}
             onChange={(e) => handleInputChange('middle_name', e.target.value)}
             error={errors.middle_name}
+            required
           />
 
           <Input
             type="date"
-            placeholder="Дата рождения"
+            placeholder="дд.мм.гггг"
             value={formData.birth_date || ''}
             onChange={(e) => handleInputChange('birth_date', e.target.value)}
             error={errors.birth_date}
             required
+            max={new Date().toISOString().split('T')[0]}
           />
 
           <Select
             options={[
               { value: 'male', label: 'Мужской' },
-              { value: 'female', label: 'Женский' },
-              { value: 'other', label: 'Другой' }
+              { value: 'female', label: 'Женский' }
             ]}
             value={formData.gender || ''}
             onChange={(value) => handleInputChange('gender', value)}

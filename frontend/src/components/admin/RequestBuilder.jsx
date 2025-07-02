@@ -18,7 +18,8 @@ import {
   CogIcon,
   Squares2X2Icon,
   EyeSlashIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 
 const RequestBuilder = () => {
@@ -39,7 +40,9 @@ const RequestBuilder = () => {
     default_assignees: [],
     auto_assign_enabled: false,
     department_routing: false,
-    routing_rules: []
+    routing_rules: [],
+    auto_role_assignment_enabled: false,
+    role_assignment_rules: []
   });
 
   // Данные для конструктора полей
@@ -60,6 +63,18 @@ const RequestBuilder = () => {
     assignees: []
   });
   const [ruleAssignees, setRuleAssignees] = useState([]);
+  
+  // Данные для правил назначения ролей
+  const [roleAssignmentRules, setRoleAssignmentRules] = useState([]);
+  const [showRoleRuleForm, setShowRoleRuleForm] = useState(false);
+  const [editingRoleRule, setEditingRoleRule] = useState(null);
+  const [roleRuleData, setRoleRuleData] = useState({
+    field: '',
+    value: '',
+    role: '',
+    description: ''
+  });
+  const [availableRoles, setAvailableRoles] = useState([]);
   
   const [showFieldForm, setShowFieldForm] = useState(false);
   const [editingField, setEditingField] = useState(null);
@@ -87,6 +102,7 @@ const RequestBuilder = () => {
   const tabs = [
     { id: 'basic', label: 'Основная информация', icon: CogIcon },
     { id: 'routing', label: 'Маршрутизация', icon: UserGroupIcon },
+    { id: 'roles', label: 'Назначение ролей', icon: ShieldCheckIcon },
     { id: 'fields', label: 'Конструктор полей', icon: Squares2X2Icon }
   ];
 
@@ -94,6 +110,7 @@ const RequestBuilder = () => {
     loadTemplates();
     loadFieldTypes();
     loadProfileFields();
+    loadAvailableRoles();
   }, []);
 
   useEffect(() => {
@@ -135,6 +152,25 @@ const RequestBuilder = () => {
     }
   };
 
+  const loadAvailableRoles = async () => {
+    try {
+      const response = await api.get('/api/roles');
+      setAvailableRoles(response.data.map(role => ({
+        value: role.name,
+        label: role.display_name || role.name
+      })));
+    } catch (err) {
+      console.error('Ошибка загрузки ролей:', err);
+      // Используем базовые роли как fallback
+      setAvailableRoles([
+        { value: 'student', label: 'Студент' },
+        { value: 'teacher', label: 'Преподаватель' },
+        { value: 'curator', label: 'Куратор' },
+        { value: 'admin', label: 'Администратор' }
+      ]);
+    }
+  };
+
   const loadTemplateFields = async () => {
     if (!editingTemplate) return;
     
@@ -158,10 +194,13 @@ const RequestBuilder = () => {
       default_assignees: [],
       auto_assign_enabled: false,
       department_routing: false,
-      routing_rules: []
+      routing_rules: [],
+      auto_role_assignment_enabled: false,
+      role_assignment_rules: []
     });
     setSelectedAssignees([]);
     setRoutingRules([]);
+    setRoleAssignmentRules([]);
     setFields([]);
     setActiveTab('basic');
     setShowModal(true);
@@ -178,7 +217,9 @@ const RequestBuilder = () => {
       default_assignees: template.default_assignees || [],
       auto_assign_enabled: template.auto_assign_enabled || false,
       department_routing: template.department_routing || false,
-      routing_rules: template.routing_rules || []
+      routing_rules: template.routing_rules || [],
+      auto_role_assignment_enabled: template.auto_role_assignment_enabled || false,
+      role_assignment_rules: template.role_assignment_rules || []
     });
     
     // Загружаем информацию о назначенных пользователях
@@ -186,6 +227,9 @@ const RequestBuilder = () => {
     
     // Загружаем правила маршрутизации
     setRoutingRules(template.routing_rules || []);
+    
+    // Загружаем правила назначения ролей
+    setRoleAssignmentRules(template.role_assignment_rules || []);
     
     setActiveTab('basic');
     setShowModal(true);
@@ -239,7 +283,8 @@ const RequestBuilder = () => {
       const templateData = {
         ...formData,
         default_assignees: selectedAssignees.map(user => user.id),
-        routing_rules: routingRules
+        routing_rules: routingRules,
+        role_assignment_rules: roleAssignmentRules
       };
       
       let savedTemplate;
@@ -387,6 +432,65 @@ const RequestBuilder = () => {
       ...prev, 
       assignees: updatedAssignees.map(u => u.id)
     }));
+  };
+
+  // Функции для управления правилами назначения ролей
+  const handleCreateRoleRule = () => {
+    setEditingRoleRule(null);
+    setRoleRuleData({
+      field: '',
+      value: '',
+      role: '',
+      description: ''
+    });
+    setShowRoleRuleForm(true);
+  };
+
+  const handleEditRoleRule = (index) => {
+    const rule = roleAssignmentRules[index];
+    setEditingRoleRule(index);
+    setRoleRuleData({
+      field: rule.field,
+      value: rule.value,
+      role: rule.role,
+      description: rule.description || ''
+    });
+    setShowRoleRuleForm(true);
+  };
+
+  const handleSaveRoleRule = () => {
+    if (!roleRuleData.field.trim() || !roleRuleData.value.trim() || !roleRuleData.role) {
+      setError('Заполните все обязательные поля правила назначения роли');
+      return;
+    }
+
+    const rule = {
+      field: roleRuleData.field.trim(),
+      value: roleRuleData.value.trim(),
+      role: roleRuleData.role,
+      description: roleRuleData.description.trim()
+    };
+
+    let updatedRules;
+    if (editingRoleRule !== null) {
+      // Редактирование существующего правила
+      updatedRules = [...roleAssignmentRules];
+      updatedRules[editingRoleRule] = rule;
+    } else {
+      // Добавление нового правила
+      updatedRules = [...roleAssignmentRules, rule];
+    }
+
+    setRoleAssignmentRules(updatedRules);
+    setFormData(prev => ({ ...prev, role_assignment_rules: updatedRules }));
+    setShowRoleRuleForm(false);
+    setError(null);
+  };
+
+  const handleDeleteRoleRule = (index) => {
+    const updatedRules = roleAssignmentRules.filter((_, i) => i !== index);
+    setRoleAssignmentRules(updatedRules);
+    setFormData(prev => ({ ...prev, role_assignment_rules: updatedRules }));
   };
 
   // Функции для работы с полями
@@ -1145,6 +1249,280 @@ const RequestBuilder = () => {
                 </div>
               )}
 
+              {activeTab === 'roles' && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold mb-4">Автоматическое назначение ролей</h3>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">Как работает назначение ролей:</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Роли назначаются автоматически при <strong>завершении</strong> заявки</li>
+                      <li>• Можно настроить условия на основе данных формы</li>
+                      <li>• Например: если "факультет" = "технический", то назначить роль "student"</li>
+                      <li>• Роли добавляются к существующим, не заменяют их</li>
+                    </ul>
+                  </div>
+
+                  {/* Включение автоназначения ролей */}
+                  <div className="space-y-4">
+                    <label className="flex items-start">
+                      <input
+                        type="checkbox"
+                        checked={formData.auto_role_assignment_enabled}
+                        onChange={(e) => setFormData(prev => ({ ...prev, auto_role_assignment_enabled: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-0.5"
+                        disabled={loading}
+                      />
+                      <div className="ml-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          Включить автоматическое назначение ролей
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          При завершении заявки будут применены правила назначения ролей
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Правила назначения ролей */}
+                  {formData.auto_role_assignment_enabled && (
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700">Правила назначения ролей</h4>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Настройте какие роли назначать на основе данных формы
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={handleCreateRoleRule}
+                          variant="outline"
+                          size="sm"
+                          disabled={loading}
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Добавить правило
+                        </Button>
+                      </div>
+
+                      {/* Список правил назначения ролей */}
+                      {roleAssignmentRules.length > 0 ? (
+                        <div className="space-y-3">
+                          {roleAssignmentRules.map((rule, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    Если поле "{rule.field}" = "{rule.value}"
+                                  </span>
+                                  <span className="text-xs text-gray-500">→</span>
+                                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                    {availableRoles.find(r => r.value === rule.role)?.label || rule.role}
+                                  </span>
+                                </div>
+                                {rule.description && (
+                                  <p className="text-xs text-gray-500 mt-1">{rule.description}</p>
+                                )}
+                              </div>
+                              
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={() => handleEditRoleRule(index)}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={loading}
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteRoleRule(index)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 border-red-300 hover:bg-red-50"
+                                  disabled={loading}
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
+                          <ShieldCheckIcon className="mx-auto h-8 w-8 text-gray-400" />
+                          <p className="mt-2 text-sm text-gray-500">
+                            Пока нет правил назначения ролей
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Добавьте правила для автоматического назначения ролей при завершении заявки
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Форма создания/редактирования правила роли */}
+                      {showRoleRuleForm && (
+                        <Card className="mt-4">
+                          <CardHeader>
+                            <CardTitle>
+                              {editingRoleRule !== null ? 'Редактирование правила роли' : 'Создание нового правила роли'}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Поле формы *
+                                  </label>
+                                  <Select
+                                    value={roleRuleData.field}
+                                    onChange={(value) => setRoleRuleData(prev => ({ 
+                                      ...prev, 
+                                      field: value,
+                                      value: '' // Сбрасываем значение при смене поля
+                                    }))}
+                                    options={fields.map(field => ({
+                                      value: field.name,
+                                      label: `${field.label} (${field.name})`
+                                    }))}
+                                    placeholder="Выберите поле из формы"
+                                    disabled={loading}
+                                  />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Поле из формы заявки, на которое будет проверяться условие
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Значение поля *
+                                  </label>
+                                  {(() => {
+                                    const selectedField = fields.find(f => f.name === roleRuleData.field);
+                                    const hasOptions = selectedField?.options && selectedField.options.length > 0;
+                                    
+                                    if (roleRuleData.field && hasOptions) {
+                                      // Показываем Select с вариантами поля
+                                      return (
+                                        <>
+                                          <Select
+                                            value={roleRuleData.value}
+                                            onChange={(value) => setRoleRuleData(prev => ({ ...prev, value: value }))}
+                                            options={selectedField.options.map(option => ({
+                                              value: option.value,
+                                              label: option.label
+                                            }))}
+                                            placeholder="Выберите значение"
+                                            disabled={loading}
+                                          />
+                                          <p className="text-xs text-green-600 mt-1">
+                                            ✓ Выберите один из вариантов поля "{selectedField.label}"
+                                          </p>
+                                        </>
+                                      );
+                                    } else if (roleRuleData.field) {
+                                      // Показываем обычный Input для полей без вариантов
+                                      return (
+                                        <>
+                                          <Input
+                                            value={roleRuleData.value}
+                                            onChange={(e) => setRoleRuleData(prev => ({ ...prev, value: e.target.value }))}
+                                            placeholder="Введите точное значение"
+                                            disabled={loading}
+                                          />
+                                          <p className="text-xs text-blue-600 mt-1">
+                                            ℹ️ Поле "{selectedField?.label}" не имеет предустановленных вариантов - введите точное значение
+                                          </p>
+                                        </>
+                                      );
+                                    } else {
+                                      // Поле не выбрано
+                                      return (
+                                        <>
+                                          <Input
+                                            value=""
+                                            placeholder="Сначала выберите поле формы"
+                                            disabled={true}
+                                          />
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Сначала выберите поле формы выше
+                                          </p>
+                                        </>
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Роль для назначения *
+                                </label>
+                                <Select
+                                  value={roleRuleData.role}
+                                  onChange={(value) => setRoleRuleData(prev => ({ ...prev, role: value }))}
+                                  options={availableRoles}
+                                  placeholder="Выберите роль"
+                                  disabled={loading}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Роль будет добавлена пользователю при завершении заявки
+                                </p>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Описание правила
+                                </label>
+                                <Input
+                                  value={roleRuleData.description}
+                                  onChange={(e) => setRoleRuleData(prev => ({ ...prev, description: e.target.value }))}
+                                  placeholder="Например: Назначение роли студента для технического факультета"
+                                  disabled={loading}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Необязательное описание для понимания правила
+                                </p>
+                              </div>
+                              
+                              <div className="flex space-x-3 pt-4">
+                                <Button 
+                                  onClick={handleSaveRoleRule}
+                                  variant="primary"
+                                  disabled={loading}
+                                >
+                                  {editingRoleRule !== null ? 'Обновить' : 'Создать'} правило
+                                </Button>
+                                <Button 
+                                  onClick={() => setShowRoleRuleForm(false)}
+                                  variant="outline"
+                                  disabled={loading}
+                                >
+                                  Отмена
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-green-800 mb-2">Примеры использования:</h5>
+                        <ul className="text-sm text-green-700 space-y-1">
+                          <li>• Заявка на студенческий билет → назначить роль "student"</li>
+                          <li>• Факультет "технический" → назначить роль "technical_student"</li>
+                          <li>• Тип заявки "кураторская" → назначить роль "curator"</li>
+                          <li>• Отдел "администрация" → назначить роль "admin_assistant"</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === 'fields' && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
@@ -1403,6 +1781,188 @@ const RequestBuilder = () => {
                                   )}
                                 </div>
                               )}
+
+                              {/* Секция условной видимости */}
+                              <div className="border-t pt-4">
+                                <h4 className="text-sm font-medium text-gray-700 mb-3">Условная видимость поля</h4>
+                                <p className="text-xs text-gray-500 mb-3">
+                                  Настройте когда это поле должно отображаться в форме в зависимости от значений других полей
+                                </p>
+                                
+                                <div className="space-y-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Зависит от поля
+                                    </label>
+                                    <Select
+                                      value={fieldData.conditional_field_id || ''}
+                                      onChange={(value) => setFieldData(prev => ({ 
+                                        ...prev, 
+                                        conditional_field_id: value || null,
+                                        conditional_value: '', // Сбрасываем значение при смене поля
+                                        conditional_operator: value ? prev.conditional_operator : 'equals'
+                                      }))}
+                                      options={[
+                                        { value: '', label: 'Поле всегда видимо' },
+                                        ...fields
+                                          .filter(f => f.id !== editingField?.id) // Исключаем само поле
+                                          .map(f => ({
+                                            value: f.id,
+                                            label: f.label
+                                          }))
+                                      ]}
+                                      placeholder="Выберите поле"
+                                      disabled={loading}
+                                    />
+                                    {fieldData.conditional_field_id && (
+                                      <div className="mt-1">
+                                        <p className="text-xs text-gray-500">
+                                          Поле будет показано только при определенном значении выбранного поля
+                                        </p>
+                                        {(() => {
+                                          const conditionalField = fields.find(f => f.id === fieldData.conditional_field_id);
+                                          const hasOptions = conditionalField?.options && conditionalField.options.length > 0;
+                                          
+                                          if (hasOptions) {
+                                            return (
+                                              <p className="text-xs text-green-600 mt-1">
+                                                ✓ У поля "{conditionalField.label}" есть варианты - можно выбрать значение из списка
+                                              </p>
+                                            );
+                                          } else {
+                                            return (
+                                              <p className="text-xs text-blue-600 mt-1">
+                                                ℹ️ У поля "{conditionalField?.label}" нет вариантов - нужно будет ввести значение вручную
+                                              </p>
+                                            );
+                                          }
+                                        })()}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {fieldData.conditional_field_id && (
+                                    <div className="space-y-3 p-3 bg-blue-50 rounded-lg">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-sm font-medium text-blue-800 mb-1">
+                                            Условие *
+                                          </label>
+                                          <Select
+                                            value={fieldData.conditional_operator}
+                                            onChange={(value) => setFieldData(prev => ({ 
+                                              ...prev, 
+                                              conditional_operator: value 
+                                            }))}
+                                            options={[
+                                              { value: 'equals', label: 'Равно' },
+                                              { value: 'not_equals', label: 'Не равно' },
+                                              { value: 'contains', label: 'Содержит' },
+                                              { value: 'not_empty', label: 'Не пустое' },
+                                              { value: 'empty', label: 'Пустое' }
+                                            ]}
+                                            disabled={loading}
+                                          />
+                                        </div>
+
+                                        {!['not_empty', 'empty'].includes(fieldData.conditional_operator) && (
+                                          <div>
+                                            <label className="block text-sm font-medium text-blue-800 mb-1">
+                                              Значение *
+                                            </label>
+                                            {(() => {
+                                              const conditionalField = fields.find(f => f.id === fieldData.conditional_field_id);
+                                              const hasOptions = conditionalField?.options && conditionalField.options.length > 0;
+                                              
+                                              if (hasOptions) {
+                                                // Показываем селект с вариантами из поля-родителя
+                                                return (
+                                                  <>
+                                                    <Select
+                                                      value={fieldData.conditional_value}
+                                                      onChange={(value) => setFieldData(prev => ({ 
+                                                        ...prev, 
+                                                        conditional_value: value 
+                                                      }))}
+                                                      options={conditionalField.options.map(option => ({
+                                                        value: option.value,
+                                                        label: option.label
+                                                      }))}
+                                                      placeholder="Выберите значение"
+                                                      disabled={loading}
+                                                    />
+                                                    <p className="text-xs text-blue-600 mt-1">
+                                                      Выберите один из вариантов поля "{conditionalField.label}"
+                                                    </p>
+                                                  </>
+                                                );
+                                              } else {
+                                                // Показываем обычный ввод для полей без вариантов
+                                                return (
+                                                  <>
+                                                    <Input
+                                                      value={fieldData.conditional_value}
+                                                      onChange={(e) => setFieldData(prev => ({ 
+                                                        ...prev, 
+                                                        conditional_value: e.target.value 
+                                                      }))}
+                                                      placeholder="Введите значение"
+                                                      disabled={loading}
+                                                    />
+                                                    <p className="text-xs text-blue-600 mt-1">
+                                                      Точное значение для сравнения (учитывается регистр)
+                                                    </p>
+                                                  </>
+                                                );
+                                              }
+                                            })()}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="bg-blue-100 border border-blue-200 rounded p-2">
+                                        <p className="text-xs text-blue-800">
+                                          <strong>Пример условия:</strong> 
+                                          {(() => {
+                                            const conditionalField = fields.find(f => f.id === fieldData.conditional_field_id);
+                                            const fieldLabel = conditionalField?.label || 'выбранное поле';
+                                            const operator = {
+                                              'equals': 'равно',
+                                              'not_equals': 'не равно',
+                                              'contains': 'содержит',
+                                              'not_empty': 'не пустое',
+                                              'empty': 'пустое'
+                                            }[fieldData.conditional_operator] || 'равно';
+                                            
+                                            if (['not_empty', 'empty'].includes(fieldData.conditional_operator)) {
+                                              return ` Поле "${fieldData.label || 'это поле'}" будет показано, если "${fieldLabel}" ${operator}`;
+                                            }
+                                            
+                                            // Получаем название варианта вместо технического значения
+                                            let displayValue = fieldData.conditional_value || 'значение';
+                                            if (conditionalField?.options && fieldData.conditional_value) {
+                                              const option = conditionalField.options.find(opt => opt.value === fieldData.conditional_value);
+                                              if (option) {
+                                                displayValue = option.label;
+                                              }
+                                            }
+                                            
+                                            return ` Поле "${fieldData.label || 'это поле'}" будет показано, если "${fieldLabel}" ${operator} "${displayValue}"`;
+                                          })()}
+                                        </p>
+                                      </div>
+
+                                      {(!fieldData.conditional_value && !['not_empty', 'empty'].includes(fieldData.conditional_operator)) && (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                                          <p className="text-xs text-yellow-800">
+                                            ⚠️ Укажите значение для сравнения
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
 
                               {/* Секция связывания с профилем пользователя */}
                               <div className="border-t pt-4">

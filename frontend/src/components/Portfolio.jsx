@@ -400,7 +400,7 @@ const Portfolio = () => {
                     value={newAchievement.organization}
                     onChange={(e) => setNewAchievement(prev => ({...prev, organization: e.target.value}))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Например: МелГУ, Министерство образования РБ"
+                    placeholder="Например: МелГ"
                   />
                 </div>
 

@@ -208,6 +208,8 @@ async def get_request(
     current_user: UserInfo = Depends(get_current_user)
 ):
     """Получение заявки по ID"""
+    print(f"DEBUG: Получение заявки {request_id} пользователем {current_user.id} ({current_user.email})")
+    
     request = db.query(Request).options(
         joinedload(Request.author),
         joinedload(Request.assignee),
@@ -216,25 +218,33 @@ async def get_request(
     ).filter(Request.id == request_id).first()
     
     if not request:
+        print(f"DEBUG: Заявка {request_id} не найдена")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Заявка не найдена"
         )
     
+    print(f"DEBUG: Заявка найдена. author_id={request.author_id}, assignee_id={request.assignee_id}, possible_assignees={request.possible_assignees}")
+    print(f"DEBUG: Пользователь {current_user.id}, роли: {current_user.roles}")
+    
     # Проверяем права доступа
-    has_access = (
-        request.author_id == current_user.id or  # Автор заявки
-        request.assignee_id == current_user.id or  # Текущий исполнитель
-        (request.possible_assignees and current_user.id in request.possible_assignees) or  # Возможный исполнитель
-        "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])  # Админ
-    )
+    is_author = request.author_id == current_user.id
+    is_assignee = request.assignee_id == current_user.id
+    is_possible_assignee = (request.possible_assignees and current_user.id in request.possible_assignees)
+    is_admin = "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])
+    
+    print(f"DEBUG: is_author={is_author}, is_assignee={is_assignee}, is_possible_assignee={is_possible_assignee}, is_admin={is_admin}")
+    
+    has_access = is_author or is_assignee or is_possible_assignee or is_admin
     
     if not has_access:
+        print(f"DEBUG: Доступ запрещен для пользователя {current_user.id} к заявке {request_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Доступ запрещен"
         )
     
+    print(f"DEBUG: Доступ разрешен, возвращаем заявку {request_id}")
     return request
 
 # ===========================================
@@ -259,17 +269,32 @@ async def update_request(
         )
     
     # Проверяем права на редактирование
-    can_edit = (
-        request.author_id == current_user.id or  # Автор
-        request.assignee_id == current_user.id or  # Исполнитель
-        "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])  # Админ
-    )
+    is_author = request.author_id == current_user.id
+    is_assignee = request.assignee_id == current_user.id
+    is_admin = "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])
+    
+    can_edit = is_author or is_assignee or is_admin
     
     if not can_edit:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав для редактирования заявки"
         )
+    
+    # Дополнительные проверки для авторов
+    if is_author and not is_admin:
+        # Авторы могут редактировать только заявки в определенных статусах
+        editable_statuses_for_author = [
+            RequestStatus.DRAFT.value,
+            RequestStatus.SUBMITTED.value, 
+            RequestStatus.IN_REVIEW.value
+        ]
+        
+        if request.status not in editable_statuses_for_author:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Заявки в статусе '{request.status}' нельзя редактировать. Доступны для редактирования: черновики, поданные и на рассмотрении."
+            )
     
     # Проверяем, изменяется ли статус на IN_REVIEW из DRAFT
     old_status = request.status
@@ -822,6 +847,69 @@ async def reject_request(
     ).filter(Request.id == request.id).first()
     
     return request
+
+@router.get("/{request_id}/permissions")
+async def get_request_permissions(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение прав доступа к заявке для текущего пользователя"""
+    request = db.query(Request).filter(Request.id == request_id).first()
+    
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заявка не найдена"
+        )
+    
+    is_author = request.author_id == current_user.id
+    is_assignee = request.assignee_id == current_user.id
+    is_admin = "admin" in (current_user.roles if hasattr(current_user, 'roles') else [])
+    
+    # Может ли просматривать заявку
+    can_view = is_author or is_assignee or is_admin
+    
+    # Может ли редактировать заявку  
+    can_edit = False
+    if is_admin:
+        can_edit = True
+    elif is_author:
+        editable_statuses = [
+            RequestStatus.DRAFT.value,
+            RequestStatus.SUBMITTED.value, 
+            RequestStatus.IN_REVIEW.value
+        ]
+        can_edit = request.status in editable_statuses
+    elif is_assignee:
+        can_edit = True
+    
+    # Может ли отправлять заявку (только черновики)
+    can_submit = is_author and request.status == RequestStatus.DRAFT.value
+    
+    # Может ли брать в работу
+    can_take = (
+        (request.possible_assignees and current_user.id in request.possible_assignees) or
+        is_assignee or is_admin
+    ) and request.status == RequestStatus.IN_REVIEW.value
+    
+    # Может ли завершать заявку
+    can_complete = (is_assignee or is_admin) and request.status in [
+        RequestStatus.APPROVED.value, 
+        RequestStatus.IN_REVIEW.value
+    ]
+    
+    return {
+        "can_view": can_view,
+        "can_edit": can_edit,
+        "can_submit": can_submit,
+        "can_take": can_take,
+        "can_complete": can_complete,
+        "is_author": is_author,
+        "is_assignee": is_assignee,
+        "is_admin": is_admin,
+        "request_status": request.status
+    }
 
 # ===========================================
 # КОММЕНТАРИИ

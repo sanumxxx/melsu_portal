@@ -9,6 +9,13 @@ class RoutingRule(BaseModel):
     value: str                    # Значение поля (например, "technical")
     assignees: List[int]          # Список ID ответственных
 
+# Схема для правил назначения ролей
+class RoleAssignmentRule(BaseModel):
+    field: str                    # Поле формы для условия (например, "faculty")
+    value: str                    # Значение поля (например, "technical")
+    role: str                     # Роль для назначения (например, "student")
+    description: Optional[str] = None  # Описание правила
+
 class RequestTemplateBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -19,6 +26,8 @@ class RequestTemplateBase(BaseModel):
     auto_assign_enabled: bool = False
     department_routing: bool = False
     routing_rules: Optional[List[RoutingRule]] = None
+    auto_role_assignment_enabled: bool = False
+    role_assignment_rules: Optional[List[RoleAssignmentRule]] = None
 
 class RequestTemplateCreate(RequestTemplateBase):
     pass
@@ -33,6 +42,8 @@ class RequestTemplateUpdate(BaseModel):
     auto_assign_enabled: Optional[bool] = None
     department_routing: Optional[bool] = None
     routing_rules: Optional[List[RoutingRule]] = None
+    auto_role_assignment_enabled: Optional[bool] = None
+    role_assignment_rules: Optional[List[RoleAssignmentRule]] = None
 
 class RequestTemplate(RequestTemplateBase):
     id: int

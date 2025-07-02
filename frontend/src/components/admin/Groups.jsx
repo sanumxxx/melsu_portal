@@ -56,8 +56,8 @@ const Groups = () => {
     try {
       const [groupsRes, departmentsRes, facultiesRes] = await Promise.all([
         api.get('/api/groups'),
-        api.get('/departments?department_type=department'), // Только кафедры
-        api.get('/departments?department_type=faculty') // Только факультеты
+        api.get('/api/departments?department_type=department'), // Только кафедры
+        api.get('/api/departments?department_type=faculty') // Только факультеты
       ]);
       
       setGroups(groupsRes.data || []);

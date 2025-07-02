@@ -1,10 +1,23 @@
 import os
+import logging
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения из .env файла в корне проекта
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+# Загружаем переменные окружения из .env файла в корне проекта (если существует)
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 env_path = os.path.join(project_root, '.env')
-load_dotenv(dotenv_path=env_path)
+if os.path.exists(env_path):
+    try:
+        load_dotenv(dotenv_path=env_path)
+        print(f"✅ Загружен .env файл: {env_path}")
+    except Exception as e:
+        print(f"⚠️ Ошибка загрузки .env файла: {e}")
+        print("Используем переменные окружения по умолчанию")
+else:
+    print(f"⚠️ .env файл не найден: {env_path}")
+    print("Используем переменные окружения по умолчанию")
 
 from fastapi import FastAPI, HTTPException, Depends, status, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,13 +33,19 @@ from .startup import startup_application, check_required_environment
 from .api import auth, profile, dev, users, departments
 from .dependencies import get_current_user, UserInfo
 from .models.user import User as UserModel, UserRole
+from .models.role import Role
 from .schemas.user import UserRoleUpdate
 from sqlalchemy.orm import Session
 from .database import get_db
 from .middleware.activity_middleware import ActivityLoggingMiddleware
 
 # WebSocket для уведомлений
-from .api.websocket import websocket_endpoint
+try:
+    from .api.websocket import websocket_endpoint
+    print("✅ WebSocket модуль импортирован успешно")
+except Exception as e:
+    print(f"❌ Ошибка импорта WebSocket модуля: {e}")
+    websocket_endpoint = None
 
 # Проверяем переменные окружения
 check_required_environment()
@@ -128,8 +147,8 @@ class ScheduleResponse(BaseModel):
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(dev.router, tags=["development"])  # DEV endpoints
-app.include_router(users.router, tags=["users"])  # Users management endpoints
-app.include_router(departments.router, tags=["departments"])  # Departments management endpoints
+app.include_router(users.router, prefix="/api", tags=["users"])  # Users management endpoints
+app.include_router(departments.router, prefix="/api", tags=["departments"])  # Departments management endpoints
 
 # Система шаблонов заявок
 from .api import request_templates
@@ -155,7 +174,7 @@ app.include_router(files.router, prefix="/api", tags=["files"])
 
 # Система назначений
 from .api import assignments
-app.include_router(assignments.router, tags=["assignments"])
+app.include_router(assignments.router, prefix="/api", tags=["assignments"])
 
 # Система портфолио
 from .api import portfolio
@@ -201,7 +220,31 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 @app.websocket("/ws/{user_id}")
 async def websocket_notifications(websocket: WebSocket, user_id: int):
     """WebSocket endpoint для real-time уведомлений"""
-    await websocket_endpoint(websocket, user_id)
+    print(f"🔌 WebSocket подключение от пользователя {user_id}")
+    
+    if websocket_endpoint is None:
+        print("❌ WebSocket endpoint не доступен")
+        await websocket.accept()
+        await websocket.send_json({
+            "error": "WebSocket service temporarily unavailable",
+            "timestamp": datetime.now().isoformat()
+        })
+        await websocket.close()
+        return
+    
+    try:
+        await websocket_endpoint(websocket, user_id)
+    except Exception as e:
+        print(f"❌ Ошибка WebSocket для пользователя {user_id}: {e}")
+        try:
+            await websocket.accept()
+            await websocket.send_json({
+                "error": f"WebSocket error: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            })
+            await websocket.close()
+        except:
+            pass
 
 @app.get("/")
 async def root():
@@ -211,6 +254,25 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "portal-backend", "version": "1.0.0"}
+
+@app.get("/api/websocket/status")
+async def websocket_status():
+    """Проверка состояния WebSocket сервиса"""
+    try:
+        from .api.websocket import manager
+        return {
+            "status": "available" if websocket_endpoint is not None else "unavailable",
+            "connected_users": manager.get_connected_users() if websocket_endpoint is not None else [],
+            "connection_count": len(manager.get_connected_users()) if websocket_endpoint is not None else 0,
+            "endpoint_url": "/ws/{user_id}",
+            "module_imported": websocket_endpoint is not None
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "module_imported": websocket_endpoint is not None
+        }
 
 # ===========================================
 # ЗАЩИЩЕННЫЕ ЭНДПОИНТЫ С ПРОСТОЙ АВТОРИЗАЦИЕЙ
@@ -400,11 +462,14 @@ async def update_user_roles(user_id: int, role_data: UserRoleUpdate, current_use
     if not target_user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    # Валидируем роли
-    valid_roles = [r.value for r in UserRole]
+    # Валидируем роли через базу данных (расширенные роли)
     for role in role_data.roles:
-        if role not in valid_roles:
-            raise HTTPException(status_code=400, detail=f"Недопустимая роль: {role}")
+        existing_role = db.query(Role).filter(Role.name == role, Role.is_active == True).first()
+        if not existing_role:
+            # Если роли нет в расширенной системе, проверяем базовые роли
+            valid_roles = [r.value for r in UserRole]
+            if role not in valid_roles:
+                raise HTTPException(status_code=400, detail=f"Недопустимая роль: {role}")
     
     # Обновляем роли
     target_user.roles = role_data.roles
@@ -438,10 +503,13 @@ async def manage_user_role(
     if not role:
         raise HTTPException(status_code=400, detail="Не указана роль")
     
-    # Валидируем роль
-    valid_roles = [r.value for r in UserRole]
-    if role not in valid_roles:
-        raise HTTPException(status_code=400, detail=f"Недопустимая роль: {role}")
+    # Валидируем роль через базу данных (расширенные роли)
+    existing_role = db.query(Role).filter(Role.name == role, Role.is_active == True).first()
+    if not existing_role:
+        # Если роли нет в расширенной системе, проверяем базовые роли
+        valid_roles = [r.value for r in UserRole]
+        if role not in valid_roles:
+            raise HTTPException(status_code=400, detail=f"Недопустимая роль: {role}")
     
     # Получаем текущие роли
     current_roles = target_user.roles or []
@@ -473,6 +541,98 @@ async def manage_user_role(
         "action": action,
         "current_roles": current_roles
     }
+
+@app.post("/admin/init-system")
+async def manual_system_initialization(current_user: UserInfo = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Ручной запуск инициализации системы (только для админа)"""
+    
+    # Проверяем админские права
+    user_full = db.query(UserModel).filter(UserModel.email == current_user.email).first()
+    if not user_full or "admin" not in (user_full.roles or []):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: требуются права администратора")
+    
+    try:
+        from .startup import init_system_roles, init_field_types, init_base_departments
+        
+        # Запускаем инициализацию
+        roles_stats = init_system_roles(db)
+        fields_stats = init_field_types(db)
+        depts_stats = init_base_departments(db)
+        
+        # Сохраняем изменения
+        db.commit()
+        
+        # Подсчитываем общую статистику
+        total_created = roles_stats['created'] + fields_stats['created'] + depts_stats['created']
+        total_updated = roles_stats['updated'] + fields_stats['updated'] + depts_stats['updated']
+        total_errors = roles_stats['errors'] + fields_stats['errors'] + depts_stats['errors']
+        
+        return {
+            "message": "Инициализация системы завершена",
+            "stats": {
+                "total_created": total_created,
+                "total_updated": total_updated, 
+                "total_errors": total_errors,
+                "roles": roles_stats,
+                "field_types": fields_stats,
+                "departments": depts_stats
+            },
+            "success": total_errors == 0
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Ошибка при ручной инициализации: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка инициализации: {str(e)}")
+
+@app.get("/admin/system-status")
+async def get_system_status(current_user: UserInfo = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Проверка состояния системных компонентов (только для админа)"""
+    
+    # Проверяем админские права
+    user_full = db.query(UserModel).filter(UserModel.email == current_user.email).first()
+    if not user_full or "admin" not in (user_full.roles or []):
+        raise HTTPException(status_code=403, detail="Доступ запрещен: требуются права администратора")
+    
+    try:
+        # Проверяем роли
+        roles_count = db.query(Role).count()
+        system_roles_count = db.query(Role).filter(Role.is_system == True).count()
+        
+        # Проверяем типы полей
+        field_types_count = db.query(FieldType).count()
+        
+        # Проверяем департаменты
+        departments_count = db.query(Department).count()
+        
+        return {
+            "database_connected": True,
+            "roles": {
+                "total": roles_count,
+                "system_roles": system_roles_count,
+                "expected_system_roles": 8  # Количество ролей в SYSTEM_ROLES
+            },
+            "field_types": {
+                "total": field_types_count,
+                "expected": 12  # Количество типов в FIELD_TYPES
+            },
+            "departments": {
+                "total": departments_count,
+                "expected": 7  # Количество департаментов в BASE_DEPARTMENTS
+            },
+            "initialization_needed": {
+                "roles": system_roles_count < 8,
+                "field_types": field_types_count < 12,
+                "departments": departments_count < 7
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Ошибка при проверке статуса системы: {e}")
+        return {
+            "database_connected": False,
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

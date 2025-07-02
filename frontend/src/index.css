@@ -404,4 +404,110 @@ html {
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
   scroll-behavior: smooth;
+}
+
+/* Унификация полей ввода для мобильных устройств */
+@media screen and (max-width: 768px) {
+  /* Все поля ввода одинакового размера */
+  input, select, textarea, button[role="combobox"] {
+    min-height: 48px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    border-radius: 8px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-color: white !important;
+    border: 1px solid #d1d5db !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Специальные стили для iOS Safari */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  select,
+  textarea {
+    -webkit-border-radius: 8px !important;
+    border-radius: 8px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background-clip: padding-box !important;
+    font-size: 16px !important; /* Предотвращает зум на iOS */
+  }
+  
+  /* Кастомные select dropdown */
+  button[role="combobox"] {
+    text-align: left !important;
+    background-image: none !important;
+  }
+  
+  /* Унификация focus состояний */
+  input:focus, select:focus, textarea:focus, button[role="combobox"]:focus {
+    outline: none !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2) !important;
+  }
+}
+
+/* Дополнительные стили для очень маленьких экранов */
+@media screen and (max-width: 480px) {
+  .auth-card .form-group input {
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    min-height: 48px !important;
+  }
+  
+  /* Исправление для полей в grid layout */
+  .auth-card [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* Стили для полей даты на iOS */
+  input[type="date"] {
+    background-color: white !important;
+    color: #374151 !important;
+    position: relative !important;
+  }
+  
+  /* Placeholder для пустых полей даты */
+  input[type="date"]:invalid::-webkit-datetime-edit {
+    color: #9ca3af !important;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit-text {
+    color: #9ca3af !important;
+    padding: 0 !important;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field {
+    color: #374151 !important;
+  }
+  
+  /* Показываем placeholder когда поле пустое */
+  input[type="date"]:not(:focus):not(:valid)::before {
+    content: attr(placeholder) !important;
+    color: #9ca3af !important;
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    font-size: 16px !important;
+  }
+  
+  input[type="date"]::-webkit-datetime-edit {
+    padding: 0 !important;
+    min-height: 20px !important;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 1 !important;
+    cursor: pointer !important;
+    margin-left: auto !important;
+  }
 } 

@@ -96,8 +96,10 @@ const RequestForm = () => {
       const requestResponse = await api.get(`/api/requests/${requestId}`);
       const request = requestResponse.data;
       
-      if (request.status?.toUpperCase() !== 'DRAFT') {
-        setError('Можно редактировать только черновики заявок');
+      // Проверяем, можно ли редактировать заявку
+      const editableStatuses = ['DRAFT', 'SUBMITTED', 'IN_REVIEW'];
+      if (!editableStatuses.includes(request.status?.toUpperCase())) {
+        setError('Эту заявку нельзя редактировать. Можно редактировать только черновики, поданные заявки и заявки на рассмотрении.');
         setLoading(false);
         return;
       }
@@ -543,9 +545,9 @@ const RequestForm = () => {
 
   if (!selectedTemplate) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
             {isEditing ? 'Редактирование заявки' : 'Подача заявки'}
           </h1>
           <p className="text-gray-600 mt-2">
@@ -568,7 +570,7 @@ const RequestForm = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {templates.map((template) => {
               return (
                 <Card 
@@ -618,18 +620,21 @@ const RequestForm = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center space-x-4">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
         <Button 
           onClick={handleBackToTemplates}
           variant="outline"
           disabled={submitting}
+          className="w-full sm:w-auto"
         >
-                      {isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}
+          <span className="sm:hidden">{isEditing ? '← К заявкам' : '← К списку'}</span>
+          <span className="hidden sm:inline">{isEditing ? '← Назад к моим заявкам' : '← Назад к списку'}</span>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
+            <span className="sm:hidden">{isEditing ? 'Редактирование' : selectedTemplate.name}</span>
+            <span className="hidden sm:inline">{isEditing ? `Редактирование: ${selectedTemplate.name}` : selectedTemplate.name}</span>
           </h1>
           <p className="text-gray-600 mt-1">
             {currentRequest && (
@@ -688,29 +693,36 @@ const RequestForm = () => {
                 </div>
               ))}
 
-              <div className="flex space-x-4 pt-6 border-t">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 border-t">
                 <Button 
                   type="submit" 
                   variant="primary"
                   disabled={submitting || fields.length === 0}
-                  className="min-w-32"
+                  className="w-full sm:w-auto sm:min-w-32"
                 >
-                  {submitting ? 'Отправка...' : (isEditing ? 'Обновить и отправить' : 'Отправить заявку')}
+                  {submitting ? 'Отправка...' : (isEditing ? (
+                    <>
+                      <span className="sm:hidden">Обновить</span>
+                      <span className="hidden sm:inline">Обновить и отправить</span>
+                    </>
+                  ) : 'Отправить заявку')}
                 </Button>
                 <Button 
                   type="button"
                   onClick={handleSaveDraft}
                   variant="outline"
                   disabled={submitting || fields.length === 0}
-                  className="min-w-32"
+                  className="w-full sm:w-auto sm:min-w-32"
                 >
-                  Сохранить черновик
+                  <span className="sm:hidden">Сохранить</span>
+                  <span className="hidden sm:inline">Сохранить черновик</span>
                 </Button>
                 <Button 
                   type="button"
                   onClick={handleBackToTemplates}
                   variant="outline"
                   disabled={submitting}
+                  className="w-full sm:w-auto"
                 >
                   Отмена
                 </Button>

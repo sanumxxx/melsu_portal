@@ -25,15 +25,40 @@ class WebSocketService {
 
       // Определяем WebSocket URL в зависимости от текущего хоста
       const currentHost = window.location.hostname;
-      let wsHost = 'localhost:8000';
+      const currentProtocol = window.location.protocol;
       
-      if (currentHost === '10.128.7.101') {
-        wsHost = '10.128.7.101:8000';
-      } else if (currentHost === '127.0.0.1') {
-        wsHost = '127.0.0.1:8000';
+      let wsUrl;
+      
+      if (currentHost === 'my.melsu.ru') {
+        // Production сервер - используем wss через nginx
+        wsUrl = `wss://my.melsu.ru/ws/${userId}`;
+      } else if (currentHost === '10.128.7.101') {
+        // Локальная сеть
+        wsUrl = `ws://10.128.7.101:8000/ws/${userId}`;
+      } else if (currentHost === '127.0.0.1' || currentHost === 'localhost') {
+        // Локальная разработка
+        wsUrl = `ws://localhost:8000/ws/${userId}`;
+      } else {
+        // Fallback для других случаев
+        const wsProtocol = currentProtocol === 'https:' ? 'wss:' : 'ws:';
+        const wsPort = currentProtocol === 'https:' ? '' : ':8000';
+        wsUrl = `${wsProtocol}//${currentHost}${wsPort}/ws/${userId}`;
       }
       
-      const wsUrl = `ws://${wsHost}/ws/${userId}`;
+      console.log(`🔌 Подключение к WebSocket: ${wsUrl}`);
+      console.log(`🌐 Текущий хост: ${currentHost}`);
+      console.log(`🔒 Текущий протокол: ${currentProtocol}`);
+      console.log(`👤 User ID: ${userId}`);
+      
+      // ВАЖНО: Проверяем, что не используем старый URL с портом 3000
+      if (wsUrl.includes(':3000')) {
+        console.error('❌ ОШИБКА: Обнаружен старый WebSocket URL с портом 3000!');
+        console.error('❌ Возможно, нужно очистить кеш браузера или обновить код на сервере');
+        toast.error('Ошибка подключения: старая версия кода. Обновите страницу.', {
+          duration: 10000
+        });
+        return;
+      }
 
       
       this.ws = new WebSocket(wsUrl);
@@ -347,6 +372,45 @@ class WebSocketService {
       case WebSocket.CLOSING: return 'closing';
       case WebSocket.CLOSED: return 'disconnected';
       default: return 'unknown';
+    }
+  }
+
+  // Диагностика подключения
+  diagnoseConnection() {
+    const currentHost = window.location.hostname;
+    const currentProtocol = window.location.protocol;
+    
+    console.log('🔍 Диагностика WebSocket подключения:');
+    console.log(`   Хост: ${currentHost}`);
+    console.log(`   Протокол: ${currentProtocol}`);
+    console.log(`   User ID: ${this.userId}`);
+    console.log(`   Статус: ${this.getConnectionStatus()}`);
+    
+    if (currentHost === 'my.melsu.ru') {
+      console.log('✅ Production режим - должен использовать wss://my.melsu.ru/ws/{userId}');
+    } else {
+      console.log('🛠️ Development режим');
+    }
+    
+    return {
+      host: currentHost,
+      protocol: currentProtocol,
+      userId: this.userId,
+      status: this.getConnectionStatus(),
+      isProduction: currentHost === 'my.melsu.ru'
+    };
+  }
+
+  // Принудительное переподключение с очисткой
+  forceReconnect() {
+    console.log('🔄 Принудительное переподключение...');
+    this.disconnect();
+    this.reconnectAttempts = 0;
+    
+    if (this.userId) {
+      setTimeout(() => {
+        this.connect(this.userId);
+      }, 1000);
     }
   }
 }

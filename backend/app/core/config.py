@@ -2,10 +2,21 @@ import os
 from typing import Optional
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения из .env файла в корне проекта
+# Загружаем переменные окружения из .env файла в корне проекта (с обработкой ошибок)
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 env_path = os.path.join(project_root, '.env')
-load_dotenv(dotenv_path=env_path)
+
+# Безопасная загрузка .env файла
+try:
+    if os.path.exists(env_path):
+        load_dotenv(dotenv_path=env_path, encoding='utf-8')
+        print(f"✅ Загружен .env файл: {env_path}")
+    else:
+        print(f"ℹ️ .env файл не найден: {env_path}")
+        print("ℹ️ Используем переменные окружения и значения по умолчанию")
+except Exception as e:
+    print(f"⚠️ Ошибка загрузки .env файла: {e}")
+    print("ℹ️ Используем переменные окружения и значения по умолчанию")
 
 class DatabaseConfig:
     """Конфигурация базы данных"""
@@ -24,7 +35,7 @@ class JWTConfig:
 class EmailConfig:
     """Конфигурация email"""
     MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "help@melsu.ru")
-    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "fl_92||LII_O") 
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "fl_92||LII_O0") 
     MAIL_FROM: str = os.getenv("MAIL_FROM", "help@melsu.ru")
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "email.melsu.ru")
@@ -57,8 +68,6 @@ class Settings:
     MAIL_PORT = EmailConfig.MAIL_PORT
     MAIL_SERVER = EmailConfig.MAIL_SERVER
     MAIL_FROM_NAME = EmailConfig.MAIL_FROM_NAME
-    MAIL_STARTTLS = EmailConfig.MAIL_STARTTLS
-    MAIL_SSL_TLS = EmailConfig.MAIL_SSL_TLS
     
     # Сервер
     HOST = ServerConfig.HOST

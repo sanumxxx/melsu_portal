@@ -247,16 +247,29 @@ const MyRequests = () => {
                     </div>
                     
                     <div className="flex flex-wrap gap-2">
-                      {request.status?.toUpperCase() === 'DRAFT' ? (
-                        <Button
-                          onClick={() => navigate(`/requests/edit/${request.id}`)}
-                          variant="primary"
-                          size="sm"
-                          className="w-full sm:w-auto"
-                        >
-                          <PencilIcon className="h-4 w-4 mr-2" />
-                          Редактировать
-                        </Button>
+                      {['DRAFT', 'SUBMITTED', 'IN_REVIEW'].includes(request.status?.toUpperCase()) ? (
+                        <>
+                          <Button
+                            onClick={() => navigate(`/requests/edit/${request.id}`)}
+                            variant="primary"
+                            size="sm"
+                            className="w-full sm:w-auto"
+                          >
+                            <PencilIcon className="h-4 w-4 mr-2" />
+                            Редактировать
+                          </Button>
+                          {request.status?.toUpperCase() !== 'DRAFT' && (
+                            <Button
+                              onClick={() => handleViewRequest(request)}
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto"
+                            >
+                              <EyeIcon className="h-4 w-4 mr-2" />
+                              Открыть заявку
+                            </Button>
+                          )}
+                        </>
                       ) : (
                         <Button
                           onClick={() => handleViewRequest(request)}

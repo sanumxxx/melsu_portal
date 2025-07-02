@@ -13,7 +13,7 @@ from ..schemas.assignment import (
     UserInfo, DepartmentInfo, RoleInfo
 )
 
-router = APIRouter(prefix="/api/assignments", tags=["assignments"])
+router = APIRouter(prefix="/assignments", tags=["assignments"])
 
 def convert_assignment_to_response(assignment: UserDepartmentAssignment) -> AssignmentResponse:
     """Конвертирует SQLAlchemy модель назначения в Pydantic схему"""

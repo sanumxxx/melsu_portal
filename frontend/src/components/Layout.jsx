@@ -276,11 +276,8 @@ const Layout = ({ children, user, onLogout }) => {
             {/* Заявки */}
             {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
             
-            {/* Отчеты */}
-            {navigation.filter(item => item.name === 'Отчеты').map((item) => renderNavigationItem(item, false))}
-            
-            {/* Справочники */}
-            {navigation.filter(item => item.name === 'Справочники').map((item) => renderNavigationItem(item, false))}
+            {/* Отчеты и Справочники */}
+            {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => ['Отчеты', 'Справочники'].includes(item.name)).map((item) => renderNavigationItem(item, false))}
             
             {/* Административные разделы */}
             {user?.roles?.includes('admin') && (
@@ -388,11 +385,8 @@ const Layout = ({ children, user, onLogout }) => {
                 {/* Заявки */}
                 {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, true))}
                 
-                {/* Отчеты */}
-                {navigation.filter(item => item.name === 'Отчеты').map((item) => renderNavigationItem(item, true))}
-                
-                {/* Справочники */}
-                {navigation.filter(item => item.name === 'Справочники').map((item) => renderNavigationItem(item, true))}
+                {/* Отчеты и Справочники */}
+                {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => ['Отчеты', 'Справочники'].includes(item.name)).map((item) => renderNavigationItem(item, true))}
                 
                 {/* Административные разделы */}
                 {user?.roles?.includes('admin') && (

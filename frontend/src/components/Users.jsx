@@ -284,7 +284,7 @@ const Users = () => {
     const fetchSearchFields = async () => {
       setLoadingFields(true);
       try {
-        const response = await api.get('/search-fields');
+        const response = await api.get('/api/users/search-fields');
         setSearchFields(response.data.fields || []);
       } catch (err) {
         console.error('❌ Ошибка загрузки полей поиска:', err);
@@ -366,7 +366,7 @@ const Users = () => {
         params.search = debouncedSearchQuery.trim();
       }
 
-      const response = await api.get('/users', { params });
+      const response = await api.get('/api/users', { params });
       
       setUsers(response.data.users || []);
       setPagination(response.data.pagination || {
@@ -477,7 +477,7 @@ const Users = () => {
     setUserDetails(null);
 
     try {
-      const response = await api.get(`/users/${user.id}`);
+      const response = await api.get(`/api/users/${user.id}`);
       console.log('📊 Первоначальная загрузка пользователя:', response.data);
       console.log('🏢 Подразделение при загрузке:', response.data.profile?.department);
                       // Старая логика загрузки роли удалена - используйте assignments

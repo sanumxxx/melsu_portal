@@ -26,6 +26,10 @@ class RequestTemplate(Base):
     department_routing = Column(Boolean, default=False, nullable=False)  # Маршрутизация по отделам
     routing_rules = Column(JSON, nullable=True)  # Правила условной маршрутизации
     
+    # Поля для автоматического назначения ролей
+    auto_role_assignment_enabled = Column(Boolean, default=False, nullable=False)  # Включить автоназначение ролей
+    role_assignment_rules = Column(JSON, nullable=True)  # Правила назначения ролей при утверждении
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
