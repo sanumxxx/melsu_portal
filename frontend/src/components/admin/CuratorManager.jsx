@@ -348,7 +348,6 @@ const CuratorManager = () => {
                       </div>
                     </div>
                   </div>
-                </div>
                 
                 <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-0 sticky bottom-0 z-10">
                   <button
