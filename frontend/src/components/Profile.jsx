@@ -10,10 +10,14 @@ import {
   AcademicCapIcon,
   BriefcaseIcon,
   PhoneIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  LinkIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import PixelCard from './common/PixelCard';
+import TelegramLoginButton from 'react-telegram-login';
+import VKAuthButton from './auth/VKAuthButton';
 
 const Profile = ({ user }) => {
   const [profileData, setProfileData] = useState({});
@@ -21,10 +25,23 @@ const Profile = ({ user }) => {
   const [error, setError] = useState('');
   const [assignments, setAssignments] = useState([]);
   const [loadingAssignments, setLoadingAssignments] = useState(true);
+  const [socialConnections, setSocialConnections] = useState({
+    vk_connected: false,
+    telegram_connected: false,
+    vk_id: null,
+    telegram_id: null
+  });
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [connectingVk, setConnectingVk] = useState(false);
+  const [connectingTelegram, setConnectingTelegram] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
 
   useEffect(() => {
     fetchProfile();
     fetchAssignments();
+    fetchSocialStatus();
   }, [user]);
 
   const fetchProfile = async () => {
@@ -113,6 +130,121 @@ const Profile = ({ user }) => {
 
   const getFullName = () => {
     return `${profileData.last_name || ''} ${profileData.first_name || ''} ${profileData.middle_name || ''}`.trim() || 'Не указано';
+  };
+
+  const fetchSocialStatus = async () => {
+    try {
+      const response = await api.get('/api/oauth/status');
+      setSocialConnections(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки статуса социальных сетей:', error);
+    }
+  };
+
+  const handleVkSuccess = async (vkData) => {
+    setConnectingVk(true);
+    try {
+      // Отправляем данные на backend
+      await api.post('/api/oauth/vk/connect', {
+        access_token: vkData.tokenData.access_token,
+        user_id: vkData.tokenData.user_id,
+        expires_in: vkData.tokenData.expires_in
+      });
+      
+      await fetchSocialStatus();
+      alert('ВКонтакте успешно подключен!');
+    } catch (error) {
+      console.error('Ошибка подключения ВКонтакте:', error);
+      alert(error.response?.data?.detail || 'Ошибка подключения ВКонтакте');
+    } finally {
+      setConnectingVk(false);
+    }
+  };
+
+  const handleVkError = (error) => {
+    console.error('VK Auth Error:', error);
+    alert('Ошибка авторизации ВКонтакте');
+    setConnectingVk(false);
+  };
+
+  const handleTelegramAuth = async (user) => {
+    setConnectingTelegram(true);
+    try {
+      await api.post('/api/oauth/telegram/connect', user);
+      await fetchSocialStatus();
+      alert('Telegram успешно подключен!');
+    } catch (error) {
+      console.error('Ошибка подключения Telegram:', error);
+      alert(error.response?.data?.detail || 'Ошибка подключения Telegram');
+    } finally {
+      setConnectingTelegram(false);
+    }
+  };
+
+  const disconnectVk = () => {
+    showConfirm('Вы уверены, что хотите отключить ВКонтакте?', async () => {
+      setSocialLoading(true);
+      try {
+        await api.delete('/api/oauth/vk/disconnect');
+        await fetchSocialStatus();
+        alert('ВКонтакте успешно отключен!');
+      } catch (error) {
+        console.error('Ошибка отключения ВКонтакте:', error);
+        alert(error.response?.data?.detail || 'Ошибка отключения ВКонтакте');
+      } finally {
+        setSocialLoading(false);
+      }
+    });
+  };
+
+  const disconnectTelegram = () => {
+    showConfirm('Вы уверены, что хотите отключить Telegram?', async () => {
+      setSocialLoading(true);
+      try {
+        await api.delete('/api/oauth/telegram/disconnect');
+        await fetchSocialStatus();
+        alert('Telegram успешно отключен!');
+      } catch (error) {
+        console.error('Ошибка отключения Telegram:', error);
+        alert(error.response?.data?.detail || 'Ошибка отключения Telegram');
+      } finally {
+        setSocialLoading(false);
+      }
+    });
+  };
+
+  const getVkUrl = (vkUserInfo) => {
+    if (!vkUserInfo) return null;
+    if (vkUserInfo.id) return `https://vk.com/id${vkUserInfo.id}`;
+    if (vkUserInfo.domain) return `https://vk.com/${vkUserInfo.domain}`;
+    return null;
+  };
+
+  const getTelegramUrl = (telegramUserInfo) => {
+    if (!telegramUserInfo) return null;
+    if (telegramUserInfo.username) return `https://t.me/${telegramUserInfo.username}`;
+    return null;
+  };
+
+  const showConfirm = (message, action) => {
+    setConfirmMessage(message);
+    setConfirmAction(() => action);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirm = () => {
+    if (confirmAction) {
+      confirmAction();
+    }
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+    setConfirmMessage('');
+  };
+
+  const handleCancel = () => {
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+    setConfirmMessage('');
   };
 
   if (loading) {
@@ -471,7 +603,167 @@ const Profile = ({ user }) => {
             )}
           </div>
         </div>
+
+        {/* Социальные сети */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <LinkIcon className="w-5 h-5 text-red-600 mr-2" />
+            Социальные сети
+          </h3>
+          
+          <div className="space-y-6">
+            {/* ВКонтакте */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M21.579 6.855c.14-.465 0-.806-.662-.806h-2.193c-.558 0-.813.295-.953.62 0 0-1.115 2.72-2.693 4.487-.511.512-.744.674-1.023.674-.14 0-.341-.162-.341-.627V6.855c0-.558-.161-.806-.625-.806H9.642c-.348 0-.558.258-.558.504 0 .528.79.65.871 2.138v3.228c0 .708-.127.836-.407.836-.744 0-2.551-2.729-3.624-5.853-.209-.607-.42-.852-.979-.852H2.752c-.627 0-.752.295-.752.62 0 .58.744 3.46 3.461 7.271 1.812 2.601 4.363 4.011 6.687 4.011 1.393 0 1.565-.314 1.565-.853v-1.966c0-.627.132-.752.574-.752.325 0 .882.162 2.182 1.408 1.486 1.486 1.732 2.153 2.567 2.153h2.193c.627 0 .94-.314.759-.931-.196-.615-.899-1.514-1.829-2.576-.512-.604-1.277-1.254-1.51-1.579-.325-.418-.233-.604 0-.976.001-.001 2.672-3.761 2.951-5.040z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">ВКонтакте</p>
+                  <p className="text-sm text-gray-500">
+                    {socialConnections.vk_connected ? 'Подключен' : 'Не подключен'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {socialConnections.vk_connected ? (
+                  <div className="flex items-center gap-2">
+                    {socialConnections.vk_user_info && (
+                      <span className="text-sm text-gray-600">
+                        {socialConnections.vk_user_info.first_name} {socialConnections.vk_user_info.last_name}
+                      </span>
+                    )}
+                    {getVkUrl(socialConnections.vk_user_info) && (
+                      <a 
+                        href={getVkUrl(socialConnections.vk_user_info)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 text-sm"
+                      >
+                        Открыть профиль
+                      </a>
+                    )}
+                    <button
+                      onClick={disconnectVk}
+                      disabled={socialLoading}
+                      className="p-2 text-red-600 hover:text-red-700 disabled:opacity-50"
+                      title="Отключить ВКонтакте"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <VKAuthButton
+                    onSuccess={handleVkSuccess}
+                    onError={handleVkError}
+                    disabled={connectingVk}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Telegram */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">Telegram</p>
+                  <p className="text-sm text-gray-500">
+                    {socialConnections.telegram_connected ? 'Подключен' : 'Не подключен'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {socialConnections.telegram_connected ? (
+                  <div className="flex items-center gap-2">
+                    {socialConnections.telegram_user_info && (
+                      <span className="text-sm text-gray-600">
+                        {socialConnections.telegram_user_info.first_name} {socialConnections.telegram_user_info.last_name || ''}
+                        {socialConnections.telegram_user_info.username && (
+                          <span className="text-gray-500 ml-1">@{socialConnections.telegram_user_info.username}</span>
+                        )}
+                      </span>
+                    )}
+                    {getTelegramUrl(socialConnections.telegram_user_info) && (
+                      <a 
+                        href={getTelegramUrl(socialConnections.telegram_user_info)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 text-sm"
+                      >
+                        Открыть профиль
+                      </a>
+                    )}
+                    <button
+                      onClick={disconnectTelegram}
+                      disabled={socialLoading}
+                      className="p-2 text-red-600 hover:text-red-700 disabled:opacity-50"
+                      title="Отключить Telegram"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="telegram-login-widget">
+                    <TelegramLoginButton
+                      dataOnauth={handleTelegramAuth}
+                      botName="melsu_portal_auth_bot"
+                      buttonSize="medium"
+                      lang="ru"
+                      usePic={true}
+                      cornerRadius={8}
+                      requestAccess="write"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Диалог подтверждения */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mt-4">
+                Подтверждение действия
+              </h3>
+              <div className="mt-2 px-7 py-3">
+                <p className="text-sm text-gray-500">
+                  {confirmMessage}
+                </p>
+              </div>
+              <div className="items-center px-4 py-3">
+                <button
+                  onClick={handleConfirm}
+                  className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+                >
+                  Да
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

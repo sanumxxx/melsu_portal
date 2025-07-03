@@ -364,6 +364,22 @@ PROFILE_FIELDS = {
         "max_length": 100,
         "group": "Личная информация",
         "table": "user_profiles"
+    },
+    
+    # Социальные сети
+    "vk_id": {
+        "label": "ВКонтакте",
+        "type": ProfileFieldType.STRING,
+        "max_length": 100,
+        "group": "Социальные сети",
+        "table": "user_profiles"
+    },
+    "telegram_id": {
+        "label": "Telegram",
+        "type": ProfileFieldType.STRING,
+        "max_length": 100,
+        "group": "Социальные сети",
+        "table": "user_profiles"
     }
 }
 

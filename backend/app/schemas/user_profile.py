@@ -74,6 +74,17 @@ class UserProfileAdditional(BaseModel):
     social_category: Optional[str] = Field(None, max_length=100, description="Социальная категория")
     military_service: Optional[str] = Field(None, max_length=100, description="Военная служба")
     
+    # Социальные сети - OAuth интеграция
+    vk_id: Optional[str] = Field(None, max_length=100, description="ID пользователя ВКонтакте")
+    vk_oauth_token: Optional[str] = Field(None, description="OAuth токен ВКонтакте")
+    vk_oauth_refresh_token: Optional[str] = Field(None, description="OAuth refresh токен ВКонтакте")
+    vk_oauth_expires_at: Optional[datetime] = Field(None, description="Время истечения OAuth токена ВКонтакте")
+    vk_user_info: Optional[dict] = Field(None, description="Информация о пользователе ВКонтакте")
+    
+    telegram_id: Optional[str] = Field(None, max_length=100, description="ID пользователя Telegram")
+    telegram_username: Optional[str] = Field(None, max_length=100, description="Username в Telegram")
+    telegram_user_info: Optional[dict] = Field(None, description="Информация о пользователе Telegram")
+    
     # Достижения
     gpa: Optional[str] = Field(None, max_length=10, description="Средний балл")
 
@@ -137,4 +148,28 @@ class UserProfileSummary(BaseModel):
     group_id: Optional[int] = None
     
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+# OAuth схемы
+class VKOAuthData(BaseModel):
+    """Данные для OAuth ВКонтакте через VK ID SDK"""
+    access_token: str = Field(..., description="Токен доступа от VK ID SDK")
+    user_id: int = Field(..., description="ID пользователя VK")
+    expires_in: Optional[int] = Field(None, description="Время жизни токена в секундах")
+
+class TelegramOAuthData(BaseModel):
+    """Данные для OAuth Telegram"""
+    id: int = Field(..., description="ID пользователя Telegram")
+    first_name: str = Field(..., description="Имя пользователя")
+    last_name: Optional[str] = Field(None, description="Фамилия пользователя")
+    username: Optional[str] = Field(None, description="Username пользователя")
+    photo_url: Optional[str] = Field(None, description="URL фото профиля")
+    auth_date: int = Field(..., description="Дата авторизации (Unix timestamp)")
+    hash: str = Field(..., description="Хеш для проверки подлинности")
+
+class SocialConnectionStatus(BaseModel):
+    """Статус подключения социальных сетей"""
+    vk_connected: bool = Field(default=False, description="Подключен ли VK")
+    telegram_connected: bool = Field(default=False, description="Подключен ли Telegram")
+    vk_user_info: Optional[dict] = Field(None, description="Данные пользователя VK")
+    telegram_user_info: Optional[dict] = Field(None, description="Данные пользователя Telegram") 

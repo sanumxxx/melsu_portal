@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from typing import Optional
+from pydantic import BaseModel, validator
+import re
 from ..database import get_db
 from ..models.user import User
 from ..models.user_profile import UserProfile
@@ -235,9 +237,204 @@ async def get_basic_profile(current_user_id: int = Depends(get_current_user_id),
         "social_category": profile.social_category,
         "military_service": profile.military_service,
         
+        # Социальные сети
+        "vk_id": profile.vk_id,
+        "telegram_id": profile.telegram_id,
+        
         # Достижения
         "gpa": profile.gpa,
     }
     user_data.update(profile_data)
     
-    return user_data 
+    return user_data
+
+
+# Схемы для подключения социальных сетей
+class SocialNetworkConnect(BaseModel):
+    """Схема для подключения социальной сети"""
+    network_id: str
+    
+    @validator('network_id')
+    def validate_network_id(cls, v):
+        if not v or not v.strip():
+            raise ValueError('ID социальной сети не может быть пустым')
+        return v.strip()
+
+
+class VKConnect(SocialNetworkConnect):
+    """Схема для подключения ВКонтакте"""
+    
+    @validator('network_id')
+    def validate_vk_id(cls, v):
+        v = v.strip()
+        
+        # Проверяем если это ссылка на профиль VK
+        if v.startswith('http'):
+            # Извлекаем ID из ссылки
+            vk_pattern = r'vk\.com/(?:id(\d+)|([a-zA-Z0-9_]+))'
+            match = re.search(vk_pattern, v)
+            if match:
+                if match.group(1):  # Числовой ID
+                    return match.group(1)
+                else:  # Текстовый ID
+                    return match.group(2)
+            else:
+                raise ValueError('Неверная ссылка на профиль ВКонтакте')
+        
+        # Проверяем если это просто ID (числовой или текстовый)
+        if v.isdigit() or re.match(r'^[a-zA-Z0-9_]+$', v):
+            return v
+        
+        raise ValueError('Неверный формат ID ВКонтакте')
+
+
+class TelegramConnect(SocialNetworkConnect):
+    """Схема для подключения Telegram"""
+    
+    @validator('network_id')
+    def validate_telegram_id(cls, v):
+        v = v.strip()
+        
+        # Проверяем если это ссылка на профиль Telegram
+        if v.startswith('http'):
+            # Извлекаем username из ссылки
+            tg_pattern = r't\.me/([a-zA-Z0-9_]+)'
+            match = re.search(tg_pattern, v)
+            if match:
+                return match.group(1)
+            else:
+                raise ValueError('Неверная ссылка на профиль Telegram')
+        
+        # Проверяем если это username (может начинаться с @)
+        if v.startswith('@'):
+            v = v[1:]
+        
+        if re.match(r'^[a-zA-Z0-9_]+$', v):
+            return v
+        
+        raise ValueError('Неверный формат username Telegram')
+
+
+@router.post("/profile/social/vk/connect")
+async def connect_vk(
+    vk_data: VKConnect,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Подключение ВКонтакте к профилю"""
+    
+    # Получаем или создаем профиль
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user_id).first()
+    if not profile:
+        profile = UserProfile(user_id=current_user_id)
+        db.add(profile)
+    
+    # Проверяем, не используется ли уже этот VK ID
+    existing_profile = db.query(UserProfile).filter(
+        UserProfile.vk_id == vk_data.network_id,
+        UserProfile.user_id != current_user_id
+    ).first()
+    
+    if existing_profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Этот аккаунт ВКонтакте уже привязан к другому профилю"
+        )
+    
+    # Обновляем профиль
+    profile.vk_id = vk_data.network_id
+    db.commit()
+    db.refresh(profile)
+    
+    return {"message": "ВКонтакте успешно подключен", "vk_id": profile.vk_id}
+
+
+@router.post("/profile/social/telegram/connect")
+async def connect_telegram(
+    telegram_data: TelegramConnect,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Подключение Telegram к профилю"""
+    
+    # Получаем или создаем профиль
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user_id).first()
+    if not profile:
+        profile = UserProfile(user_id=current_user_id)
+        db.add(profile)
+    
+    # Проверяем, не используется ли уже этот Telegram ID
+    existing_profile = db.query(UserProfile).filter(
+        UserProfile.telegram_id == telegram_data.network_id,
+        UserProfile.user_id != current_user_id
+    ).first()
+    
+    if existing_profile:
+        raise HTTPException(
+            status_code=400,
+            detail="Этот аккаунт Telegram уже привязан к другому профилю"
+        )
+    
+    # Обновляем профиль
+    profile.telegram_id = telegram_data.network_id
+    db.commit()
+    db.refresh(profile)
+    
+    return {"message": "Telegram успешно подключен", "telegram_id": profile.telegram_id}
+
+
+@router.delete("/profile/social/vk/disconnect")
+async def disconnect_vk(
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Отключение ВКонтакте от профиля"""
+    
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Профиль не найден")
+    
+    if not profile.vk_id:
+        raise HTTPException(status_code=400, detail="ВКонтакте не подключен")
+    
+    profile.vk_id = None
+    db.commit()
+    
+    return {"message": "ВКонтакте успешно отключен"}
+
+
+@router.delete("/profile/social/telegram/disconnect")
+async def disconnect_telegram(
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Отключение Telegram от профиля"""
+    
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Профиль не найден")
+    
+    if not profile.telegram_id:
+        raise HTTPException(status_code=400, detail="Telegram не подключен")
+    
+    profile.telegram_id = None
+    db.commit()
+    
+    return {"message": "Telegram успешно отключен"}
+
+
+@router.get("/profile/social/status")
+async def get_social_status(
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Получение статуса подключения социальных сетей"""
+    
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user_id).first()
+    
+    return {
+        "vk_connected": bool(profile and profile.vk_id),
+        "telegram_connected": bool(profile and profile.telegram_id),
+        "vk_id": profile.vk_id if profile else None,
+        "telegram_id": profile.telegram_id if profile else None
+    }

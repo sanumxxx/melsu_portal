@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..database import Base
@@ -68,6 +68,17 @@ class UserProfile(Base):
     emergency_contact = Column(String(200), nullable=True)
     social_category = Column(String(100), nullable=True)   # сирота, инвалид, многодетная семья
     military_service = Column(String(100), nullable=True)
+    
+    # Социальные сети - OAuth интеграция
+    vk_id = Column(String(100), nullable=True)          # ID пользователя VK
+    vk_oauth_token = Column(String(500), nullable=True)  # Токен доступа VK
+    vk_oauth_refresh_token = Column(String(500), nullable=True)  # Refresh токен VK
+    vk_oauth_expires_at = Column(DateTime, nullable=True)  # Время истечения токена VK
+    vk_user_info = Column(JSON, nullable=True)           # Данные профиля VK (JSON)
+    
+    telegram_id = Column(String(100), nullable=True)    # ID пользователя Telegram
+    telegram_username = Column(String(100), nullable=True)  # Username в Telegram
+    telegram_user_info = Column(JSON, nullable=True)     # Данные профиля Telegram (JSON)
     
     # Достижения
     gpa = Column(String(10), nullable=True)  # средний балл
