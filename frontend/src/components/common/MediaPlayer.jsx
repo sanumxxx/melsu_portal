@@ -23,7 +23,7 @@ const MediaPlayer = ({
   onLoad,
   onError,
   showOverlay = true,
-  lazy = true
+  lazy = false
 }) => {
   console.log('🎬 MediaPlayer render:', { src, type, thumbnail, autoplay, lazy });
 
@@ -84,18 +84,42 @@ const MediaPlayer = ({
     }
   }, [isPlaying, autoplay, isInView, type]);
 
-  // Timeout для предотвращения бесконечной загрузки
+  // Проверка, не загружено ли изображение уже
   useEffect(() => {
     if (!isInView || hasError || !isLoading) return;
 
-    // Устанавливаем timeout на 30 секунд (увеличено для медленных соединений)
+    // Для изображений проверяем, может оно уже загружено
+    if (type === 'image' || type === 'gif') {
+      const img = new Image();
+      img.onload = () => {
+        console.log('✅ Image pre-loaded successfully:', { src, type });
+        setIsLoading(false);
+        setHasError(false);
+      };
+      img.onerror = (error) => {
+        console.error('❌ Image pre-load failed:', { src, type, error });
+        setIsLoading(false);
+        setHasError(true);
+      };
+      img.src = src;
+      
+      // Если изображение уже в кэше
+      if (img.complete) {
+        console.log('✅ Image already cached:', { src, type });
+        setIsLoading(false);
+        setHasError(false);
+        return;
+      }
+    }
+
+    // Fallback timeout на 5 секунд для других случаев
     loadingTimeoutRef.current = setTimeout(() => {
       if (isLoading) {
         console.error('⏰ MediaPlayer: Loading timeout reached for:', { src, type });
         setIsLoading(false);
         setHasError(true);
       }
-    }, 30000);
+    }, 5000);
 
     return () => {
       if (loadingTimeoutRef.current) {
@@ -299,27 +323,12 @@ const MediaPlayer = ({
       onMouseLeave={() => setShowControls(false)}
     >
       {/* Изображения и GIF */}
-      {(type === 'image' || type === 'gif') && (
+      {(type === 'image' || type === 'gif') && !isLoading && !hasError && (
         <img
           src={src}
           alt={alt}
-          onLoad={() => {
-            console.log('🖼️ Image loaded successfully:', { src, type });
-            handleLoad();
-          }}
-          onError={(e) => {
-            console.error('❌ Image load error:', { 
-              src, 
-              type, 
-              error: e.target.error,
-              naturalWidth: e.target.naturalWidth,
-              naturalHeight: e.target.naturalHeight,
-              currentSrc: e.target.currentSrc
-            });
-            handleError(e);
-          }}
           className="w-full h-full object-cover"
-          loading={lazy ? "lazy" : "eager"}
+          loading="eager"
         />
       )}
 
