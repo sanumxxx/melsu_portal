@@ -1,22 +1,198 @@
-name: Auto Deploy to Server
+name: 🚀 Auto Deploy to Server (Improved)
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+env:
+  PROJECT_PATH: "/var/www/melsu"
 
 jobs:
   deploy:
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    name: 🔄 Deploy to Production Server
     
     steps:
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v0.1.7
+    - name: 📝 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🚀 Deploy to server with safety checks
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        # Можно использовать как пароль, так и SSH ключ
+        password: ${{ secrets.SERVER_PASSWORD }}
+        # key: ${{ secrets.SERVER_SSH_KEY }}  # Раскомментируйте для SSH ключа
+        script: |
+          set -e  # Остановка при любой ошибке
+          
+          echo "🔄 Начинаю безопасное развертывание MELSU Portal..."
+          
+          # Переходим в директорию проекта
+          cd ${{ env.PROJECT_PATH }}
+          
+          # Проверяем, что команда melsu доступна
+          if ! command -v melsu &> /dev/null; then
+            echo "⚠️  Команда melsu не найдена, используем стандартные команды..."
+            
+            # Стандартное обновление без автоматизации
+            echo "📦 Обновление кода..."
+            git pull origin main
+            
+            echo "🔄 Перезапуск сервисов..."
+            systemctl restart melsu-api melsu-worker nginx || {
+              echo "❌ Ошибка перезапуска сервисов, пробуем альтернативный способ..."
+              systemctl stop melsu-api melsu-worker
+              sleep 5
+              systemctl start melsu-api melsu-worker
+              systemctl reload nginx
+            }
+            
+            echo "✅ Базовое обновление завершено"
+            exit 0
+          fi
+          
+          # Проверяем текущий статус
+          echo "📊 Проверка текущего статуса системы..."
+          melsu status || echo "⚠️  Некоторые сервисы могут быть недоступны"
+          
+          # Получаем информацию о текущем коммите
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "📌 Текущий коммит: $CURRENT_COMMIT"
+          
+          # Проверяем наличие обновлений
+          git fetch origin main
+          REMOTE_COMMIT=$(git rev-parse origin/main)
+          
+          if [ "$CURRENT_COMMIT" = "$REMOTE_COMMIT" ]; then
+            echo "✅ Проект уже актуален, обновление не требуется"
+            exit 0
+          fi
+          
+          echo "🆕 Обнаружены обновления, применяю..."
+          
+          # Создаем резервную копию БД перед обновлением
+          echo "💾 Создание резервной копии БД..."
+          melsu backup || {
+            echo "⚠️  Не удалось создать автоматический бэкап, создаю вручную..."
+            mkdir -p /var/backups/melsu
+            sudo -u postgres pg_dump melsu_db > /var/backups/melsu/backup_$(date +%Y%m%d_%H%M%S).sql
+          }
+          
+          # Применяем обновления
+          echo "⬇️  Обновление кода..."
+          git pull origin main
+          
+          # Проверяем изменения в зависимостях
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "backend/requirements.txt"; then
+            echo "📦 Обновление Python зависимостей..."
+            cd backend
+            sudo -u melsu venv/bin/pip install -r requirements.txt
+            cd ..
+          fi
+          
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/package.json"; then
+            echo "📦 Обновление Node.js зависимостей..."
+            cd frontend
+            sudo -u melsu npm install
+            cd ..
+          fi
+          
+          # Применяем миграции БД
+          echo "🗄️  Проверка и применение миграций БД..."
+          melsu migrate || {
+            echo "⚠️  Автоматические миграции недоступны, применяю вручную..."
+            cd backend
+            sudo -u melsu venv/bin/alembic upgrade head || {
+              echo "❌ Ошибка при применении миграций!"
+              echo "🔄 Откатываю к предыдущему коммиту..."
+              git reset --hard $CURRENT_COMMIT
+              exit 1
+            }
+            cd ..
+          }
+          
+          # Собираем frontend если были изменения
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/"; then
+            echo "🏗️  Сборка frontend..."
+            cd frontend
+            sudo -u melsu npm run build
+            cd ..
+          fi
+          
+          # Безопасный перезапуск сервисов
+          echo "🔄 Безопасный перезапуск сервисов..."
+          if command -v melsu &> /dev/null; then
+            melsu restart
+          else
+            # Graceful restart
+            systemctl restart melsu-worker
+            sleep 2
+            systemctl restart melsu-api
+            sleep 3
+            systemctl reload nginx
+          fi
+          
+          # Проверка работоспособности
+          echo "🧪 Проверка работоспособности системы..."
+          
+          # Ждем запуска API
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+              echo "✅ API запущен и отвечает"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ API не отвечает после 60 секунд!"
+              echo "📋 Логи API:"
+              journalctl -u melsu-api -n 10 --no-pager
+              exit 1
+            fi
+            sleep 2
+          done
+          
+          # Проверяем frontend
+          if curl -s -I http://localhost/ | head -1 | grep -q "200 OK"; then
+            echo "✅ Frontend доступен"
+          else
+            echo "⚠️  Frontend может быть недоступен"
+          fi
+          
+          # Проверяем БД
+          if sudo -u postgres psql melsu_db -c "SELECT 1;" > /dev/null 2>&1; then
+            echo "✅ База данных доступна"
+          else
+            echo "❌ Проблемы с базой данных!"
+            exit 1
+          fi
+          
+          # Финальная проверка статуса
+          echo "📊 Финальный статус системы:"
+          if command -v melsu &> /dev/null; then
+            melsu status
+          else
+            systemctl --no-pager status melsu-api melsu-worker nginx
+          fi
+          
+          echo "🎉 Развертывание завершено успешно!"
+          echo "🌐 Сайт доступен по адресу: http://$(curl -s ifconfig.me 2>/dev/null || echo 'your-server-ip')"
+          
+    - name: 🔔 Notify on failure
+      if: failure()
+      uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
+        # key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
-          cd /var/www/melsu
-          git pull origin main
-          melsu stop
-          melsu start
+          echo "❌ Развертывание завершилось с ошибкой!"
+          echo "📋 Статус сервисов:"
+          systemctl --no-pager status melsu-api melsu-worker nginx || true
+          echo "📋 Последние логи API:"
+          journalctl -u melsu-api -n 20 --no-pager || true
