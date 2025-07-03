@@ -112,6 +112,14 @@ const MediaPlayer = ({
       }
     }
 
+    // Для видео просто показываем сразу
+    if (type === 'video') {
+      console.log('📹 Video: showing immediately:', { src, type });
+      setIsLoading(false);
+      setHasError(false);
+      return;
+    }
+
     // Fallback timeout на 5 секунд для других случаев
     loadingTimeoutRef.current = setTimeout(() => {
       if (isLoading) {
@@ -333,19 +341,25 @@ const MediaPlayer = ({
       )}
 
       {/* Видео */}
-      {type === 'video' && (
+      {type === 'video' && !isLoading && !hasError && (
         <video
           ref={videoRef}
           src={src}
           poster={thumbnail}
-          onLoadedData={handleVideoLoad}
-          onError={handleError}
+          onLoadedData={() => {
+            console.log('📹 Video loaded successfully:', { src, type });
+            if (handleVideoLoad) handleVideoLoad();
+          }}
+          onError={(e) => {
+            console.error('❌ Video load error:', { src, type, error: e });
+            if (handleError) handleError(e);
+          }}
           loop={loop}
           muted={isMuted}
           controls={controls}
           className="w-full h-full object-cover"
           playsInline
-          preload={lazy ? "metadata" : "auto"}
+          preload="metadata"
         />
       )}
 
