@@ -616,10 +616,25 @@ const AnnouncementManager = () => {
                           type="button"
                           onClick={async () => {
                             try {
-                              const response = await fetch('/debug/uploads');
-                              const data = await response.json();
-                              console.log('📊 Uploads debug info:', data);
-                              toast.success('Информация о uploads выведена в консоль');
+                              // Получаем информацию о uploads
+                              const uploadsResponse = await fetch('/debug/uploads');
+                              const uploadsData = await uploadsResponse.json();
+                              console.log('📊 Uploads debug info:', uploadsData);
+                              
+                              // Тестируем доступность недавних файлов
+                              if (uploadsData.recent_announcements_files?.length > 0) {
+                                for (const fileName of uploadsData.recent_announcements_files.slice(0, 3)) {
+                                  const testUrl = `/uploads/announcements/${fileName}`;
+                                  try {
+                                    const fileResponse = await fetch(testUrl, { method: 'HEAD' });
+                                    console.log(`🔗 File ${fileName}: ${fileResponse.status === 200 ? '✅ Accessible' : '❌ Not accessible'} (${fileResponse.status})`);
+                                  } catch (error) {
+                                    console.error(`❌ File ${fileName}: Error testing access`, error);
+                                  }
+                                }
+                              }
+                              
+                              toast.success('Диагностика завершена, проверьте консоль');
                             } catch (error) {
                               console.error('❌ Failed to get uploads debug info:', error);
                               toast.error('Ошибка диагностики uploads');
@@ -627,7 +642,7 @@ const AnnouncementManager = () => {
                           }}
                           className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
                         >
-                          🔍 Диагностика uploads
+                          🔍 Тест доступности файлов
                         </button>
                       </div>
                       

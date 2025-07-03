@@ -98,6 +98,20 @@ const AnnouncementModal = () => {
             {/* Медиафайл или изображение */}
             {(announcement.has_media || announcement.image_url) && (
               <div className="mb-4">
+                {(() => {
+                  // Логирование для диагностики
+                  console.log('🎭 AnnouncementModal media debug:', {
+                    has_media: announcement.has_media,
+                    media_url: announcement.media_url,
+                    media_type: announcement.media_type,
+                    resolved_url: getMediaUrl(announcement.media_url),
+                    image_url: announcement.image_url,
+                    resolved_image_url: getMediaUrl(announcement.image_url)
+                  });
+                  
+                  return null;
+                })()}
+                
                 {announcement.has_media ? (
                   <MediaPlayer
                     src={getMediaUrl(announcement.media_url)}
@@ -110,13 +124,20 @@ const AnnouncementModal = () => {
                     className="w-full max-h-64 rounded-lg"
                     showOverlay={true}
                     lazy={false}
+                    onLoad={() => console.log('✅ AnnouncementModal: Media loaded successfully')}
+                    onError={(error) => console.error('❌ AnnouncementModal: Media load error:', error)}
                   />
                 ) : (
                   <img
                     src={getMediaUrl(announcement.image_url)}
                     alt=""
                     className="w-full h-48 object-cover rounded-lg"
+                    onLoad={() => console.log('✅ AnnouncementModal: Image loaded successfully')}
                     onError={(e) => {
+                      console.error('❌ AnnouncementModal: Image load error:', {
+                        src: e.target.src,
+                        original_url: announcement.image_url
+                      });
                       e.target.style.display = 'none';
                     }}
                   />

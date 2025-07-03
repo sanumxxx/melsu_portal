@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика медиафайлов - MelSU Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .loading { background-color: #cce7ff; color: #004085; }
+        .media-test {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .media-container {
+            max-width: 300px;
+            margin: 10px 0;
+        }
+        img, video {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика медиафайлов</h1>
+        
+        <div class="test-result loading">
+            <strong>Статус:</strong> Готов к тестированию
+        </div>
+
+        <div>
+            <h3>Тесты системы:</h3>
+            <button onclick="testUploadsAPI()">📊 Тест API uploads</button>
+            <button onclick="testCurrentAnnouncement()">📢 Тест текущего объявления</button>
+            <button onclick="testStaticFiles()">📁 Тест статических файлов</button>
+            <button onclick="clearResults()">🗑️ Очистить результаты</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+        }
+
+        async function testUploadsAPI() {
+            addResult('loading', '<span class="spinner"></span> Тестирование API uploads...');
+            
+            try {
+                const response = await fetch('/debug/uploads');
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('success', `✅ API uploads работает. Найдено файлов: ${data.announcements_files_count}`);
+                    
+                    if (data.recent_announcements_files?.length > 0) {
+                        addResult('success', `📁 Недавние файлы: ${data.recent_announcements_files.slice(0, 3).join(', ')}`);
+                    }
+                } else {
+                    addResult('error', `❌ API uploads недоступен: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Ошибка API uploads: ${error.message}`);
+            }
+        }
+
+        async function testCurrentAnnouncement() {
+            addResult('loading', '<span class="spinner"></span> Получение текущего объявления...');
+            
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    addResult('error', '❌ Токен авторизации не найден. Войдите в систему.');
+                    return;
+                }
+
+                const response = await fetch('/api/announcements/current', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.has_unviewed && data.announcement) {
+                        const announcement = data.announcement;
+                        addResult('success', `✅ Найдено объявление: "${announcement.title}"`);
+                        
+                        if (announcement.has_media && announcement.media_url) {
+                            await testMediaFile(announcement.media_url, announcement.media_type, 'Медиафайл объявления');
+                        } else if (announcement.image_url) {
+                            await testMediaFile(announcement.image_url, 'image', 'Изображение объявления');
+                        } else {
+                            addResult('warning', '⚠️ Объявление не содержит медиафайлов');
+                        }
+                    } else {
+                        addResult('warning', '⚠️ Нет непросмотренных объявлений');
+                    }
+                } else {
+                    addResult('error', `❌ Ошибка получения объявления: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Ошибка запроса объявления: ${error.message}`);
+            }
+        }
+
+        async function testMediaFile(mediaUrl, mediaType, description) {
+            const fullUrl = mediaUrl.startsWith('http') ? mediaUrl : window.location.origin + mediaUrl;
+            
+            addResult('loading', `<span class="spinner"></span> Тестирование ${description}: ${mediaUrl}...`);
+            
+            try {
+                // Тест HEAD запроса
+                const headResponse = await fetch(fullUrl, { method: 'HEAD' });
+                if (headResponse.ok) {
+                    const contentType = headResponse.headers.get('content-type');
+                    const contentLength = headResponse.headers.get('content-length');
+                    addResult('success', `✅ ${description} доступен (${contentType}, ${contentLength ? Math.round(contentLength/1024) + 'KB' : 'размер неизвестен'})`);
+                    
+                    // Создаем элемент для тестирования загрузки
+                    const mediaDiv = document.createElement('div');
+                    mediaDiv.className = 'media-test';
+                    mediaDiv.innerHTML = `<h4>${description}</h4><div class="media-container" id="media-${Date.now()}"></div>`;
+                    results.appendChild(mediaDiv);
+                    
+                    const container = mediaDiv.querySelector('.media-container');
+                    
+                    if (mediaType === 'video' || mediaUrl.includes('.mp4') || mediaUrl.includes('.webm') || mediaUrl.includes('.mov')) {
+                        const video = document.createElement('video');
+                        video.src = fullUrl;
+                        video.controls = true;
+                        video.muted = true;
+                        video.onloadeddata = () => addResult('success', `✅ ${description} - видео загружено успешно`);
+                        video.onerror = () => addResult('error', `❌ ${description} - ошибка загрузки видео`);
+                        container.appendChild(video);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = fullUrl;
+                        img.onload = () => addResult('success', `✅ ${description} - изображение загружено успешно`);
+                        img.onerror = () => addResult('error', `❌ ${description} - ошибка загрузки изображения`);
+                        container.appendChild(img);
+                    }
+                } else {
+                    addResult('error', `❌ ${description} недоступен: ${headResponse.status} ${headResponse.statusText}`);
+                }
+            } catch (error) {
+                addResult('error', `❌ Ошибка тестирования ${description}: ${error.message}`);
+            }
+        }
+
+        async function testStaticFiles() {
+            addResult('loading', '<span class="spinner"></span> Тестирование статических файлов...');
+            
+            // Тест общей доступности папки uploads
+            try {
+                const testUrls = [
+                    '/uploads/',
+                    '/uploads/announcements/',
+                ];
+
+                for (const url of testUrls) {
+                    try {
+                        const response = await fetch(url);
+                        if (response.ok || response.status === 403) {  // 403 означает что папка существует но listing запрещен
+                            addResult('success', `✅ Папка ${url} доступна (${response.status})`);
+                        } else {
+                            addResult('error', `❌ Папка ${url} недоступна: ${response.status}`);
+                        }
+                    } catch (error) {
+                        addResult('error', `❌ Ошибка доступа к ${url}: ${error.message}`);
+                    }
+                }
+            } catch (error) {
+                addResult('error', `❌ Ошибка тестирования статических файлов: ${error.message}`);
+            }
+        }
+
+        // Автоматический запуск базовых тестов при загрузке
+        window.addEventListener('load', () => {
+            addResult('success', '🚀 Страница диагностики загружена. Нажмите кнопки для запуска тестов.');
+        });
+    </script>
+</body>
+</html> 

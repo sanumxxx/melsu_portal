@@ -36,6 +36,7 @@ const MediaPlayer = ({
   
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const loadingTimeoutRef = useRef(null);
 
   // Intersection Observer для ленивой загрузки
   useEffect(() => {
@@ -82,6 +83,26 @@ const MediaPlayer = ({
     }
   }, [isPlaying, autoplay, isInView, type]);
 
+  // Timeout для предотвращения бесконечной загрузки
+  useEffect(() => {
+    if (!isInView || hasError) return;
+
+    // Устанавливаем timeout на 10 секунд
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (isLoading) {
+        console.error('⏰ MediaPlayer: Loading timeout reached for:', { src, type });
+        setIsLoading(false);
+        setHasError(true);
+      }
+    }, 10000);
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [isInView, isLoading, hasError, src, type]);
+
   const handlePlayPause = () => {
     if (!videoRef.current) return;
     
@@ -109,6 +130,13 @@ const MediaPlayer = ({
 
   const handleLoad = () => {
     console.log('✅ Media loaded successfully:', { src, type });
+    
+    // Очищаем timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    
     setIsLoading(false);
     setHasError(false);
     if (onLoad) onLoad();
@@ -116,6 +144,13 @@ const MediaPlayer = ({
 
   const handleError = (error) => {
     console.error('❌ Media load error:', { src, type, error });
+    
+    // Очищаем timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    
     setIsLoading(false);
     setHasError(true);
     if (onError) onError(error);
@@ -123,9 +158,17 @@ const MediaPlayer = ({
 
   const handleVideoLoad = () => {
     console.log('📹 Video loaded:', { src });
+    
+    // Очищаем timeout
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
+    
     if (videoRef.current) {
       videoRef.current.muted = isMuted;
       setIsLoading(false);
+      setHasError(false);
     }
   };
 
@@ -136,6 +179,23 @@ const MediaPlayer = ({
     maxWidth: '100%',
     maxHeight: '100%'
   };
+
+  // Проверка наличия src
+  if (!src) {
+    console.error('❌ MediaPlayer: No src provided');
+    return (
+      <div 
+        ref={containerRef}
+        className={`flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg ${className}`}
+        style={containerStyle}
+      >
+        <div className="text-center p-4">
+          <EyeSlashIcon className="w-8 h-8 mx-auto mb-2" />
+          <p className="text-sm">Медиафайл не найден</p>
+        </div>
+      </div>
+    );
+  }
 
   // Ошибка загрузки
   if (hasError) {
@@ -148,6 +208,7 @@ const MediaPlayer = ({
         <div className="text-center p-4">
           <EyeSlashIcon className="w-8 h-8 mx-auto mb-2" />
           <p className="text-sm">Не удалось загрузить медиафайл</p>
+          <p className="text-xs text-gray-400 mt-1">{src}</p>
         </div>
       </div>
     );
@@ -160,8 +221,18 @@ const MediaPlayer = ({
         ref={containerRef}
         className={`flex items-center justify-center bg-gray-100 rounded-lg ${className}`}
         style={containerStyle}
+        onClick={() => {
+          console.log('🔄 Manual reset loading state for:', { src, type });
+          setIsLoading(false);
+          setHasError(true);
+        }}
+        title="Нажмите, чтобы остановить загрузку"
       >
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="flex flex-col items-center cursor-pointer">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="text-xs text-gray-500 mt-2">Загрузка...</p>
+          <p className="text-xs text-gray-400 mt-1">Нажмите для отмены</p>
+        </div>
       </div>
     );
   }
