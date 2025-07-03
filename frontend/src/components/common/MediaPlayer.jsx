@@ -33,6 +33,7 @@ const MediaPlayer = ({
   const [hasError, setHasError] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isInView, setIsInView] = useState(!lazy);
+  const [retryCount, setRetryCount] = useState(0);
   
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -85,16 +86,16 @@ const MediaPlayer = ({
 
   // Timeout для предотвращения бесконечной загрузки
   useEffect(() => {
-    if (!isInView || hasError) return;
+    if (!isInView || hasError || !isLoading) return;
 
-    // Устанавливаем timeout на 10 секунд
+    // Устанавливаем timeout на 30 секунд (увеличено для медленных соединений)
     loadingTimeoutRef.current = setTimeout(() => {
       if (isLoading) {
         console.error('⏰ MediaPlayer: Loading timeout reached for:', { src, type });
         setIsLoading(false);
         setHasError(true);
       }
-    }, 10000);
+    }, 30000);
 
     return () => {
       if (loadingTimeoutRef.current) {
@@ -129,7 +130,7 @@ const MediaPlayer = ({
   };
 
   const handleLoad = () => {
-    console.log('✅ Media loaded successfully:', { src, type });
+    console.log('✅ Media loaded successfully:', { src, type, retryCount });
     
     // Очищаем timeout
     if (loadingTimeoutRef.current) {
@@ -139,16 +140,36 @@ const MediaPlayer = ({
     
     setIsLoading(false);
     setHasError(false);
+    setRetryCount(0); // Сбрасываем счетчик retry при успешной загрузке
     if (onLoad) onLoad();
   };
 
   const handleError = (error) => {
-    console.error('❌ Media load error:', { src, type, error });
+    console.error('❌ Media load error:', { src, type, error, retryCount });
     
     // Очищаем timeout
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
+    }
+    
+    // Пробуем повторить загрузку максимум 2 раза
+    if (retryCount < 2) {
+      console.log('🔄 Retrying media load:', { src, type, retryCount: retryCount + 1 });
+      setRetryCount(prev => prev + 1);
+      setIsLoading(true);
+      setHasError(false);
+      
+      // Небольшая задержка перед повтором
+      setTimeout(() => {
+        // Trigger reload by setting a small state change
+        const imgElements = document.querySelectorAll(`img[src="${src}"]`);
+        imgElements.forEach(img => {
+          img.src = img.src; // Force reload
+        });
+      }, 1000);
+      
+      return;
     }
     
     setIsLoading(false);
@@ -202,13 +223,26 @@ const MediaPlayer = ({
     return (
       <div 
         ref={containerRef}
-        className={`flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg ${className}`}
+        className={`flex flex-col items-center justify-center bg-gray-100 text-gray-500 rounded-lg ${className}`}
         style={containerStyle}
       >
         <div className="text-center p-4">
           <EyeSlashIcon className="w-8 h-8 mx-auto mb-2" />
           <p className="text-sm">Не удалось загрузить медиафайл</p>
-          <p className="text-xs text-gray-400 mt-1">{src}</p>
+          <p className="text-xs text-gray-400 mt-1 break-all">{src}</p>
+          {retryCount > 1 && (
+            <p className="text-xs text-red-400 mt-1">Попыток: {retryCount}</p>
+          )}
+          <button
+            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
+            onClick={() => {
+              setIsLoading(true);
+              setHasError(false);
+              setRetryCount(0);
+            }}
+          >
+            Повторить попытку
+          </button>
         </div>
       </div>
     );
@@ -269,8 +303,21 @@ const MediaPlayer = ({
         <img
           src={src}
           alt={alt}
-          onLoad={handleLoad}
-          onError={handleError}
+          onLoad={() => {
+            console.log('🖼️ Image loaded successfully:', { src, type });
+            handleLoad();
+          }}
+          onError={(e) => {
+            console.error('❌ Image load error:', { 
+              src, 
+              type, 
+              error: e.target.error,
+              naturalWidth: e.target.naturalWidth,
+              naturalHeight: e.target.naturalHeight,
+              currentSrc: e.target.currentSrc
+            });
+            handleError(e);
+          }}
           className="w-full h-full object-cover"
           loading={lazy ? "lazy" : "eager"}
         />
