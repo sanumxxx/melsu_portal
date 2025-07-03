@@ -10,9 +10,9 @@ import {
   PlayIcon,
   FilmIcon
 } from '@heroicons/react/24/outline';
-import api from '../../services/api';
+import api, { getMediaUrl } from '../../services/api';
 import toast from 'react-hot-toast';
-import MediaPlayer, { MediaPreview, useMediaType, validateMediaFile } from '../common/MediaPlayer';
+import MediaPlayer, { MediaPreview, getMediaType, validateMediaFile } from '../common/MediaPlayer';
 
 const AnnouncementManager = () => {
   const [announcements, setAnnouncements] = useState([]);
@@ -145,7 +145,7 @@ const AnnouncementManager = () => {
 
       const mediaData = response.data;
       const mediaUrl = mediaData.file_url;
-      const mediaType = useMediaType(file.name) || mediaData.media_type;
+      const mediaType = getMediaType(file.name) || mediaData.media_type;
 
       // Обновляем формData с информацией о медиафайле
       setFormData(prev => ({
@@ -164,7 +164,7 @@ const AnnouncementManager = () => {
 
       // Устанавливаем данные для предпросмотра
       setMediaPreview({
-        src: `http://localhost:8000${mediaUrl}`,
+        src: getMediaUrl(mediaUrl),
         type: mediaType,
         filename: mediaData.filename,
         size: mediaData.size,
@@ -234,28 +234,20 @@ const AnnouncementManager = () => {
       
       // Настраиваем предпросмотр медиафайла
       if (announcement.has_media && announcement.media_url) {
-        const mediaUrl = announcement.media_url.startsWith('http') 
-          ? announcement.media_url 
-          : `http://localhost:8000${announcement.media_url}`;
-        
         setMediaPreview({
-          src: mediaUrl,
+          src: getMediaUrl(announcement.media_url),
           type: announcement.media_type,
           filename: announcement.media_filename,
           size: announcement.media_size,
           duration: announcement.media_duration,
           width: announcement.media_width,
           height: announcement.media_height,
-          thumbnail: announcement.media_thumbnail_url
+          thumbnail: getMediaUrl(announcement.media_thumbnail_url)
         });
       } else if (announcement.image_url) {
         // Поддержка старых объявлений с image_url
-        const imageUrl = announcement.image_url.startsWith('http') 
-          ? announcement.image_url 
-          : `http://localhost:8000${announcement.image_url}`;
-        
         setMediaPreview({
-          src: imageUrl,
+          src: getMediaUrl(announcement.image_url),
           type: 'image',
           filename: 'image',
           size: null
@@ -406,9 +398,9 @@ const AnnouncementManager = () => {
                             {announcement.has_media ? (
                               <>
                                 <MediaPlayer
-                                  src={announcement.media_url.startsWith('http') ? announcement.media_url : `http://localhost:8000${announcement.media_url}`}
+                                  src={getMediaUrl(announcement.media_url)}
                                   type={announcement.media_type}
-                                  thumbnail={announcement.media_thumbnail_url}
+                                  thumbnail={getMediaUrl(announcement.media_thumbnail_url)}
                                   autoplay={false}
                                   controls={false}
                                   className="w-full h-full"
@@ -423,7 +415,7 @@ const AnnouncementManager = () => {
                               </>
                             ) : (
                               <img
-                                src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
+                                src={getMediaUrl(announcement.image_url)}
                                 alt=""
                                 className="w-full h-full object-cover"
                                 onError={(e) => {

@@ -304,8 +304,8 @@ export const MediaPreview = ({ media, className = "" }) => {
   );
 };
 
-// Хук для определения типа файла по расширению
-export const useMediaType = (filename) => {
+// Утилитарная функция для определения типа файла по расширению
+export const getMediaType = (filename) => {
   if (!filename) return null;
   
   const extension = filename.toLowerCase().split('.').pop();

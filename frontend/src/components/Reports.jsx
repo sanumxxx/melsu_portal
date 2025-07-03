@@ -5,6 +5,7 @@ import {
   PlusIcon,
   EyeIcon,
   PencilIcon,
+  PencilSquareIcon,
   TrashIcon,
   MagnifyingGlassIcon,
   ExclamationTriangleIcon,
@@ -668,8 +669,9 @@ const Reports = () => {
                           minute: '2-digit'
                         })}
                         {report.has_notes && (
-                          <span className="ml-3 text-blue-600">
-                            📝 Есть примечания
+                          <span className="ml-3 text-blue-600 flex items-center">
+                            <PencilSquareIcon className="h-3 w-3 mr-1" />
+                            Есть примечания
                           </span>
                         )}
                       </div>

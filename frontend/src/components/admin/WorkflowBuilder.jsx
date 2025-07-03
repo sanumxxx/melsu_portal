@@ -6,6 +6,7 @@ import TextArea from '../common/TextArea';
 import Select from '../common/Select';
 import UserSelect from '../common/UserSelect';
 import { Alert } from '../common/Alert';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const WorkflowBuilder = ({ steps, setSteps, routingRules, setRoutingRules }) => {
   const [activeView, setActiveView] = useState('steps');
@@ -124,7 +125,8 @@ const WorkflowBuilder = ({ steps, setSteps, routingRules, setRoutingRules }) => 
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              🔄 Этапы процесса
+              <ArrowPathIcon className="h-4 w-4 mr-2 inline" />
+              Этапы процесса
             </button>
             <button
               onClick={() => setActiveView('rules')}

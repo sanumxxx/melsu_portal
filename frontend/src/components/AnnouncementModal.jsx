@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import api from '../services/api';
+import api, { getMediaUrl } from '../services/api';
 import MediaPlayer from './common/MediaPlayer';
 
 const AnnouncementModal = () => {
@@ -100,9 +100,9 @@ const AnnouncementModal = () => {
               <div className="mb-4">
                 {announcement.has_media ? (
                   <MediaPlayer
-                    src={announcement.media_url.startsWith('http') ? announcement.media_url : `http://localhost:8000${announcement.media_url}`}
+                    src={getMediaUrl(announcement.media_url)}
                     type={announcement.media_type}
-                    thumbnail={announcement.media_thumbnail_url}
+                    thumbnail={getMediaUrl(announcement.media_thumbnail_url)}
                     autoplay={announcement.media_autoplay}
                     loop={announcement.media_loop}
                     muted={announcement.media_muted}
@@ -113,7 +113,7 @@ const AnnouncementModal = () => {
                   />
                 ) : (
                   <img
-                    src={announcement.image_url.startsWith('http') ? announcement.image_url : `http://localhost:8000${announcement.image_url}`}
+                    src={getMediaUrl(announcement.image_url)}
                     alt=""
                     className="w-full h-48 object-cover rounded-lg"
                     onError={(e) => {

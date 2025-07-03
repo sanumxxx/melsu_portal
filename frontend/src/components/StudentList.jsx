@@ -7,7 +7,10 @@ import {
   IdentificationIcon,
   CalendarIcon,
   FunnelIcon,
-  XMarkIcon
+  XMarkIcon,
+  EyeIcon,
+  PencilIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -431,7 +434,13 @@ const StudentList = () => {
               >
                 {dept.name} ({dept.department_type === 'faculty' ? 'Факультет' : 'Кафедра'})
                 <span className="ml-1 text-blue-600">
-                  {dept.access_level === 'read' ? '👁️' : dept.access_level === 'write' ? '✏️' : '🔧'}
+                  {dept.access_level === 'read' ? (
+                    <EyeIcon className="h-3 w-3 inline" />
+                  ) : dept.access_level === 'write' ? (
+                    <PencilIcon className="h-3 w-3 inline" />
+                  ) : (
+                    <WrenchScrewdriverIcon className="h-3 w-3 inline" />
+                  )}
                 </span>
               </span>
             ))}

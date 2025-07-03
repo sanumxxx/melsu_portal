@@ -1,6 +1,6 @@
 // Простая авторизация для портала МелГУ
 
-const API_BASE_URL = window.location.origin;
+const API_BASE_URL = "http://localhost:8000";
 class ApiService {
   constructor() {
     this.accessToken = null; // Будем получать динамически
@@ -672,6 +672,19 @@ export const isAuthenticated = () => {
 // Функция для получения токена
 export const getToken = () => {
   return localStorage.getItem('token');
+};
+
+// Вспомогательная функция для формирования правильных URL медиафайлов
+export const getMediaUrl = (mediaUrl) => {
+  if (!mediaUrl) return null;
+  
+  // Если URL уже абсолютный, возвращаем как есть
+  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) {
+    return mediaUrl;
+  }
+  
+  // Если относительный, добавляем базовый URL
+  return `${API_BASE_URL}${mediaUrl}`;
 };
 
 // Экспорт API базового URL

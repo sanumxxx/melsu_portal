@@ -20,7 +20,10 @@ import {
   Squares2X2Icon,
   EyeSlashIcon,
   UserGroupIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  CalendarIcon,
+  ExclamationTriangleIcon,
+  BugAntIcon
 } from '@heroicons/react/24/outline';
 
 const RequestBuilder = () => {
@@ -770,8 +773,9 @@ const RequestBuilder = () => {
                       <p className="text-gray-600 mt-1">{template.description}</p>
                     )}
                     <div className="flex items-center space-x-4 mt-2">
-                      <span className="text-sm text-blue-600 font-medium">
-                        📅 Срок: {template.deadline_days} {template.deadline_days === 1 ? 'день' : template.deadline_days < 5 ? 'дня' : 'дней'}
+                      <span className="text-sm text-blue-600 font-medium flex items-center">
+                        <CalendarIcon className="h-4 w-4 mr-1" />
+                        Срок: {template.deadline_days} {template.deadline_days === 1 ? 'день' : template.deadline_days < 5 ? 'дня' : 'дней'}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
@@ -1030,8 +1034,9 @@ const RequestBuilder = () => {
                           <span className="text-sm text-gray-700">
                             Включить автоматическое назначение
                           </span>
-                          <p className="text-xs text-red-600 mt-1">
-                            ⚠️ Обязательно для работы автоматической маршрутизации!
+                          <p className="text-xs text-red-600 mt-1 flex items-center">
+                            <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                            Обязательно для работы автоматической маршрутизации!
                           </p>
                         </div>
                       </label>
@@ -2007,8 +2012,9 @@ const RequestBuilder = () => {
 
                                       {(!fieldData.conditional_value && !['not_empty', 'empty'].includes(fieldData.conditional_operator)) && (
                                         <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                                          <p className="text-xs text-yellow-800">
-                                            ⚠️ Укажите значение для сравнения
+                                          <p className="text-xs text-yellow-800 flex items-center">
+                                            <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                                            Укажите значение для сравнения
                                           </p>
                                         </div>
                                       )}
@@ -2100,8 +2106,9 @@ const RequestBuilder = () => {
 
                                       {!fieldData.update_profile_on_submit && !fieldData.update_profile_on_approve && (
                                         <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                                          <p className="text-xs text-yellow-800">
-                                            ⚠️ Выберите хотя бы один момент для обновления профиля
+                                          <p className="text-xs text-yellow-800 flex items-center">
+                                            <ExclamationTriangleIcon className="h-3 w-3 mr-1" />
+                                            Выберите хотя бы один момент для обновления профиля
                                           </p>
                                         </div>
                                       )}
@@ -2151,7 +2158,8 @@ const RequestBuilder = () => {
                     disabled={loading}
                     className="text-purple-600 border-purple-300 hover:bg-purple-50"
                   >
-                    🐛 Отладка
+                    <BugAntIcon className="h-4 w-4 mr-1 inline" />
+                    Отладка
                   </Button>
                 )}
               </div>

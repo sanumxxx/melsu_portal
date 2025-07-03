@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardHeader, CardContent, CardTitle } from '../../common/Card';
 import Button from '../../common/Button';
 import Input from '../../common/Input';
+import { ClockIcon } from '@heroicons/react/24/outline';
 
 const SLASettings = ({ slaHours, setSlaHours, escalationRules, setEscalationRules }) => {
   const addEscalationRule = () => {
@@ -22,7 +23,10 @@ const SLASettings = ({ slaHours, setSlaHours, escalationRules, setEscalationRule
       {/* Основные настройки SLA */}
       <Card>
         <CardHeader>
-          <CardTitle>⏰ Настройки SLA</CardTitle>
+          <CardTitle className="flex items-center">
+            <ClockIcon className="h-5 w-5 mr-2" />
+            Настройки SLA
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

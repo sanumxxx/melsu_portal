@@ -19,7 +19,8 @@ import {
   getMaskTemplate, 
   getMasksByCategory,
   validateMaskValue,
-  createRegexFromMask
+  createRegexFromMask,
+  generatePlaceholderFromMask
 } from '../../utils/maskTemplates';
 
 const MaskConstructor = ({ value, onChange, className = '' }) => {
@@ -71,10 +72,10 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
         mask_enabled: true,
         mask_type: 'custom',
         mask_pattern: customPattern,
-        mask_placeholder: customPattern.replace(/[9Aa]/g, '_'),
+        mask_placeholder: generatePlaceholderFromMask(customPattern),
         mask_validation_regex: customPattern ? createRegexFromMask(customPattern) : '',
         mask_validation_message: 'Введите значение в правильном формате',
-        mask_guide: true,
+        mask_guide: false,
         mask_keep_char_positions: false
       };
     } else {
@@ -85,7 +86,7 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
         mask_placeholder: template.placeholder,
         mask_validation_regex: template.regex,
         mask_validation_message: `Введите ${template.name.toLowerCase()} в формате: ${template.example}`,
-        mask_guide: true,
+        mask_guide: false,
         mask_keep_char_positions: false
       };
     }
@@ -113,7 +114,18 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
   const updateCustomPattern = (pattern) => {
     setCustomPattern(pattern);
     if (selectedTemplate?.id === 'custom') {
-      applyTemplate({...MASK_TEMPLATES.custom, pattern});
+      // Создаем объект пользовательской маски с правильными данными
+      const customMaskData = {
+        mask_enabled: true,
+        mask_type: 'custom',
+        mask_pattern: pattern,
+        mask_placeholder: generatePlaceholderFromMask(pattern),
+        mask_validation_regex: pattern ? createRegexFromMask(pattern) : '',
+        mask_validation_message: 'Введите значение в правильном формате',
+        mask_guide: false,
+        mask_keep_char_positions: false
+      };
+      onChange(customMaskData);
     }
   };
 
@@ -153,6 +165,12 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
               if (e.target.checked) {
                 if (selectedTemplate) {
                   applyTemplate(selectedTemplate);
+                } else {
+                  // Выбираем шаблон по умолчанию (первый в категории "phone")
+                  const defaultTemplate = MASK_TEMPLATES.phone_ru;
+                  setSelectedTemplate(defaultTemplate);
+                  setSelectedCategory('phone');
+                  applyTemplate(defaultTemplate);
                 }
               } else {
                 disableMask();
@@ -261,17 +279,32 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
                   onChange={(e) => setTestValue(e.target.value)}
                   placeholder={value.mask_placeholder || ''}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  maskChar={value?.mask_guide ? '_' : null}
+                  alwaysShowMask={false}
+                  formatChars={{
+                    '9': '[0-9]',
+                    'A': '[A-Za-zА-Яа-я]',
+                    'a': '[a-zа-я]', 
+                    'S': '[A-Za-zА-Яа-я0-9]',
+                    'Я': '[А-Яа-я]',
+                    'я': '[а-я]',
+                    '*': '.'
+                  }}
+                  beforeMaskedStateChange={({ nextState }) => {
+                    // Разрешаем полное очищение поля
+                    return { ...nextState };
+                  }}
                 />
                 <div className="text-xs text-gray-500">
                   Попробуйте ввести значение для проверки маски
                 </div>
                 {testValue && value.mask_validation_regex && (
                   <div className={`text-xs ${
-                    validateMaskValue(testValue, {regex: value.mask_validation_regex})
+                    validateMaskValue(testValue, {regex: value.mask_validation_regex}).is_valid
                       ? 'text-green-600'
                       : 'text-red-600'
                   }`}>
-                    {validateMaskValue(testValue, {regex: value.mask_validation_regex})
+                    {validateMaskValue(testValue, {regex: value.mask_validation_regex}).is_valid
                       ? '✓ Значение соответствует маске'
                       : '✗ Значение не соответствует маске'
                     }
@@ -287,7 +320,7 @@ const MaskConstructor = ({ value, onChange, className = '' }) => {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={value?.mask_guide || true}
+                  checked={value?.mask_guide || false}
                   onChange={(e) => onChange({...value, mask_guide: e.target.checked})}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />

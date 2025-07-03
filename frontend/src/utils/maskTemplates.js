@@ -167,6 +167,37 @@ export const MASK_TEMPLATES = {
     category: 'network'
   },
 
+  // Коды и идентификаторы с буквами
+  license_plate_ru: {
+    id: 'license_plate_ru',
+    name: 'Номер автомобиля РФ',
+    pattern: 'A999AA 999',
+    placeholder: '_999__ 999',
+    regex: '^[АВЕКМНОРСТУХ]\\d{3}[АВЕКМНОРСТУХ]{2}\\s\\d{2,3}$',
+    example: 'А123ВС 199',
+    category: 'document'
+  },
+
+  code_mixed: {
+    id: 'code_mixed',
+    name: 'Код (буквы и цифры)',
+    pattern: 'SSS-999',
+    placeholder: '___-___',
+    regex: '^[A-Za-zА-Яа-я0-9]{3}-\\d{3}$',
+    example: 'ABC-123',
+    category: 'education'
+  },
+
+  name_initials: {
+    id: 'name_initials',
+    name: 'Инициалы',
+    pattern: 'A.A.',
+    placeholder: '_._.',
+    regex: '^[А-Яа-яA-Za-z]\\.[А-Яа-яA-Za-z]\\.$',
+    example: 'И.И.',
+    category: 'custom'
+  },
+
   // Пользовательская маска
   custom: {
     id: 'custom',
@@ -189,7 +220,7 @@ export const MASK_CATEGORIES = {
   document: {
     name: 'Документы',
     icon: 'DocumentTextIcon',
-    templates: ['passport_rf', 'snils', 'inn_personal', 'inn_org']
+    templates: ['passport_rf', 'snils', 'inn_personal', 'inn_org', 'license_plate_ru']
   },
   bank: {
     name: 'Банковские данные',
@@ -199,7 +230,7 @@ export const MASK_CATEGORIES = {
   education: {
     name: 'Образование',
     icon: 'AcademicCapIcon',
-    templates: ['specialty_code', 'group_code', 'student_id']
+    templates: ['specialty_code', 'group_code', 'student_id', 'code_mixed']
   },
   date: {
     name: 'Дата и время',
@@ -219,7 +250,7 @@ export const MASK_CATEGORIES = {
   custom: {
     name: 'Пользовательские',
     icon: 'WrenchScrewdriverIcon',
-    templates: ['custom']
+    templates: ['name_initials', 'custom']
   }
 };
 
@@ -249,10 +280,18 @@ export const getMasksByCategory = (categoryId) => {
 
 // Валидация значения по маске
 export const validateMaskValue = (value, template) => {
-  if (!template || !template.regex) return true;
+  // Если значение пустое, считаем валидным (не показываем ошибку при стирании)
+  if (!value || !value.trim()) return { is_valid: true };
+  
+  if (!template || !template.regex) return { is_valid: true };
   
   const regex = new RegExp(template.regex);
-  return regex.test(value);
+  const isValid = regex.test(value);
+  
+  return {
+    is_valid: isValid,
+    error_message: isValid ? null : 'Значение не соответствует формату маски'
+  };
 };
 
 // Получить все доступные шаблоны
@@ -272,17 +311,61 @@ export const convertMaskToDisplay = (mask) => {
     .replace(/\*/g, '_');
 };
 
+// Генерация placeholder из маски
+export const generatePlaceholderFromMask = (mask) => {
+  if (!mask) return '';
+  
+  return mask
+    .replace(/9/g, '_')    // Цифры
+    .replace(/A/g, '_')    // Буквы
+    .replace(/a/g, '_')    // Строчные буквы
+    .replace(/S/g, '_')    // Буквы или цифры
+    .replace(/Я/g, '_')    // Кириллица
+    .replace(/я/g, '_')    // Строчная кириллица
+    .replace(/\*/g, '_');  // Любой символ
+};
+
 // Создание regex из маски
 export const createRegexFromMask = (mask) => {
-  let regex = mask
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Экранируем спецсимволы
-    .replace(/9/g, '\\d')                    // 9 -> цифра
-    .replace(/A/g, '[A-Za-z]')               // A -> буква
-    .replace(/a/g, '[a-z]')                  // a -> строчная буква
-    .replace(/S/g, '[A-Za-z0-9]')            // S -> буква или цифра
-    .replace(/Я/g, '[А-Яа-я]')               // Я -> кириллица
-    .replace(/я/g, '[а-я]')                  // я -> строчная кириллица
-    .replace(/\\\*/g, '.');                  // * -> любой символ
+  if (!mask) return '';
   
-  return `^${regex}$`;
+  let result = '';
+  
+  for (let i = 0; i < mask.length; i++) {
+    const char = mask[i];
+    
+    switch (char) {
+      case '9':
+        result += '\\d';
+        break;
+      case 'A':
+        result += '[A-Za-zА-Яа-я]';
+        break;
+      case 'a':
+        result += '[a-zа-я]';
+        break;
+      case 'S':
+        result += '[A-Za-zА-Яа-я0-9]';
+        break;
+      case 'Я':
+        result += '[А-Яа-я]';
+        break;
+      case 'я':
+        result += '[а-я]';
+        break;
+      case '*':
+        result += '.';
+        break;
+      default:
+        // Для всех остальных символов экранируем их, если они являются спецсимволами regex
+        if (/[.*+?^${}()|[\]\\]/.test(char)) {
+          result += '\\' + char;
+        } else {
+          result += char;
+        }
+        break;
+    }
+  }
+  
+  return `^${result}$`;
 }; 

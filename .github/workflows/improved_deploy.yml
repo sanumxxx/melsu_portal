@@ -40,9 +40,10 @@ jobs:
           if ! command -v melsu &> /dev/null; then
             echo "⚠️  Команда melsu не найдена, используем стандартные команды..."
             
-            # Стандартное обновление без автоматизации
-            echo "📦 Обновление кода..."
-            git pull origin main
+                         # Стандартное обновление без автоматизации
+             echo "📦 Обновление кода..."
+             git fetch origin main
+             git reset --hard origin/main
             
             echo "🔄 Перезапуск сервисов..."
             systemctl restart melsu-api melsu-worker nginx || {
@@ -84,9 +85,9 @@ jobs:
             sudo -u postgres pg_dump melsu_db > /var/backups/melsu/backup_$(date +%Y%m%d_%H%M%S).sql
           }
           
-          # Применяем обновления
+          # Применяем обновления (принудительное обновление для избежания конфликтов)
           echo "⬇️  Обновление кода..."
-          git pull origin main
+          git reset --hard origin/main
           
           # Проверяем изменения в зависимостях
           if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "backend/requirements.txt"; then

@@ -427,7 +427,20 @@ const RequestForm = () => {
                 : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
             }`}
             maskChar={field.mask_guide ? '_' : null}
-            alwaysShowMask={field.mask_guide}
+            alwaysShowMask={false}
+            formatChars={{
+              '9': '[0-9]',
+              'A': '[A-Za-zА-Яа-я]',
+              'a': '[a-zа-я]', 
+              'S': '[A-Za-zА-Яа-я0-9]',
+              'Я': '[А-Яа-я]',
+              'я': '[а-я]',
+              '*': '.'
+            }}
+            beforeMaskedStateChange={({ nextState }) => {
+              // Разрешаем полное очищение поля
+              return { ...nextState };
+            }}
           />
           {maskError && (
             <p className="mt-1 text-sm text-red-600">{maskError}</p>
