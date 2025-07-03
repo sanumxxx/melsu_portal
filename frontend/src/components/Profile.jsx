@@ -16,7 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import PixelCard from './common/PixelCard';
-import TelegramLoginButton from 'react-telegram-login';
+import TelegramLoginWidget from './auth/TelegramLoginWidget';
 import VKAuthButton from './auth/VKAuthButton';
 
 const Profile = ({ user }) => {
@@ -713,14 +713,9 @@ const Profile = ({ user }) => {
                   </div>
                 ) : (
                   <div className="telegram-login-widget">
-                    <TelegramLoginButton
-                      dataOnauth={handleTelegramAuth}
+                    <TelegramLoginWidget
+                      onAuth={handleTelegramAuth}
                       botName="melsu_portal_auth_bot"
-                      buttonSize="medium"
-                      lang="ru"
-                      usePic={true}
-                      cornerRadius={8}
-                      requestAccess="write"
                     />
                   </div>
                 )}
