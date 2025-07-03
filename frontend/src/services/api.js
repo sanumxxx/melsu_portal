@@ -678,13 +678,54 @@ export const getToken = () => {
 export const getMediaUrl = (mediaUrl) => {
   if (!mediaUrl) return null;
   
+  console.log('🔗 getMediaUrl called with:', mediaUrl);
+  
   // Если URL уже абсолютный, возвращаем как есть
   if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://')) {
+    console.log('✅ Absolute URL, returning as-is:', mediaUrl);
     return mediaUrl;
   }
   
   // Если относительный, добавляем базовый URL
-  return `${API_BASE_URL}${mediaUrl}`;
+  const fullUrl = `${API_BASE_URL}${mediaUrl}`;
+  console.log('🔗 Constructed media URL:', {
+    original: mediaUrl,
+    baseUrl: API_BASE_URL,
+    fullUrl: fullUrl
+  });
+  
+  return fullUrl;
+};
+
+// Диагностическая функция для проверки медиафайлов
+export const testMediaUrl = async (mediaUrl) => {
+  const fullUrl = getMediaUrl(mediaUrl);
+  console.log('🧪 Testing media URL:', fullUrl);
+  
+  try {
+    const response = await fetch(fullUrl, { method: 'HEAD' });
+    console.log('✅ Media URL test result:', {
+      url: fullUrl,
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+    return {
+      success: true,
+      status: response.status,
+      url: fullUrl
+    };
+  } catch (error) {
+    console.error('❌ Media URL test failed:', {
+      url: fullUrl,
+      error: error.message
+    });
+    return {
+      success: false,
+      error: error.message,
+      url: fullUrl
+    };
+  }
 };
 
 // Экспорт API базового URL

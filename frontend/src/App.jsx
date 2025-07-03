@@ -26,6 +26,7 @@ import ReportTemplateManager from './components/admin/ReportTemplateManager';
 import ActivityLogs from './components/admin/ActivityLogs';
 import MyActivity from './components/common/MyActivity';
 import TestRoles from './components/TestRoles';
+import MediaDebugger from './components/common/MediaDebugger';
 
 // WebSocket для уведомлений
 import WebSocketService from './services/websocketService';
@@ -223,6 +224,7 @@ function App() {
                   <Route path="/admin/report-templates" element={<ReportTemplateManager />} />
                   <Route path="/admin/activity-logs" element={<ActivityLogs />} />
                   <Route path="/test-roles" element={<TestRoles />} />
+                  <Route path="/debug/media" element={<MediaDebugger />} />
                 </>
               )}
               
