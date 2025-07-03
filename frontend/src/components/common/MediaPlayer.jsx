@@ -25,6 +25,8 @@ const MediaPlayer = ({
   showOverlay = true,
   lazy = true
 }) => {
+  console.log('🎬 MediaPlayer render:', { src, type, thumbnail, autoplay, lazy });
+
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [isMuted, setIsMuted] = useState(muted);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,9 +41,12 @@ const MediaPlayer = ({
   useEffect(() => {
     if (!lazy || isInView) return;
 
+    console.log('🔍 Setting up Intersection Observer for lazy loading');
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          console.log('👀 MediaPlayer came into view, starting load');
           setIsInView(true);
           observer.disconnect();
         }
@@ -60,12 +65,15 @@ const MediaPlayer = ({
   useEffect(() => {
     if (!videoRef.current || type !== 'video' || !isInView) return;
 
+    console.log('▶️ Video autoplay effect:', { autoplay, isPlaying, isInView });
+
     const video = videoRef.current;
     
     if (autoplay && isPlaying) {
       const playPromise = video.play();
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
+        playPromise.catch((error) => {
+          console.error('❌ Video autoplay failed:', error);
           setIsPlaying(false);
         });
       }
@@ -77,11 +85,14 @@ const MediaPlayer = ({
   const handlePlayPause = () => {
     if (!videoRef.current) return;
     
+    console.log('⏯️ Play/Pause triggered:', { isPlaying });
+    
     if (isPlaying) {
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().catch(() => {
+      videoRef.current.play().catch((error) => {
+        console.error('❌ Video play failed:', error);
         setIsPlaying(false);
       });
       setIsPlaying(true);
@@ -91,23 +102,27 @@ const MediaPlayer = ({
   const handleMuteToggle = () => {
     if (!videoRef.current) return;
     
+    console.log('🔇 Mute toggle:', { isMuted });
     videoRef.current.muted = !isMuted;
     setIsMuted(!isMuted);
   };
 
   const handleLoad = () => {
+    console.log('✅ Media loaded successfully:', { src, type });
     setIsLoading(false);
     setHasError(false);
     if (onLoad) onLoad();
   };
 
-  const handleError = () => {
+  const handleError = (error) => {
+    console.error('❌ Media load error:', { src, type, error });
     setIsLoading(false);
     setHasError(true);
-    if (onError) onError();
+    if (onError) onError(error);
   };
 
   const handleVideoLoad = () => {
+    console.log('📹 Video loaded:', { src });
     if (videoRef.current) {
       videoRef.current.muted = isMuted;
       setIsLoading(false);

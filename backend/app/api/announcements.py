@@ -406,42 +406,76 @@ async def upload_announcement_media(
         'image/gif': {'max_size': 50 * 1024 * 1024, 'type': 'gif'},     # 50MB для GIF
         'image/webp': {'max_size': 10 * 1024 * 1024, 'type': 'image'},  # 10MB
         # Видео
-        'video/mp4': {'max_size': 100 * 1024 * 1024, 'type': 'video'},  # 100MB
-        'video/webm': {'max_size': 100 * 1024 * 1024, 'type': 'video'}, # 100MB
-        'video/mov': {'max_size': 100 * 1024 * 1024, 'type': 'video'},  # 100MB
+        'video/mp4': {'max_size': 200 * 1024 * 1024, 'type': 'video'},  # 200MB
+        'video/webm': {'max_size': 200 * 1024 * 1024, 'type': 'video'}, # 200MB
+        'video/mov': {'max_size': 200 * 1024 * 1024, 'type': 'video'},  # 200MB
+        'video/quicktime': {'max_size': 200 * 1024 * 1024, 'type': 'video'},  # 200MB for .mov files
     }
+    
+    print(f"📁 Upload request - Content type: {file.content_type}, Filename: {file.filename}")
     
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Неподдерживаемый тип файла. Разрешены: JPEG, PNG, GIF, WebP, MP4, WebM, MOV"
+            detail=f"Неподдерживаемый тип файла: {file.content_type}. Разрешены: JPEG, PNG, GIF, WebP, MP4, WebM, MOV"
         )
     
     file_config = allowed_types[file.content_type]
     
-    # Проверяем размер файла
-    if file.size > file_config['max_size']:
-        max_size_mb = file_config['max_size'] / 1024 / 1024
+    # Читаем содержимое файла для проверки размера
+    try:
+        content = await file.read()
+        actual_size = len(content)
+        print(f"📊 File size: {actual_size} bytes ({actual_size / 1024 / 1024:.2f} MB)")
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Размер файла не должен превышать {max_size_mb:.0f}MB"
+            detail=f"Ошибка чтения файла: {str(e)}"
+        )
+    
+    # Проверяем размер файла
+    if actual_size > file_config['max_size']:
+        max_size_mb = file_config['max_size'] / 1024 / 1024
+        actual_size_mb = actual_size / 1024 / 1024
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Размер файла {actual_size_mb:.1f}MB превышает лимит {max_size_mb:.0f}MB для типа {file_config['type']}"
         )
     
     # Создаем директорию если её нет
-    upload_dir = "uploads/announcements"
+    # Определяем абсолютный путь к папке uploads относительно структуры проекта
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.dirname(os.path.dirname(current_dir))
+    upload_dir = os.path.join(backend_dir, "uploads", "announcements")
+    upload_dir = os.path.abspath(upload_dir)
+    
     os.makedirs(upload_dir, exist_ok=True)
+    print(f"📂 Upload directory: {upload_dir}")
     
     # Генерируем уникальное имя файла
     file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
     filename = f"{uuid.uuid4()}.{file_extension}"
     file_path = os.path.join(upload_dir, filename)
     
+    print(f"💾 Saving file to: {os.path.abspath(file_path)}")
+    
     # Сохраняем файл
     try:
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
+        
+        # Проверяем, что файл сохранился
+        if not os.path.exists(file_path):
+            raise Exception("Файл не был сохранен")
+        
+        saved_size = os.path.getsize(file_path)
+        print(f"✅ File saved successfully. Size on disk: {saved_size} bytes")
+        
+        if saved_size != actual_size:
+            print(f"⚠️ Warning: Size mismatch - uploaded: {actual_size}, saved: {saved_size}")
+            
     except Exception as e:
+        print(f"❌ Error saving file: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка сохранения файла: {str(e)}"
@@ -449,6 +483,7 @@ async def upload_announcement_media(
     
     # Возвращаем URL файла и метаданные
     file_url = f"/uploads/announcements/{filename}"
+    print(f"🔗 Generated file URL: {file_url}")
     
     # Получаем дополнительную информацию о файле
     result = {
@@ -457,7 +492,7 @@ async def upload_announcement_media(
         "filename": file.filename,
         "media_type": file_config['type'],
         "content_type": file.content_type,
-        "size": file.size
+        "size": actual_size
     }
     
     # Для видео пытаемся получить дополнительную информацию
@@ -487,10 +522,12 @@ async def upload_announcement_media(
                             result['media_duration'] = int(float(duration))
                         break
                 
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError) as e:
             # Если ffprobe недоступен или произошла ошибка, продолжаем без метаданных
+            print(f"⚠️ ffprobe unavailable or failed: {str(e)}")
             pass
     
+    print(f"📤 Returning result: {result}")
     return result
 
 @router.post("/upload-image")
@@ -508,29 +545,57 @@ async def upload_announcement_image(
             detail="Файл должен быть изображением"
         )
     
-    # Проверяем размер файла (максимум 10MB)
-    max_size = 10 * 1024 * 1024  # 10MB
-    if file.size > max_size:
+    # Читаем содержимое файла для проверки размера
+    try:
+        content = await file.read()
+        actual_size = len(content)
+        print(f"📊 Image file size: {actual_size} bytes ({actual_size / 1024 / 1024:.2f} MB)")
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Размер файла не должен превышать 10MB"
+            detail=f"Ошибка чтения файла: {str(e)}"
+        )
+    
+    # Проверяем размер файла (максимум 10MB)
+    max_size = 10 * 1024 * 1024  # 10MB
+    if actual_size > max_size:
+        actual_size_mb = actual_size / 1024 / 1024
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Размер файла {actual_size_mb:.1f}MB превышает лимит 10MB"
         )
     
     # Создаем директорию если её нет
-    upload_dir = "uploads/announcements"
+    # Определяем абсолютный путь к папке uploads относительно структуры проекта  
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.dirname(os.path.dirname(current_dir))
+    upload_dir = os.path.join(backend_dir, "uploads", "announcements")
+    upload_dir = os.path.abspath(upload_dir)
+    
     os.makedirs(upload_dir, exist_ok=True)
+    print(f"📂 Upload directory (legacy): {upload_dir}")
     
     # Генерируем уникальное имя файла
     file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
     filename = f"{uuid.uuid4()}.{file_extension}"
     file_path = os.path.join(upload_dir, filename)
     
+    print(f"💾 Saving image to: {os.path.abspath(file_path)}")
+    
     # Сохраняем файл
     try:
         with open(file_path, "wb") as buffer:
-            content = await file.read()
             buffer.write(content)
+        
+        # Проверяем, что файл сохранился
+        if not os.path.exists(file_path):
+            raise Exception("Файл не был сохранен")
+        
+        saved_size = os.path.getsize(file_path)
+        print(f"✅ Image saved successfully. Size on disk: {saved_size} bytes")
+        
     except Exception as e:
+        print(f"❌ Error saving image: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка сохранения файла: {str(e)}"
@@ -538,9 +603,13 @@ async def upload_announcement_image(
     
     # Возвращаем URL файла
     file_url = f"/uploads/announcements/{filename}"
+    print(f"🔗 Generated image URL: {file_url}")
     
     return {
         "message": "Изображение загружено успешно",
         "file_url": file_url,
-        "filename": filename
+        "filename": file.filename,
+        "media_type": "image",
+        "content_type": file.content_type,
+        "size": actual_size
     } 

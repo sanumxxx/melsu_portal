@@ -211,10 +211,25 @@ app.include_router(activity_logs.router, prefix="/api/activity-logs", tags=["act
 
 # Статическая раздача файлов
 import os
-uploads_dir = "uploads"
+# Определяем абсолютный путь к папке uploads относительно текущего файла main.py
+current_dir = os.path.dirname(os.path.abspath(__file__))
+uploads_dir = os.path.join(current_dir, "..", "uploads")
+uploads_dir = os.path.abspath(uploads_dir)
+
+print(f"📁 Static files directory: {uploads_dir}")
+
 if not os.path.exists(uploads_dir):
     os.makedirs(uploads_dir)
+    print(f"✅ Created uploads directory: {uploads_dir}")
+
+# Создаем подпапки если их нет
+announcements_dir = os.path.join(uploads_dir, "announcements")
+if not os.path.exists(announcements_dir):
+    os.makedirs(announcements_dir)
+    print(f"✅ Created announcements directory: {announcements_dir}")
+
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+print(f"🌐 Static files mounted at /uploads -> {uploads_dir}")
 
 # WebSocket для уведомлений
 @app.websocket("/ws/{user_id}")
@@ -254,6 +269,48 @@ async def root():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "portal-backend", "version": "1.0.0"}
+
+@app.get("/debug/uploads")
+async def debug_uploads():
+    """Диагностика статических файлов"""
+    try:
+        # Определяем абсолютный путь к папке uploads
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        uploads_dir = os.path.join(current_dir, "..", "uploads")
+        uploads_dir = os.path.abspath(uploads_dir)
+        
+        announcements_dir = os.path.join(uploads_dir, "announcements")
+        
+        # Проверяем существование папок
+        uploads_exists = os.path.exists(uploads_dir)
+        announcements_exists = os.path.exists(announcements_dir)
+        
+        # Считаем файлы
+        uploads_files = []
+        announcements_files = []
+        
+        if uploads_exists:
+            uploads_files = os.listdir(uploads_dir) if os.path.isdir(uploads_dir) else []
+        
+        if announcements_exists:
+            announcements_files = os.listdir(announcements_dir) if os.path.isdir(announcements_dir) else []
+        
+        return {
+            "uploads_directory": uploads_dir,
+            "uploads_exists": uploads_exists,
+            "announcements_directory": announcements_dir,
+            "announcements_exists": announcements_exists,
+            "uploads_files_count": len(uploads_files),
+            "announcements_files_count": len(announcements_files),
+            "recent_announcements_files": announcements_files[-5:] if announcements_files else [],
+            "static_mount_status": "mounted at /uploads",
+            "working_directory": os.getcwd()
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 @app.get("/api/websocket/status")
 async def websocket_status():

@@ -128,26 +128,44 @@ const AnnouncementManager = () => {
   const handleMediaUpload = async (file) => {
     if (!file) return;
 
+    console.log('📁 handleMediaUpload started:', {
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      fileSizeMB: (file.size / 1024 / 1024).toFixed(2)
+    });
+
     // Валидация файла
     const errors = validateMediaFile(file, 100 * 1024 * 1024); // 100MB
     if (errors.length > 0) {
+      console.error('❌ File validation failed:', errors);
       toast.error(errors[0]);
       return;
     }
 
     try {
       setUploading(true);
+      console.log('📤 Starting upload...');
+      
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
       // Используем новый эндпоинт для медиафайлов
       const response = await api.post('/api/announcements/upload-media', uploadFormData);
 
+      console.log('✅ Upload successful, response:', response.data);
+
       const mediaData = response.data;
       const mediaUrl = mediaData.file_url;
       const mediaType = getMediaType(file.name) || mediaData.media_type;
 
-      // Обновляем формData с информацией о медиафайле
+      console.log('🔗 Media URL generated:', {
+        originalUrl: mediaUrl,
+        fullUrl: getMediaUrl(mediaUrl),
+        mediaType: mediaType
+      });
+
+      // Обновляем formData с информацией о медиафайле
       setFormData(prev => ({
         ...prev,
         has_media: true,
@@ -163,7 +181,7 @@ const AnnouncementManager = () => {
       }));
 
       // Устанавливаем данные для предпросмотра
-      setMediaPreview({
+      const previewData = {
         src: getMediaUrl(mediaUrl),
         type: mediaType,
         filename: mediaData.filename,
@@ -171,15 +189,37 @@ const AnnouncementManager = () => {
         duration: mediaData.media_duration,
         width: mediaData.media_width,
         height: mediaData.media_height
-      });
+      };
+      
+      console.log('🖼️ Setting preview data:', previewData);
+      setMediaPreview(previewData);
+
+      // Проверяем, доступен ли файл по URL
+      console.log('🔍 Testing media URL accessibility...');
+      const testImg = new Image();
+      testImg.onload = () => {
+        console.log('✅ Media URL is accessible');
+      };
+      testImg.onerror = (e) => {
+        console.error('❌ Media URL is not accessible:', e);
+        console.error('Failed URL:', getMediaUrl(mediaUrl));
+      };
+      testImg.src = getMediaUrl(mediaUrl);
 
       toast.success(`${mediaType === 'video' ? 'Видео' : mediaType === 'gif' ? 'GIF' : 'Изображение'} загружено`);
     } catch (error) {
-      console.error('Ошибка загрузки медиафайла:', error);
+      console.error('❌ Upload error:', error);
       const errorMessage = error.response?.data?.detail || 'Не удалось загрузить медиафайл';
+      console.error('Error details:', {
+        message: errorMessage,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data
+      });
       toast.error(errorMessage);
     } finally {
       setUploading(false);
+      console.log('📁 handleMediaUpload finished');
     }
   };
 
@@ -569,6 +609,28 @@ const AnnouncementManager = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Медиафайл (изображение, GIF, видео)
                       </label>
+                      
+                      {/* Кнопка диагностики (только для разработки) */}
+                      <div className="mb-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/debug/uploads');
+                              const data = await response.json();
+                              console.log('📊 Uploads debug info:', data);
+                              toast.success('Информация о uploads выведена в консоль');
+                            } catch (error) {
+                              console.error('❌ Failed to get uploads debug info:', error);
+                              toast.error('Ошибка диагностики uploads');
+                            }
+                          }}
+                          className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                        >
+                          🔍 Диагностика uploads
+                        </button>
+                      </div>
+                      
                       <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center w-full">
                           {mediaPreview ? (
