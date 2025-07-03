@@ -329,12 +329,31 @@ setup_firewall() {
 
 # Создание скрипта обновления
 create_update_script() {
-    log_info "Создание скрипта обновления..."
+    log_info "Создание скриптов управления..."
     
+    # Копируем основной скрипт управления
+    cp melsu_control.sh /usr/local/bin/melsu
+    chmod +x /usr/local/bin/melsu
+    chown root:root /usr/local/bin/melsu
+    
+    # Копируем автоматический скрипт обновления
+    cp auto_update.sh /usr/local/bin/melsu-auto-update
+    chmod +x /usr/local/bin/melsu-auto-update
+    chown root:root /usr/local/bin/melsu-auto-update
+    
+    # Создаем cron задачу для автоматических обновлений (по желанию)
+    tee /etc/cron.d/melsu-auto-update > /dev/null <<EOF
+# Автоматическое обновление MELSU Portal каждый день в 3:00 утра
+# Раскомментируйте следующую строку, если хотите включить автоматические обновления
+# 0 3 * * * root /usr/local/bin/melsu-auto-update >> /var/log/melsu/auto_update.log 2>&1
+EOF
+    
+    # Создаем простой скрипт обновления для обратной совместимости
     tee /var/www/melsu/update.sh > /dev/null <<'EOF'
 #!/bin/bash
 
-# Скрипт обновления MELSU Portal
+# Простой скрипт обновления MELSU Portal (обратная совместимость)
+# Для более продвинутых возможностей используйте: melsu update
 
 set -e
 
@@ -367,7 +386,7 @@ EOF
     chmod +x /var/www/melsu/update.sh
     chown melsu:melsu /var/www/melsu/update.sh
     
-    log_success "Скрипт обновления создан"
+    log_success "Скрипты управления созданы"
 }
 
 # Вывод информации о завершении

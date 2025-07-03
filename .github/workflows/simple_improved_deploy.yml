@@ -1,0 +1,85 @@
+name: 🚀 Auto Deploy to Server (Simple Improved)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to server with migrations
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        script: |
+          cd /var/www/melsu
+          
+          # Создаем бэкап БД перед обновлением
+          echo "💾 Создание бэкапа БД..."
+          mkdir -p /var/backups/melsu
+          sudo -u postgres pg_dump melsu_db > /var/backups/melsu/backup_$(date +%Y%m%d_%H%M%S).sql
+          
+          # Сохраняем текущий коммит для возможного отката
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          
+          # Обновляем код
+          echo "📦 Обновление кода..."
+          git pull origin main
+          
+          # Проверяем изменения в зависимостях backend
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "backend/requirements.txt"; then
+            echo "📦 Обновление Python зависимостей..."
+            cd backend && sudo -u melsu venv/bin/pip install -r requirements.txt && cd ..
+          fi
+          
+          # Проверяем изменения в зависимостях frontend
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/package.json"; then
+            echo "📦 Обновление Node.js зависимостей..."
+            cd frontend && sudo -u melsu npm install && cd ..
+          fi
+          
+          # Применяем миграции БД
+          echo "🗄️ Применение миграций БД..."
+          cd backend
+          sudo -u melsu venv/bin/alembic upgrade head || {
+            echo "❌ Ошибка миграций! Откатываю код..."
+            cd ..
+            git reset --hard $CURRENT_COMMIT
+            exit 1
+          }
+          cd ..
+          
+          # Собираем frontend если были изменения
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/"; then
+            echo "🏗️ Сборка frontend..."
+            cd frontend && sudo -u melsu npm run build && cd ..
+          fi
+          
+          # Перезапускаем сервисы
+          echo "🔄 Перезапуск сервисов..."
+          if command -v melsu &> /dev/null; then
+            melsu restart
+          else
+            systemctl restart melsu-worker melsu-api
+            systemctl reload nginx
+          fi
+          
+          # Проверяем, что API запустился
+          echo "🧪 Проверка API..."
+          for i in {1..15}; do
+            if curl -s http://localhost:8000/health > /dev/null; then
+              echo "✅ API работает"
+              break
+            fi
+            if [ $i -eq 15 ]; then
+              echo "❌ API не отвечает!"
+              exit 1
+            fi
+            sleep 2
+          done
+          
+          echo "🎉 Развертывание завершено!" 

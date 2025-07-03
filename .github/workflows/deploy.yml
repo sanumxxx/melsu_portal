@@ -1,0 +1,178 @@
+name: 🚀 Deploy MELSU Portal
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+env:
+  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+  SERVER_USER: ${{ secrets.SERVER_USER }}
+  SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+  PROJECT_PATH: "/var/www/melsu"
+
+jobs:
+  deploy:
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    name: 🔄 Deploy to Production Server
+    
+    steps:
+    - name: 📝 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+        
+    - name: 📦 Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+        
+    - name: 🚀 Deploy to server
+      run: |
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          set -e
+          
+          echo "🔄 Начинаю автоматическое развертывание..."
+          
+          # Переходим в директорию проекта
+          cd ${{ env.PROJECT_PATH }}
+          
+          # Проверяем статус Git
+          echo "📋 Текущий статус Git:"
+          git status --porcelain
+          
+          # Создаем резервную копию БД перед обновлением
+          echo "💾 Создание резервной копии БД..."
+          sudo -u postgres pg_dump melsu_db > /var/backups/melsu/backup_before_deploy_$(date +%Y%m%d_%H%M%S).sql
+          
+          # Сохраняем текущий коммит для возможного отката
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "📌 Текущий коммит: $CURRENT_COMMIT"
+          
+          # Обновляем код
+          echo "⬇️ Обновление кода из репозитория..."
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # Проверяем изменения в requirements.txt
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "backend/requirements.txt"; then
+            echo "📦 Обнаружены изменения в зависимостях backend, обновляю..."
+            cd backend
+            sudo -u melsu venv/bin/pip install -r requirements.txt
+            cd ..
+          fi
+          
+          # Проверяем изменения в package.json
+          if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/package.json"; then
+            echo "📦 Обнаружены изменения в зависимостях frontend, обновляю..."
+            cd frontend
+            sudo -u melsu npm install
+            cd ..
+          fi
+          
+          # Применяем миграции БД
+          echo "🗄️ Применение миграций базы данных..."
+          cd backend
+          
+          # Проверяем наличие новых миграций
+          CURRENT_REV=$(sudo -u melsu venv/bin/alembic current 2>/dev/null | grep -o '[a-f0-9]\{12\}' | head -1)
+          HEAD_REV=$(sudo -u melsu venv/bin/alembic heads 2>/dev/null | grep -o '[a-f0-9]\{12\}' | head -1)
+          
+          if [ "$CURRENT_REV" != "$HEAD_REV" ]; then
+            echo "🔄 Применяю новые миграции..."
+            sudo -u melsu venv/bin/alembic upgrade head
+            
+            if [ $? -ne 0 ]; then
+              echo "❌ Ошибка при применении миграций! Откатываю изменения..."
+              git reset --hard $CURRENT_COMMIT
+              exit 1
+            fi
+          else
+            echo "✅ Все миграции уже применены"
+          fi
+          
+          cd ..
+          
+          # Собираем frontend
+          echo "🏗️ Сборка frontend..."
+          cd frontend
+          sudo -u melsu npm run build
+          
+          if [ $? -ne 0 ]; then
+            echo "❌ Ошибка при сборке frontend!"
+            exit 1
+          fi
+          
+          cd ..
+          
+          # Перезапускаем сервисы
+          echo "🔄 Перезапуск сервисов..."
+          
+          # Graceful restart - сначала worker, потом API
+          systemctl restart melsu-worker
+          sleep 2
+          systemctl restart melsu-api
+          
+          # Ждем, пока API запустится
+          echo "⏳ Ожидание запуска API..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/health > /dev/null; then
+              echo "✅ API запущен успешно"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ API не запустился в течение 60 секунд!"
+              exit 1
+            fi
+            sleep 2
+          done
+          
+          # Перезапускаем nginx
+          systemctl reload nginx
+          
+          # Финальная проверка
+          echo "🧪 Финальная проверка системы..."
+          
+          # Проверка API
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
+          if [ "$API_STATUS" != "200" ]; then
+            echo "❌ API не отвечает (код: $API_STATUS)"
+            exit 1
+          fi
+          
+          # Проверка frontend
+          FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
+          if [ "$FRONTEND_STATUS" != "200" ]; then
+            echo "❌ Frontend не отвечает (код: $FRONTEND_STATUS)"
+            exit 1
+          fi
+          
+          # Проверка БД
+          sudo -u postgres psql melsu_db -c "SELECT 1;" > /dev/null
+          if [ $? -ne 0 ]; then
+            echo "❌ База данных недоступна"
+            exit 1
+          fi
+          
+          echo "✅ Развертывание завершено успешно!"
+          echo "🌐 Сайт доступен по адресу: http://$(curl -s ifconfig.me)"
+          echo "📊 Статус сервисов:"
+          systemctl is-active melsu-api && echo "✅ API активен" || echo "❌ API неактивен"
+          systemctl is-active melsu-worker && echo "✅ Worker активен" || echo "❌ Worker неактивен"
+          systemctl is-active nginx && echo "✅ Nginx активен" || echo "❌ Nginx неактивен"
+          
+        EOF
+        
+    - name: 🔔 Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Развертывание прошло успешно!"
+        else
+          echo "❌ Ошибка при развертывании!"
+        fi 

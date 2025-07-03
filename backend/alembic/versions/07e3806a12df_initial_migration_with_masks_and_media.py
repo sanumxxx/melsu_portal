@@ -1,8 +1,8 @@
-"""Initial migration
+"""Initial migration with masks and media
 
-Revision ID: ceb15c3bd88f
+Revision ID: 07e3806a12df
 Revises: 
-Create Date: 2025-06-29 18:52:21.830751
+Create Date: 2025-07-03 06:02:12.413349
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ceb15c3bd88f'
+revision: str = '07e3806a12df'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -78,6 +78,8 @@ def upgrade() -> None:
     sa.Column('auto_assign_enabled', sa.Boolean(), nullable=False),
     sa.Column('department_routing', sa.Boolean(), nullable=False),
     sa.Column('routing_rules', sa.JSON(), nullable=True),
+    sa.Column('auto_role_assignment_enabled', sa.Boolean(), nullable=False),
+    sa.Column('role_assignment_rules', sa.JSON(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id'),
@@ -115,6 +117,52 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    op.create_table('activity_logs',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('action', sa.String(), nullable=False),
+    sa.Column('resource_type', sa.String(), nullable=True),
+    sa.Column('resource_id', sa.String(), nullable=True),
+    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('details', sa.JSON(), nullable=True),
+    sa.Column('ip_address', sa.String(), nullable=True),
+    sa.Column('user_agent', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_activity_logs_action'), 'activity_logs', ['action'], unique=False)
+    op.create_index(op.f('ix_activity_logs_created_at'), 'activity_logs', ['created_at'], unique=False)
+    op.create_index(op.f('ix_activity_logs_id'), 'activity_logs', ['id'], unique=False)
+    op.create_index(op.f('ix_activity_logs_resource_id'), 'activity_logs', ['resource_id'], unique=False)
+    op.create_index(op.f('ix_activity_logs_resource_type'), 'activity_logs', ['resource_type'], unique=False)
+    op.create_index(op.f('ix_activity_logs_user_id'), 'activity_logs', ['user_id'], unique=False)
+    op.create_table('announcements',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=255), nullable=False, comment='Заголовок объявления'),
+    sa.Column('description', sa.Text(), nullable=True, comment='Описание объявления'),
+    sa.Column('image_url', sa.String(length=500), nullable=True, comment='URL изображения (устарело, используйте media_url)'),
+    sa.Column('has_media', sa.Boolean(), nullable=False, comment='Есть ли медиафайл'),
+    sa.Column('media_type', sa.String(length=20), nullable=True, comment='Тип медиа: image, gif, video'),
+    sa.Column('media_url', sa.Text(), nullable=True, comment='URL медиафайла'),
+    sa.Column('media_filename', sa.String(length=255), nullable=True, comment='Оригинальное имя файла'),
+    sa.Column('media_size', sa.Integer(), nullable=True, comment='Размер файла в байтах'),
+    sa.Column('media_duration', sa.Integer(), nullable=True, comment='Длительность видео в секундах'),
+    sa.Column('media_thumbnail_url', sa.Text(), nullable=True, comment='URL превью для видео'),
+    sa.Column('media_width', sa.Integer(), nullable=True, comment='Ширина медиа'),
+    sa.Column('media_height', sa.Integer(), nullable=True, comment='Высота медиа'),
+    sa.Column('media_autoplay', sa.Boolean(), nullable=False, comment='Автопроигрывание'),
+    sa.Column('media_loop', sa.Boolean(), nullable=False, comment='Зацикливание'),
+    sa.Column('media_muted', sa.Boolean(), nullable=False, comment='Без звука по умолчанию'),
+    sa.Column('is_active', sa.Boolean(), nullable=False, comment='Активно ли объявление'),
+    sa.Column('target_roles', sa.JSON(), nullable=True, comment='Роли для которых показывать (null = все)'),
+    sa.Column('created_by_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['created_by_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_announcements_id'), 'announcements', ['id'], unique=False)
     op.create_table('fields',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('template_id', sa.Integer(), nullable=False),
@@ -135,6 +183,14 @@ def upgrade() -> None:
     sa.Column('profile_field_mapping', sa.String(length=100), nullable=True),
     sa.Column('update_profile_on_submit', sa.Boolean(), nullable=True),
     sa.Column('update_profile_on_approve', sa.Boolean(), nullable=True),
+    sa.Column('mask_enabled', sa.Boolean(), nullable=False),
+    sa.Column('mask_type', sa.String(length=50), nullable=True),
+    sa.Column('mask_pattern', sa.Text(), nullable=True),
+    sa.Column('mask_placeholder', sa.Text(), nullable=True),
+    sa.Column('mask_validation_regex', sa.Text(), nullable=True),
+    sa.Column('mask_validation_message', sa.Text(), nullable=True),
+    sa.Column('mask_guide', sa.Boolean(), nullable=False),
+    sa.Column('mask_keep_char_positions', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['conditional_field_id'], ['fields.id'], ),
@@ -147,8 +203,6 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('department_id', sa.Integer(), nullable=True),
-    sa.Column('course', sa.Integer(), nullable=True),
-    sa.Column('semester', sa.Integer(), nullable=True),
     sa.Column('education_level', sa.String(length=50), nullable=True),
     sa.Column('education_form', sa.String(length=50), nullable=True),
     sa.Column('specialization', sa.String(length=200), nullable=True),
@@ -173,6 +227,21 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_portfolio_achievements_id'), 'portfolio_achievements', ['id'], unique=False)
     op.create_index(op.f('ix_portfolio_achievements_user_id'), 'portfolio_achievements', ['user_id'], unique=False)
+    op.create_table('report_templates',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('fields', sa.JSON(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('allowed_roles', sa.JSON(), nullable=True),
+    sa.Column('viewers', sa.JSON(), nullable=True),
+    sa.Column('created_by_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['created_by_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_report_templates_id'), 'report_templates', ['id'], unique=False)
     op.create_table('requests',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('template_id', sa.Integer(), nullable=False),
@@ -193,6 +262,24 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_requests_id'), 'requests', ['id'], unique=False)
+    op.create_table('student_access',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('employee_id', sa.Integer(), nullable=False),
+    sa.Column('department_id', sa.Integer(), nullable=False),
+    sa.Column('access_level', sa.String(length=50), nullable=False),
+    sa.Column('assigned_by', sa.Integer(), nullable=False),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('assigned_at', sa.DateTime(), nullable=False),
+    sa.Column('expires_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['assigned_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['department_id'], ['departments.id'], ),
+    sa.ForeignKeyConstraint(['employee_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_student_access_id'), 'student_access', ['id'], unique=False)
     op.create_table('user_department_assignments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -216,6 +303,16 @@ def upgrade() -> None:
     op.create_index(op.f('ix_user_department_assignments_department_id'), 'user_department_assignments', ['department_id'], unique=False)
     op.create_index(op.f('ix_user_department_assignments_id'), 'user_department_assignments', ['id'], unique=False)
     op.create_index(op.f('ix_user_department_assignments_user_id'), 'user_department_assignments', ['user_id'], unique=False)
+    op.create_table('announcement_views',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('announcement_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('viewed_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['announcement_id'], ['announcements.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_announcement_views_id'), 'announcement_views', ['id'], unique=False)
     op.create_table('portfolio_files',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('achievement_id', sa.Integer(), nullable=False),
@@ -230,6 +327,19 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_portfolio_files_achievement_id'), 'portfolio_files', ['achievement_id'], unique=False)
     op.create_index(op.f('ix_portfolio_files_id'), 'portfolio_files', ['id'], unique=False)
+    op.create_table('reports',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('template_id', sa.Integer(), nullable=False),
+    sa.Column('data', sa.JSON(), nullable=False),
+    sa.Column('submitted_by_id', sa.Integer(), nullable=False),
+    sa.Column('submitted_at', sa.DateTime(), nullable=False),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=False),
+    sa.ForeignKeyConstraint(['submitted_by_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['template_id'], ['report_templates.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_reports_id'), 'reports', ['id'], unique=False)
     op.create_table('request_comments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('request_id', sa.Integer(), nullable=False),
@@ -277,7 +387,6 @@ def upgrade() -> None:
     sa.Column('residence_address', sa.Text(), nullable=True),
     sa.Column('residence_postal_code', sa.String(length=10), nullable=True),
     sa.Column('student_id', sa.String(length=50), nullable=True),
-    sa.Column('group_number', sa.String(length=50), nullable=True),
     sa.Column('course', sa.Integer(), nullable=True),
     sa.Column('semester', sa.Integer(), nullable=True),
     sa.Column('faculty', sa.String(length=200), nullable=True),
@@ -312,32 +421,34 @@ def upgrade() -> None:
     sa.UniqueConstraint('user_id')
     )
     op.create_index(op.f('ix_user_profiles_id'), 'user_profiles', ['id'], unique=False)
-    op.create_foreign_key(None, 'student_access', 'users', ['employee_id'], ['id'])
-    op.create_foreign_key(None, 'student_access', 'departments', ['department_id'], ['id'])
-    op.create_foreign_key(None, 'student_access', 'users', ['assigned_by'], ['id'])
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_constraint(None, 'student_access', type_='foreignkey')
-    op.drop_constraint(None, 'student_access', type_='foreignkey')
-    op.drop_constraint(None, 'student_access', type_='foreignkey')
     op.drop_index(op.f('ix_user_profiles_id'), table_name='user_profiles')
     op.drop_table('user_profiles')
     op.drop_index(op.f('ix_request_files_id'), table_name='request_files')
     op.drop_table('request_files')
     op.drop_index(op.f('ix_request_comments_id'), table_name='request_comments')
     op.drop_table('request_comments')
+    op.drop_index(op.f('ix_reports_id'), table_name='reports')
+    op.drop_table('reports')
     op.drop_index(op.f('ix_portfolio_files_id'), table_name='portfolio_files')
     op.drop_index(op.f('ix_portfolio_files_achievement_id'), table_name='portfolio_files')
     op.drop_table('portfolio_files')
+    op.drop_index(op.f('ix_announcement_views_id'), table_name='announcement_views')
+    op.drop_table('announcement_views')
     op.drop_index(op.f('ix_user_department_assignments_user_id'), table_name='user_department_assignments')
     op.drop_index(op.f('ix_user_department_assignments_id'), table_name='user_department_assignments')
     op.drop_index(op.f('ix_user_department_assignments_department_id'), table_name='user_department_assignments')
     op.drop_table('user_department_assignments')
+    op.drop_index(op.f('ix_student_access_id'), table_name='student_access')
+    op.drop_table('student_access')
     op.drop_index(op.f('ix_requests_id'), table_name='requests')
     op.drop_table('requests')
+    op.drop_index(op.f('ix_report_templates_id'), table_name='report_templates')
+    op.drop_table('report_templates')
     op.drop_index(op.f('ix_portfolio_achievements_user_id'), table_name='portfolio_achievements')
     op.drop_index(op.f('ix_portfolio_achievements_id'), table_name='portfolio_achievements')
     op.drop_table('portfolio_achievements')
@@ -345,6 +456,15 @@ def downgrade() -> None:
     op.drop_table('groups')
     op.drop_index(op.f('ix_fields_id'), table_name='fields')
     op.drop_table('fields')
+    op.drop_index(op.f('ix_announcements_id'), table_name='announcements')
+    op.drop_table('announcements')
+    op.drop_index(op.f('ix_activity_logs_user_id'), table_name='activity_logs')
+    op.drop_index(op.f('ix_activity_logs_resource_type'), table_name='activity_logs')
+    op.drop_index(op.f('ix_activity_logs_resource_id'), table_name='activity_logs')
+    op.drop_index(op.f('ix_activity_logs_id'), table_name='activity_logs')
+    op.drop_index(op.f('ix_activity_logs_created_at'), table_name='activity_logs')
+    op.drop_index(op.f('ix_activity_logs_action'), table_name='activity_logs')
+    op.drop_table('activity_logs')
     op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
