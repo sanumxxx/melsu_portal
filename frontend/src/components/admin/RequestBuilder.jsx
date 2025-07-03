@@ -701,18 +701,19 @@ const RequestBuilder = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Конструктор заявок</h1>
-          <p className="text-gray-600 mt-2">Создание и управление шаблонами заявок</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Конструктор заявок</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Создание и управление шаблонами заявок</p>
         </div>
         <Button 
           onClick={handleCreateTemplate}
           variant="primary"
           disabled={loading}
+          className="w-full sm:w-auto"
         >
-          <PlusIcon className="h-5 w-5 mr-2" />
+          <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
           Создать шаблон
         </Button>
       </div>
@@ -744,14 +745,14 @@ const RequestBuilder = () => {
               {templates.map((template) => (
                 <div
                   key={template.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="flex flex-col sm:flex-row sm:items-start sm:justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 gap-4"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                         {template.name}
                       </h3>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+                      <span className={`px-2 py-1 text-xs rounded-full self-start ${
                         template.is_active 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-gray-100 text-gray-800'
@@ -770,41 +771,44 @@ const RequestBuilder = () => {
                       </span>
                     </div>
                     {template.description && (
-                      <p className="text-gray-600 mt-1">{template.description}</p>
+                      <p className="text-sm text-gray-600 mt-2">{template.description}</p>
                     )}
-                    <div className="flex items-center space-x-4 mt-2">
-                      <span className="text-sm text-blue-600 font-medium flex items-center">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
+                      <span className="text-xs sm:text-sm text-blue-600 font-medium flex items-center">
                         <CalendarIcon className="h-4 w-4 mr-1" />
                         Срок: {template.deadline_days} {template.deadline_days === 1 ? 'день' : template.deadline_days < 5 ? 'дня' : 'дней'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Создан: {new Date(template.created_at).toLocaleDateString('ru-RU')}
+                    <div className="text-xs text-gray-500 mt-2 space-y-1 sm:space-y-0">
+                      <div>Создан: {new Date(template.created_at).toLocaleDateString('ru-RU')}</div>
                       {template.updated_at && (
-                        <span className="ml-4">
+                        <div className="sm:inline sm:ml-4">
                           Обновлен: {new Date(template.updated_at).toLocaleDateString('ru-RU')}
-                        </span>
+                        </div>
                       )}
-                    </p>
+                    </div>
                   </div>
                   
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 flex-shrink-0">
                     <Button
                       onClick={() => handleEditTemplate(template)}
                       variant="outline"
                       size="sm"
                       disabled={loading}
+                      className="flex-1 sm:flex-none"
                     >
-                      <PencilIcon className="h-4 w-4" />
+                      <PencilIcon className="h-4 w-4 sm:mr-0 mr-2" />
+                      <span className="sm:hidden">Редактировать</span>
                     </Button>
                     <Button
                       onClick={() => handleDeleteTemplate(template)}
                       variant="outline"
                       size="sm"
-                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      className="text-red-600 border-red-300 hover:bg-red-50 flex-1 sm:flex-none"
                       disabled={loading}
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <TrashIcon className="h-4 w-4 sm:mr-0 mr-2" />
+                      <span className="sm:hidden">Удалить</span>
                     </Button>
                   </div>
                 </div>
@@ -816,11 +820,11 @@ const RequestBuilder = () => {
 
       {/* Модальное окно */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-full sm:h-auto sm:max-h-[90vh] overflow-hidden">
             {/* Заголовок модального окна */}
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+              <h2 className="text-base sm:text-xl font-bold text-gray-900">
                 {editingTemplate ? 'Редактирование шаблона' : 'Создание шаблона'}
               </h2>
               <Button
@@ -828,37 +832,38 @@ const RequestBuilder = () => {
                 variant="outline"
                 size="sm"
               >
-                <XMarkIcon className="h-5 w-5" />
+                <XMarkIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
 
             {/* Вкладки */}
-            <div className="border-b">
-              <div className="flex">
+            <div className="border-b bg-white sticky top-16 sm:top-20 z-10">
+              <div className="flex overflow-x-auto scrollbar-hide">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center px-6 py-3 font-medium transition-colors ${
+                    className={`flex items-center px-3 sm:px-6 py-2 sm:py-3 font-medium transition-colors whitespace-nowrap text-xs sm:text-sm ${
                       activeTab === tab.id
                         ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    <tab.icon className="h-5 w-5 mr-2" />
-                    {tab.label}
+                    <tab.icon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Содержимое вкладок */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            <div className="p-4 sm:p-6 overflow-y-auto h-full sm:max-h-[calc(90vh-200px)]">
               {activeTab === 'basic' && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold mb-4">Основная информация</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Название шаблона *
@@ -2145,9 +2150,9 @@ const RequestBuilder = () => {
             </div>
 
             {/* Футер модального окна */}
-            <div className="flex justify-between items-center p-6 border-t bg-gray-50">
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 sm:p-6 border-t bg-gray-50 gap-4 sticky bottom-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="text-xs sm:text-sm text-gray-600">
                   {editingTemplate ? 'Редактирование шаблона' : 'Создание нового шаблона'}
                 </div>
                 {editingTemplate && (
@@ -2163,11 +2168,12 @@ const RequestBuilder = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Button 
                   onClick={handleCloseModal}
                   variant="outline"
                   disabled={loading}
+                  className="w-full sm:w-auto"
                 >
                   Отмена
                 </Button>
@@ -2175,6 +2181,7 @@ const RequestBuilder = () => {
                   onClick={handleSaveTemplate}
                   variant="primary"
                   disabled={loading || activeTab === 'fields'}
+                  className="w-full sm:w-auto"
                 >
                   {editingTemplate ? 'Обновить' : 'Создать'} шаблон
                 </Button>

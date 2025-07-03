@@ -159,14 +159,14 @@ const RoleManagement = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Заголовок */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Управление ролями</h1>
-          <p className="text-gray-600 mt-1">Создание и настройка ролей в системе</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Управление ролями</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Создание и настройка ролей в системе</p>
         </div>
-        <Button onClick={handleCreate} variant="primary">
+        <Button onClick={handleCreate} variant="primary" className="w-full sm:w-auto">
           <PlusIcon className="h-4 w-4 mr-2" />
           Создать роль
         </Button>
@@ -194,89 +194,145 @@ const RoleManagement = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Роль
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Описание
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Тип
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Статус
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Действия
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {roles.map((role) => (
-                    <tr key={role.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {getRoleIcon(role)}
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {role.display_name}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {role.name}
+            <>
+              {/* Таблица для больших экранов */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Роль
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Описание
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Тип
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Статус
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Действия
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {roles.map((role) => (
+                      <tr key={role.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {getRoleIcon(role)}
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">
+                                {role.display_name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {role.name}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {role.description || 'Нет описания'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getRoleBadge(role)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(role)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={() => handleEdit(role)}
-                            variant="outline"
-                            size="sm"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </Button>
-                          {!role.is_system && (
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-xs truncate">
+                            {role.description || 'Нет описания'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getRoleBadge(role)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(role)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
                             <Button
-                              onClick={() => handleDelete(role)}
-                              variant="danger"
+                              onClick={() => handleEdit(role)}
+                              variant="outline"
                               size="sm"
                             >
-                              <TrashIcon className="h-4 w-4" />
+                              <PencilIcon className="h-4 w-4" />
                             </Button>
+                            {!role.is_system && (
+                              <Button
+                                onClick={() => handleDelete(role)}
+                                variant="danger"
+                                size="sm"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Карточки для мобильных и планшетов */}
+              <div className="lg:hidden space-y-4">
+                {roles.map((role) => (
+                  <div key={role.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-3 min-w-0 flex-1">
+                        <div className="flex-shrink-0 mt-1">
+                          {getRoleIcon(role)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <h3 className="text-sm sm:text-base font-medium text-gray-900">
+                              {role.display_name}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {getRoleBadge(role)}
+                              {getStatusBadge(role)}
+                            </div>
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                            {role.name}
+                          </p>
+                          {role.description && (
+                            <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2">
+                              {role.description}
+                            </p>
                           )}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                      
+                      <div className="flex space-x-2 ml-2">
+                        <Button
+                          onClick={() => handleEdit(role)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </Button>
+                        {!role.is_system && (
+                          <Button
+                            onClick={() => handleDelete(role)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Модальное окно создания/редактирования роли */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md sm:max-w-lg h-full sm:h-auto overflow-y-auto sm:overflow-visible">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 sm:pb-0 sm:static">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
                 {editingRole ? 'Редактировать роль' : 'Создать роль'}
               </h3>
               <Button
@@ -298,12 +354,12 @@ const RoleManagement = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="admin, manager, employee..."
                     required
                     disabled={submitting}
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Используется в коде. Только латинские буквы, цифры и подчеркивания.
                   </p>
                 </div>
@@ -317,7 +373,7 @@ const RoleManagement = () => {
                   type="text"
                   value={formData.display_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Администратор, Менеджер..."
                   required
                   disabled={submitting}
@@ -331,7 +387,7 @@ const RoleManagement = () => {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   rows="3"
                   placeholder="Описание роли и её возможностей..."
                   disabled={submitting}
@@ -352,7 +408,7 @@ const RoleManagement = () => {
                 </label>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
                 <Button
                   type="submit"
                   variant="primary"

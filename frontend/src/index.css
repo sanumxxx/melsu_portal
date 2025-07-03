@@ -429,6 +429,16 @@ html {
   background-color: #9ca3af;
 }
 
+/* Скрытие скроллбара для горизонтального скролла */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Унификация полей ввода для мобильных устройств */
 @media screen and (max-width: 768px) {
   /* Все поля ввода одинакового размера */

@@ -166,11 +166,11 @@ const ActivityLogs = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Заголовок */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <ClipboardDocumentIcon className="w-8 h-8" />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <ClipboardDocumentIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           Журнал активности
         </h1>
         <button
@@ -180,7 +180,7 @@ const ActivityLogs = () => {
               loadStats();
             }
           }}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm sm:text-base w-full sm:w-auto"
         >
           {showStats ? 'Скрыть статистику' : 'Показать статистику'}
         </button>
@@ -188,7 +188,7 @@ const ActivityLogs = () => {
 
       {/* Статистика */}
       {showStats && stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 sm:mb-6">
           <div className="bg-white p-4 rounded-lg border shadow-sm">
             <h3 className="text-sm font-medium text-gray-500 mb-1">Всего действий</h3>
             <p className="text-2xl font-bold text-blue-600">{stats.total_actions}</p>
@@ -220,13 +220,13 @@ const ActivityLogs = () => {
       )}
 
       {/* Фильтры */}
-      <div className="bg-white p-6 rounded-lg border shadow-sm">
+      <div className="bg-white p-4 sm:p-6 rounded-lg border shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <AdjustmentsHorizontalIcon className="w-5 h-5" />
-          <h2 className="text-lg font-semibold">Фильтры</h2>
+          <h2 className="text-base sm:text-lg font-semibold">Фильтры</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               ID пользователя
@@ -235,7 +235,7 @@ const ActivityLogs = () => {
               type="number"
               value={filters.user_id}
               onChange={(e) => handleFilterChange('user_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Введите ID"
             />
           </div>
@@ -247,7 +247,7 @@ const ActivityLogs = () => {
             <select
               value={filters.action}
               onChange={(e) => handleFilterChange('action', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Все действия</option>
               {availableActions.map(action => (
@@ -265,7 +265,7 @@ const ActivityLogs = () => {
             <select
               value={filters.resource_type}
               onChange={(e) => handleFilterChange('resource_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Все ресурсы</option>
               {resourceTypes.map(type => (
@@ -284,7 +284,7 @@ const ActivityLogs = () => {
               type="text"
               value={filters.resource_id}
               onChange={(e) => handleFilterChange('resource_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Введите ID ресурса"
             />
           </div>
@@ -297,7 +297,7 @@ const ActivityLogs = () => {
               type="datetime-local"
               value={filters.start_date}
               onChange={(e) => handleFilterChange('start_date', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -309,7 +309,7 @@ const ActivityLogs = () => {
               type="datetime-local"
               value={filters.end_date}
               onChange={(e) => handleFilterChange('end_date', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -320,7 +320,7 @@ const ActivityLogs = () => {
             <select
               value={filters.size}
               onChange={(e) => handleFilterChange('size', parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -332,7 +332,7 @@ const ActivityLogs = () => {
           <div className="flex items-end">
             <button
               onClick={clearFilters}
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+              className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm sm:text-base"
             >
               Очистить фильтры
             </button>
@@ -341,7 +341,7 @@ const ActivityLogs = () => {
       </div>
 
       {/* Информация о результатах */}
-      <div className="flex items-center justify-between text-sm text-gray-600">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm text-gray-600">
         <span>
           Показано {logs.length} из {totalLogs} записей
         </span>
@@ -350,7 +350,7 @@ const ActivityLogs = () => {
         </span>
       </div>
 
-      {/* Таблица логов */}
+      {/* Журнал активности */}
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
         {error && (
           <div className="p-4 bg-red-50 border-l-4 border-red-400 text-red-700">
@@ -358,79 +358,140 @@ const ActivityLogs = () => {
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Время
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Пользователь
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Действие
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Описание
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ресурс
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  IP адрес
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex items-center gap-1">
-                      <ClockIcon className="w-4 h-4 text-gray-400" />
-                      {formatDate(log.created_at)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {log.user_full_name || 'Система'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {log.user_email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
-                      {getActionIcon(log.action)}
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                    {log.description}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {log.resource_type && (
-                      <div>
-                        <div>{log.resource_type}</div>
-                        {log.resource_id && (
-                          <div className="text-xs text-gray-400">ID: {log.resource_id}</div>
+        {logs.length > 0 ? (
+          <>
+            {/* Таблица для больших экранов */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Время
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Пользователь
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Действие
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Описание
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ресурс
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      IP адрес
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {logs.map((log) => (
+                    <tr key={log.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center gap-1">
+                          <ClockIcon className="w-4 h-4 text-gray-400" />
+                          {formatDate(log.created_at)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {log.user_full_name || 'Система'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {log.user_email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
+                          {getActionIcon(log.action)}
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {log.description}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {log.resource_type && (
+                          <div>
+                            <div>{log.resource_type}</div>
+                            {log.resource_id && (
+                              <div className="text-xs text-gray-400">ID: {log.resource_id}</div>
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <GlobeAltIcon className="w-4 h-4" />
-                      {log.ip_address || 'Неизвестно'}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <GlobeAltIcon className="w-4 h-4" />
+                          {log.ip_address || 'Неизвестно'}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        {logs.length === 0 && !loading && (
+            {/* Карточки для мобильных и планшетов */}
+            <div className="lg:hidden p-4 space-y-4">
+              {logs.map((log) => (
+                <div key={log.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getActionColor(log.action)}`}>
+                          {getActionIcon(log.action)}
+                          {log.action}
+                        </span>
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <ClockIcon className="w-3 h-3" />
+                          {formatDate(log.created_at)}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs font-medium text-gray-500">Пользователь:</span>
+                          <div className="text-sm text-gray-900">
+                            {log.user_full_name || 'Система'}
+                          </div>
+                          {log.user_email && (
+                            <div className="text-xs text-gray-500">{log.user_email}</div>
+                          )}
+                        </div>
+                        
+                        {log.description && (
+                          <div>
+                            <span className="text-xs font-medium text-gray-500">Описание:</span>
+                            <div className="text-sm text-gray-900">{log.description}</div>
+                          </div>
+                        )}
+                        
+                        {log.resource_type && (
+                          <div>
+                            <span className="text-xs font-medium text-gray-500">Ресурс:</span>
+                            <div className="text-sm text-gray-900">
+                              {log.resource_type}
+                              {log.resource_id && (
+                                <span className="text-xs text-gray-400 ml-1">ID: {log.resource_id}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <GlobeAltIcon className="w-3 h-3" />
+                          <span>IP: {log.ip_address || 'Неизвестно'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : !loading && (
           <div className="text-center py-12">
             <ClipboardDocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">Нет записей</h3>
@@ -443,23 +504,29 @@ const ActivityLogs = () => {
 
       {/* Пагинация */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             onClick={() => handlePageChange(filters.page - 1)}
             disabled={filters.page <= 1}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Предыдущая
           </button>
           
-          <div className="flex space-x-2">
-            {[...Array(Math.min(10, totalPages))].map((_, index) => {
-              const page = index + 1;
+          <div className="flex space-x-1 overflow-x-auto max-w-full">
+            {[...Array(Math.min(totalPages > 5 ? 5 : totalPages, totalPages))].map((_, index) => {
+              let page;
+              if (totalPages <= 5) {
+                page = index + 1;
+              } else {
+                const start = Math.max(1, filters.page - 2);
+                page = start + index;
+              }
               return (
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                  className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md whitespace-nowrap ${
                     filters.page === page
                       ? 'bg-blue-500 text-white'
                       : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
@@ -474,7 +541,7 @@ const ActivityLogs = () => {
           <button
             onClick={() => handlePageChange(filters.page + 1)}
             disabled={filters.page >= totalPages}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Следующая
           </button>

@@ -256,19 +256,19 @@ const Groups = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Заголовок */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Управление группами</h1>
-          <p className="text-gray-600 mt-1">Создание и редактирование учебных групп по кафедрам</p>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Управление группами</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Создание и редактирование учебных групп по кафедрам</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Курс вычисляется автоматически по году набора (формат: YYXX-XXXX.X, где YY - год набора)
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full sm:w-auto"
         >
           <PlusIcon className="h-4 w-4 mr-2" />
           Добавить группу
@@ -283,7 +283,7 @@ const Groups = () => {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500"
+            className="block w-full pl-10 pr-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-red-500 focus:border-red-500"
             placeholder="Поиск групп по названию, специализации, кафедре или факультету..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -314,163 +314,247 @@ const Groups = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Группа
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Кафедра
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Факультет
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Курс/Год набора
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Образование
-                    </th>
-                    <th className="relative px-6 py-3">
-                      <span className="sr-only">Действия</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredGroups.map((group) => {
-                    const deptInfo = getDepartmentInfo(group.department_id);
-                    const admissionYear = getAdmissionYearFromName(group.name);
-                    const course = getCourseFromAdmissionYear(admissionYear);
-                    const educationInfo = getEducationInfoFromName(group.name);
-                    
-                    return (
-                      <tr key={group.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {group.name}
-                              </div>
-                              {group.specialization && (
-                                <div className="text-sm text-gray-500">
-                                  {group.specialization}
+            <>
+              {/* Таблица для больших экранов */}
+              <div className="hidden lg:block overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Группа
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Кафедра
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Факультет
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Курс/Год набора
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Образование
+                      </th>
+                      <th className="relative px-6 py-3">
+                        <span className="sr-only">Действия</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredGroups.map((group) => {
+                      const deptInfo = getDepartmentInfo(group.department_id);
+                      const admissionYear = getAdmissionYearFromName(group.name);
+                      const course = getCourseFromAdmissionYear(admissionYear);
+                      const educationInfo = getEducationInfoFromName(group.name);
+                      
+                      return (
+                        <tr key={group.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {group.name}
                                 </div>
-                              )}
+                                {group.specialization && (
+                                  <div className="text-sm text-gray-500">
+                                    {group.specialization}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">
-                              {deptInfo.name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">
-                              {deptInfo.faculty}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">
+                                {deptInfo.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">
+                                {deptInfo.faculty}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              <div className="text-sm text-gray-900">
+                                <div>{course ? `${course} курс` : 'Не определен'}</div>
+                                {admissionYear && (
+                                  <div className="text-gray-500">Набор {admissionYear}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              <div>{course ? `${course} курс` : 'Не определен'}</div>
-                              {admissionYear && (
-                                <div className="text-gray-500">Набор {admissionYear}</div>
+                              <div>
+                                {educationInfo.level ? getEducationLevelLabel(educationInfo.level) : 
+                                 (group.education_level ? getEducationLevelLabel(group.education_level) : 'Не указан')}
+                              </div>
+                              <div className="text-gray-500">
+                                {educationInfo.form ? getEducationFormLabel(educationInfo.form) : 
+                                 (group.education_form ? getEducationFormLabel(group.education_form) : 'Не указана')}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => openEditModal(group)}
+                                className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                                title="Редактировать"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(group)}
+                                className="text-red-600 hover:text-red-900 p-1 rounded"
+                                title="Удалить"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Карточки для мобильных и планшетов */}
+              <div className="lg:hidden space-y-4">
+                {filteredGroups.map((group) => {
+                  const deptInfo = getDepartmentInfo(group.department_id);
+                  const admissionYear = getAdmissionYearFromName(group.name);
+                  const course = getCourseFromAdmissionYear(admissionYear);
+                  const educationInfo = getEducationInfoFromName(group.name);
+                  
+                  return (
+                    <div key={group.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 min-w-0 flex-1">
+                          <div className="flex-shrink-0 mt-1">
+                            <UserGroupIcon className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-col gap-2">
+                              <h3 className="text-sm sm:text-base font-medium text-gray-900">
+                                {group.name}
+                              </h3>
+                              {group.specialization && (
+                                <p className="text-xs sm:text-sm text-gray-600">
+                                  {group.specialization}
+                                </p>
                               )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            <div>
-                              {educationInfo.level ? getEducationLevelLabel(educationInfo.level) : 
-                               (group.education_level ? getEducationLevelLabel(group.education_level) : 'Не указан')}
+                            
+                            <div className="mt-3 space-y-2">
+                              <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                                <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                                <span className="truncate">{deptInfo.name}</span>
+                              </div>
+                              <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                                <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                                <span className="truncate">{deptInfo.faculty}</span>
+                              </div>
+                              <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                                <CalendarIcon className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                                <div>
+                                  <span>{course ? `${course} курс` : 'Не определен'}</span>
+                                  {admissionYear && (
+                                    <span className="text-gray-500 ml-2">Набор {admissionYear}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-xs sm:text-sm text-gray-600">
+                                <div>
+                                  {educationInfo.level ? getEducationLevelLabel(educationInfo.level) : 
+                                   (group.education_level ? getEducationLevelLabel(group.education_level) : 'Уровень не указан')}
+                                </div>
+                                <div className="text-gray-500">
+                                  {educationInfo.form ? getEducationFormLabel(educationInfo.form) : 
+                                   (group.education_form ? getEducationFormLabel(group.education_form) : 'Форма не указана')}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-gray-500">
-                              {educationInfo.form ? getEducationFormLabel(educationInfo.form) : 
-                               (group.education_form ? getEducationFormLabel(group.education_form) : 'Не указана')}
-                            </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => openEditModal(group)}
-                              className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
-                              title="Редактировать"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(group)}
-                              className="text-red-600 hover:text-red-900 p-1 rounded"
-                              title="Удалить"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        
+                        <div className="flex space-x-2 ml-2">
+                          <button
+                            onClick={() => openEditModal(group)}
+                            className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-md transition-colors"
+                            title="Редактировать"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(group)}
+                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
+                            title="Удалить"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* Модальное окно */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4">
+          <div className="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white h-full sm:h-auto overflow-y-auto sm:overflow-visible">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 sm:pb-0 sm:static">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900">
                 {modalMode === 'create' ? 'Создать группу' : 'Редактировать группу'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-md transition-colors"
               >
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Название группы *
                   </label>
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="Например: 2211-0101.1"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Формат: YYXX-XXXX.X (YY=год набора, 1=уровень, 1=форма обучения). Курс вычисляется автоматически.
                   </p>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Кафедра *
                   </label>
                   <select
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={formData.department_id}
                     onChange={(e) => setFormData({...formData, department_id: e.target.value})}
                   >
@@ -485,7 +569,7 @@ const Groups = () => {
                       </optgroup>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Факультет будет определен автоматически по выбранной кафедре
                   </p>
                 </div>
@@ -495,7 +579,7 @@ const Groups = () => {
                     Уровень образования
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={formData.education_level}
                     onChange={(e) => setFormData({...formData, education_level: e.target.value})}
                   >
@@ -506,7 +590,7 @@ const Groups = () => {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Если не выбрано, определится автоматически (1=бакалавриат, 3=магистратура)
                   </p>
                 </div>
@@ -516,7 +600,7 @@ const Groups = () => {
                     Форма обучения
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={formData.education_form}
                     onChange={(e) => setFormData({...formData, education_form: e.target.value})}
                   >
@@ -527,18 +611,18 @@ const Groups = () => {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs sm:text-sm text-gray-500">
                     Если не выбрано, определится автоматически (1=очная, 2=ОЗ, 3=заочная)
                   </p>
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Специализация
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+                    className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
                     value={formData.specialization}
                     onChange={(e) => setFormData({...formData, specialization: e.target.value})}
                     placeholder="Например: Информационные технологии"
@@ -546,7 +630,7 @@ const Groups = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 sticky bottom-0 bg-white sm:static">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

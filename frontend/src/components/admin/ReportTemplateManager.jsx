@@ -362,17 +362,17 @@ const ReportTemplateManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       {/* Заголовок */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Шаблоны отчетов</h1>
-            <p className="text-gray-600 mt-1">Управление шаблонами для создания отчетов</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Шаблоны отчетов</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Управление шаблонами для создания отчетов</p>
           </div>
           <button
             onClick={handleCreateTemplate}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700"
+            className="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 w-full sm:w-auto text-sm sm:text-base"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Создать шаблон
@@ -381,7 +381,7 @@ const ReportTemplateManager = () => {
       </div>
 
       {/* Поиск */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="relative">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -389,7 +389,7 @@ const ReportTemplateManager = () => {
             placeholder="Поиск шаблонов..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+            className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
           />
         </div>
       </div>
@@ -406,64 +406,71 @@ const ReportTemplateManager = () => {
 
       {/* Список шаблонов */}
       {filteredTemplates.length > 0 ? (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {filteredTemplates.map((template) => (
-              <li key={template.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {filteredTemplates.map((template) => (
+            <div key={template.id} className="bg-white shadow rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3 min-w-0 flex-1">
                     <div className="flex-shrink-0">
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         <DocumentTextIcon className="h-6 w-6 text-blue-600" />
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="flex items-center">
-                        <div className="text-sm font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">
                           {template.name}
-                        </div>
+                        </h3>
                         {!template.is_active && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 flex-shrink-0">
                             Неактивен
                           </span>
                         )}
                       </div>
                       {template.description && (
-                        <div className="text-sm text-gray-500">{template.description}</div>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">{template.description}</p>
                       )}
-                      <div className="flex items-center text-xs text-gray-400 mt-1">
-                        <ChartBarIcon className="h-3 w-3 mr-1" />
-                        {template.reports_count} отчетов
-                        <UserGroupIcon className="h-3 w-3 ml-3 mr-1" />
-                        {template.allowed_roles?.length || 0} ролей
-                        <span className="ml-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center text-xs text-gray-400 mt-2 gap-1 sm:gap-4">
+                        <div className="flex items-center">
+                          <ChartBarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span>{template.reports_count} отчетов</span>
+                        </div>
+                        <div className="flex items-center">
+                          <UserGroupIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span>{template.allowed_roles?.length || 0} ролей</span>
+                        </div>
+                        <div className="hidden sm:block">
                           Создан: {template.creator_name}
-                        </span>
+                        </div>
+                      </div>
+                      <div className="sm:hidden text-xs text-gray-400 mt-1">
+                        Создан: {template.creator_name}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 ml-2">
                     <button
                       onClick={() => openEditModal(template)}
-                      className="text-blue-600 hover:text-blue-900"
+                      className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
                       title="Редактировать"
                     >
                       <PencilIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteTemplate(template.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Удалить"
+                      className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={template.reports_count > 0 ? "Нельзя удалить шаблон с отчетами" : "Удалить"}
                       disabled={template.reports_count > 0}
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -481,34 +488,34 @@ const ReportTemplateManager = () => {
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowCreateModal(false)}></div>
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full h-full sm:h-auto sm:max-w-6xl sm:w-full sm:rounded-lg">
               {/* Заголовок модального окна */}
-              <div className="flex justify-between items-center p-6 border-b">
-                <h2 className="text-xl font-bold text-gray-900">
+              <div className="flex justify-between items-center p-4 sm:p-6 border-b bg-white sticky top-0 z-10">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                   {editingTemplate ? 'Редактирование шаблона' : 'Создание шаблона'}
                 </h2>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-md transition-colors"
                 >
-                  <XMarkIcon className="h-6 w-6" />
+                  <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </button>
               </div>
 
               {/* Вкладки */}
-              <div className="border-b">
-                <div className="flex">
+              <div className="border-b bg-white sticky top-16 sm:top-20 z-10">
+                <div className="flex overflow-x-auto scrollbar-hide">
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center px-6 py-3 font-medium transition-colors ${
+                      className={`flex items-center px-4 sm:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
                         activeTab === tab.id
                           ? 'bg-red-50 text-red-600 border-b-2 border-red-600'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      <tab.icon className="h-5 w-5 mr-2" />
+                      <tab.icon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                       {tab.label}
                     </button>
                   ))}
@@ -516,12 +523,12 @@ const ReportTemplateManager = () => {
               </div>
 
               {/* Содержимое вкладок */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+              <div className="p-4 sm:p-6 overflow-y-auto h-full sm:h-auto sm:max-h-[calc(90vh-200px)]">
                 {activeTab === 'basic' && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold mb-4">Основная информация</h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-4">Основная информация</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Название шаблона *
@@ -530,7 +537,7 @@ const ReportTemplateManager = () => {
                           type="text"
                           value={templateForm.name}
                           onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                           placeholder="Введите название шаблона"
                           required
                         />
@@ -543,7 +550,7 @@ const ReportTemplateManager = () => {
                         <select
                           value={templateForm.is_active}
                           onChange={(e) => setTemplateForm({...templateForm, is_active: e.target.value === 'true'})}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                         >
                           <option value="true">Активен</option>
                           <option value="false">Неактивен</option>
@@ -559,7 +566,7 @@ const ReportTemplateManager = () => {
                         value={templateForm.description}
                         onChange={(e) => setTemplateForm({...templateForm, description: e.target.value})}
                         rows={3}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                         placeholder="Описание назначения шаблона отчета"
                       />
                     </div>
@@ -567,12 +574,12 @@ const ReportTemplateManager = () => {
                 )}
 
                 {activeTab === 'fields' && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold">Конструктор полей</h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                      <h3 className="text-base sm:text-lg font-semibold">Конструктор полей</h3>
                       <button
                         onClick={handleCreateField}
-                        className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700"
+                        className="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 text-sm sm:text-base w-full sm:w-auto"
                       >
                         <PlusIcon className="h-4 w-4 mr-2" />
                         Добавить поле
@@ -591,23 +598,25 @@ const ReportTemplateManager = () => {
                         {templateForm.fields.map((field) => (
                           <div
                             key={field.id}
-                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 space-y-3 sm:space-y-0"
                           >
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3">
-                                <h4 className="font-medium text-gray-900">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                                   {field.label}
                                 </h4>
-                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                  {getFieldTypeInfo(field.type).label}
-                                </span>
-                                {field.required && (
-                                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
-                                    Обязательное
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                    {getFieldTypeInfo(field.type).label}
                                   </span>
-                                )}
+                                  {field.required && (
+                                    <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                                      Обязательное
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                                 {field.name} {field.description && `• ${field.description}`}
                               </p>
                               {field.options && field.options.length > 0 && (
@@ -629,17 +638,17 @@ const ReportTemplateManager = () => {
                               )}
                             </div>
                             
-                            <div className="flex space-x-2">
+                            <div className="flex space-x-2 self-end sm:self-center">
                               <button
                                 onClick={() => handleEditField(field)}
-                                className="text-blue-600 hover:text-blue-900"
+                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
                                 title="Редактировать"
                               >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteField(field.id)}
-                                className="text-red-600 hover:text-red-900"
+                                className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
                                 title="Удалить"
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -652,13 +661,13 @@ const ReportTemplateManager = () => {
 
                     {/* Форма создания/редактирования поля */}
                     {showFieldForm && (
-                      <div className="mt-6 p-6 border border-gray-200 rounded-lg bg-gray-50">
-                        <h4 className="text-lg font-medium text-gray-900 mb-4">
+                      <div className="mt-4 sm:mt-6 p-4 sm:p-6 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 className="text-base sm:text-lg font-medium text-gray-900 mb-4">
                           {editingField ? 'Редактирование поля' : 'Создание нового поля'}
                         </h4>
                         
                         <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Название поля *
@@ -667,7 +676,7 @@ const ReportTemplateManager = () => {
                                 type="text"
                                 value={fieldData.label}
                                 onChange={(e) => setFieldData(prev => ({ ...prev, label: e.target.value }))}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                                 placeholder="Введите название поля"
                                 required
                               />
@@ -681,7 +690,7 @@ const ReportTemplateManager = () => {
                                 type="text"
                                 value={fieldData.name}
                                 onChange={(e) => setFieldData(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                                 placeholder="Автоматически из названия"
                               />
                             </div>
@@ -701,7 +710,7 @@ const ReportTemplateManager = () => {
                                   setFieldOptions([]);
                                 }
                               }}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                             >
                               {fieldTypes.map(type => (
                                 <option key={type.value} value={type.value}>
@@ -711,7 +720,7 @@ const ReportTemplateManager = () => {
                             </select>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Placeholder
@@ -720,7 +729,7 @@ const ReportTemplateManager = () => {
                                 type="text"
                                 value={fieldData.placeholder}
                                 onChange={(e) => setFieldData(prev => ({ ...prev, placeholder: e.target.value }))}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                                 placeholder="Текст подсказки в поле"
                               />
                             </div>
@@ -747,7 +756,7 @@ const ReportTemplateManager = () => {
                               value={fieldData.description}
                               onChange={(e) => setFieldData(prev => ({ ...prev, description: e.target.value }))}
                               rows={2}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                               placeholder="Дополнительное описание поля"
                             />
                           </div>
@@ -783,13 +792,13 @@ const ReportTemplateManager = () => {
                               )}
                               
                               {/* Добавление нового варианта */}
-                              <div className="flex items-center space-x-2">
+                              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                                 <input
                                   type="text"
                                   value={newOption}
                                   onChange={(e) => setNewOption(e.target.value)}
                                   placeholder="Введите новый вариант"
-                                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                                   onKeyPress={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
@@ -801,7 +810,7 @@ const ReportTemplateManager = () => {
                                   type="button"
                                   onClick={handleAddOption}
                                   disabled={!newOption.trim()}
-                                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm sm:text-base"
                                 >
                                   <PlusIcon className="h-4 w-4" />
                                 </button>
@@ -815,16 +824,16 @@ const ReportTemplateManager = () => {
                             </div>
                           )}
 
-                          <div className="flex space-x-3 pt-4">
+                          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
                             <button
                               onClick={handleSaveField}
-                              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm sm:text-base"
                             >
                               {editingField ? 'Обновить' : 'Создать'} поле
                             </button>
                             <button
                               onClick={() => setShowFieldForm(false)}
-                              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm sm:text-base"
                             >
                               Отмена
                             </button>
@@ -836,15 +845,15 @@ const ReportTemplateManager = () => {
                 )}
 
                 {activeTab === 'access' && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold mb-4">Настройка прав доступа</h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-4">Настройка прав доступа</h3>
 
                     {/* Роли для создания отчетов */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Роли, которые могут создавать отчеты
                       </label>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         {availableRoles.map(role => (
                           <label key={role.name} className="flex items-center">
                             <input
@@ -878,13 +887,13 @@ const ReportTemplateManager = () => {
                       </label>
                       
                       {/* Добавление зрителей по ролям */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-3">
                         {availableRoles.map(role => (
                           <button
                             key={role.name}
                             type="button"
                             onClick={() => addViewer('role', role.name)}
-                            className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded"
+                            className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-left"
                           >
                             + {role.display_name}
                           </button>
@@ -914,7 +923,7 @@ const ReportTemplateManager = () => {
                 )}
               </div>
               
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-0 sticky bottom-0 z-10">
                 <button
                   onClick={handleSaveTemplate}
                   disabled={loading}
@@ -924,7 +933,7 @@ const ReportTemplateManager = () => {
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm"
                 >
                   Отмена
                 </button>

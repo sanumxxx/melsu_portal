@@ -147,17 +147,17 @@ const CuratorManager = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       {/* Заголовок */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Управление кураторами</h1>
-            <p className="text-gray-600 mt-1">Назначение кураторов для групп</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Управление кураторами</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Назначение кураторов для групп</p>
           </div>
           <button
             onClick={() => setShowAssignModal(true)}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700"
+            className="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 w-full sm:w-auto text-sm sm:text-base"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Назначить куратора
@@ -166,7 +166,7 @@ const CuratorManager = () => {
       </div>
 
       {/* Поиск */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="relative">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -174,7 +174,7 @@ const CuratorManager = () => {
             placeholder="Поиск кураторов..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+            className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
           />
         </div>
       </div>
@@ -191,61 +191,62 @@ const CuratorManager = () => {
 
       {/* Список кураторов */}
       {filteredCurators.length > 0 ? (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {filteredCurators.map((curator) => (
-              <li key={curator.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                        <UserIcon className="h-6 w-6 text-red-600" />
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {curator.last_name} {curator.first_name} {curator.middle_name}
-                      </div>
-                      <div className="text-sm text-gray-500">{curator.email}</div>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+          {filteredCurators.map((curator) => (
+            <div key={curator.id} className="bg-white shadow rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex items-start space-x-3 min-w-0 flex-1">
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                      <UserIcon className="h-6 w-6 text-red-600" />
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <UserGroupIcon className="h-4 w-4 mr-1" />
-                        {curator.groups_count} групп
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                      <div className="min-w-0">
+                        <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">
+                          {curator.last_name} {curator.first_name} {curator.middle_name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">{curator.email}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-xs sm:text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <UserGroupIcon className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <span>{curator.groups_count} групп</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCurator(curator.id)}
+                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
+                          title="Удалить кураторский доступ"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveCurator(curator.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Удалить кураторский доступ"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+                    
+                    {/* Группы */}
+                    {curator.groups.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-xs text-gray-500 mb-2">Группы:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {curator.groups.map((group) => (
+                            <span
+                              key={group.id}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                            >
+                              {group.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {/* Группы */}
-                {curator.groups.length > 0 && (
-                  <div className="mt-3 ml-14">
-                    <div className="text-xs text-gray-500 mb-1">Группы:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {curator.groups.map((group) => (
-                        <span
-                          key={group.id}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {group.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -259,18 +260,26 @@ const CuratorManager = () => {
 
       {/* Модальное окно назначения куратора */}
       {showAssignModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4">
+          <div className="flex items-center justify-center min-h-screen">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowAssignModal(false)}></div>
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div className="relative bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all w-full max-w-2xl h-full sm:h-auto overflow-y-auto sm:overflow-visible">
               <form onSubmit={handleAssignCurator}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                  <div className="w-full">
+                    <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 sm:pb-0 sm:static">
+                      <h3 className="text-base sm:text-lg leading-6 font-medium text-gray-900">
                         Назначить куратора
                       </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowAssignModal(false)}
+                        className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-md transition-colors sm:hidden"
+                      >
+                        ×
+                      </button>
+                    </div>
                       
                       {/* Выбор куратора */}
                       <div className="mb-4">
@@ -280,7 +289,7 @@ const CuratorManager = () => {
                         <select
                           value={assignForm.curator_id}
                           onChange={(e) => setAssignForm({...assignForm, curator_id: e.target.value})}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                           required
                         >
                           <option value="">Выберите куратора</option>
@@ -297,9 +306,9 @@ const CuratorManager = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Группы
                         </label>
-                        <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                        <div className="max-h-32 sm:max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
                           {groups.map((group) => (
-                            <label key={group.id} className="flex items-center mb-1">
+                            <label key={group.id} className="flex items-center mb-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={assignForm.group_ids.includes(group.id)}
@@ -316,9 +325,9 @@ const CuratorManager = () => {
                                     });
                                   }
                                 }}
-                                className="mr-2"
+                                className="mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                               />
-                              <span className="text-sm">{group.name} ({group.department_name})</span>
+                              <span className="text-xs sm:text-sm text-gray-900">{group.name} ({group.department_name})</span>
                             </label>
                           ))}
                         </div>
@@ -333,7 +342,7 @@ const CuratorManager = () => {
                           value={assignForm.notes}
                           onChange={(e) => setAssignForm({...assignForm, notes: e.target.value})}
                           rows={3}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                           placeholder="Дополнительная информация о назначении..."
                         />
                       </div>
@@ -341,7 +350,7 @@ const CuratorManager = () => {
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-0 sticky bottom-0 z-10">
                   <button
                     type="submit"
                     disabled={loading}
@@ -352,7 +361,7 @@ const CuratorManager = () => {
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm"
                   >
                     Отмена
                   </button>
