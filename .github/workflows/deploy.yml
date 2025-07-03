@@ -98,18 +98,6 @@ jobs:
           
           cd ..
           
-          # Собираем frontend
-          echo "🏗️ Сборка frontend..."
-          cd frontend
-          sudo -u melsu npm run build
-          
-          if [ $? -ne 0 ]; then
-            echo "❌ Ошибка при сборке frontend!"
-            exit 1
-          fi
-          
-          cd ..
-          
           # Перезапускаем сервисы
           echo "🔄 Перезапуск сервисов..."
           
