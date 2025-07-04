@@ -29,7 +29,7 @@ const StudentsList = () => {
   const fetchAccessibleStudents = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/students/accessible');
+      const response = await api.get('/api/student-access/students/accessible');
       setStudents(response.data);
     } catch (err) {
       setError('Ошибка загрузки списка студентов');
@@ -41,7 +41,7 @@ const StudentsList = () => {
 
   const fetchMyAssignments = async () => {
     try {
-      const response = await api.get('/api/departments/my-assignments');
+      const response = await api.get('/api/student-access/departments/my-assignments');
       setMyAssignments(response.data);
     } catch (err) {
       console.error('Error fetching assignments:', err);
@@ -51,7 +51,7 @@ const StudentsList = () => {
   const fetchStudentsByDepartment = async (departmentId) => {
     try {
       setLoading(true);
-      const response = await api.get(`/api/students/by-department/${departmentId}`);
+      const response = await api.get(`/api/student-access/students/by-department/${departmentId}`);
       setStudents(response.data);
       setSelectedDepartment(departmentId);
     } catch (err) {
@@ -65,7 +65,7 @@ const StudentsList = () => {
   const fetchStudentProfile = async (studentId) => {
     try {
       setLoadingProfile(true);
-      const response = await api.get(`/api/students/${studentId}/profile`);
+      const response = await api.get(`/api/student-access/students/${studentId}/profile`);
       setStudentProfile(response.data);
     } catch (err) {
       setError('Ошибка загрузки профиля студента');

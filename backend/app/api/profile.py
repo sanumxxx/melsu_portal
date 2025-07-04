@@ -74,6 +74,21 @@ async def update_extended_profile(
     
     # Обновляем поля профиля
     update_data = profile_data.dict(exclude_unset=True)
+    
+    # Проверяем и обновляем связи с группой
+    if 'group_id' in update_data:
+        group_id = update_data['group_id']
+        if group_id:
+            group = db.query(Group).filter(Group.id == group_id).first()
+            if not group:
+                raise HTTPException(status_code=404, detail="Группа не найдена")
+            # Обновляем связанные поля из группы
+            profile.course = group.course
+            profile.specialization = group.specialization
+            profile.education_level = group.parsed_education_level
+            profile.education_form = group.parsed_education_form
+    
+    # Обновляем остальные поля
     for field, value in update_data.items():
         if hasattr(profile, field):
             setattr(profile, field, value)
@@ -81,7 +96,26 @@ async def update_extended_profile(
     db.commit()
     db.refresh(profile)
     
-    return profile
+    # Загружаем связанные данные для ответа
+    group_info = None
+    if profile.group_id:
+        group = db.query(Group).filter(Group.id == profile.group_id).first()
+        if group:
+            group_info = {
+                "id": group.id,
+                "name": group.name,
+                "specialization": group.specialization,
+                "course": group.course,
+                "admission_year": group.parsed_year,
+                "education_level": group.parsed_education_level,
+                "education_form": group.parsed_education_form
+            }
+    
+    # Формируем ответ с полной информацией
+    response_data = profile.__dict__
+    response_data['group'] = group_info
+    
+    return response_data
 
 @router.get("/profile/basic")
 async def get_basic_profile(current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
