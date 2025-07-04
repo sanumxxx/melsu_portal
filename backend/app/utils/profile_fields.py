@@ -224,10 +224,22 @@ PROFILE_FIELDS = {
         "group": "Академическая информация",
         "table": "user_profiles"
     },
+    "faculty_id": {
+        "label": "ID факультета",
+        "type": ProfileFieldType.INTEGER,
+        "group": "Академическая информация",
+        "table": "user_profiles"
+    },
     "department": {
         "label": "Кафедра",
         "type": ProfileFieldType.STRING,
         "max_length": 200,
+        "group": "Академическая информация",
+        "table": "user_profiles"
+    },
+    "department_id": {
+        "label": "ID кафедры",
+        "type": ProfileFieldType.INTEGER,
         "group": "Академическая информация",
         "table": "user_profiles"
     },

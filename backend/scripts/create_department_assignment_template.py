@@ -74,20 +74,20 @@ def create_department_assignment_template():
             Department.is_active == True
         ).all()
         
-        faculty_options = [{"value": f.name, "label": f.name} for f in faculties]
+        faculty_options = [{"value": str(f.id), "label": f.name} for f in faculties]
         
         # Создаем поле "Факультет"
         faculty_field = Field(
             template_id=template.id,
             field_type_id=select_type.id,
-            name="faculty",
+            name="faculty_id",
             label="Факультет",
             description="Выберите факультет, к которому вы хотите быть привязаны",
             is_required=True,
             is_visible=True,
             sort_order=1,
             options=faculty_options,
-            profile_field_mapping="faculty",
+            profile_field_mapping="faculty_id",
             update_profile_on_approve=True
         )
         
@@ -95,24 +95,24 @@ def create_department_assignment_template():
         
         # Получаем список кафедр
         departments = db.query(Department).filter(
-            Department.department_type == "department",
+            Department.department_type.in_(["department", "chair"]),
             Department.is_active == True
         ).all()
         
-        department_options = [{"value": d.name, "label": d.name} for d in departments]
+        department_options = [{"value": str(d.id), "label": d.name} for d in departments]
         
         # Создаем поле "Кафедра"
         department_field = Field(
             template_id=template.id,
             field_type_id=select_type.id,
-            name="department",
+            name="department_id",
             label="Кафедра",
             description="Выберите кафедру, к которой вы хотите быть привязаны",
             is_required=True,
             is_visible=True,
             sort_order=2,
             options=department_options,
-            profile_field_mapping="department",
+            profile_field_mapping="department_id",
             update_profile_on_approve=True
         )
         
@@ -173,8 +173,8 @@ def create_department_assignment_template():
         db.commit()
         
         print(f"✅ Созданы поля для шаблона:")
-        print(f"  - Факультет (привязка к profile.faculty)")
-        print(f"  - Кафедра (привязка к profile.department)")
+        print(f"  - Факультет (привязка к profile.faculty_id)")
+        print(f"  - Кафедра (привязка к profile.department_id)")
         print(f"  - Группа (привязка к profile.group_id)")
         print(f"  - Обоснование")
         print(f"📋 Найдено:")

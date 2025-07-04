@@ -262,8 +262,34 @@ class ProfileUpdateService:
                     # Получаем значение из формы
                     field_value = form_data.get(field.name)
                     
-                    # Для динамических полей факультета/кафедры получаем название по ID
-                    if field.name in ['faculty', 'department'] and field_value:
+                    # Для новых полей faculty_id и department_id сохраняем ID напрямую
+                    if field.name in ['faculty_id', 'department_id'] and field_value:
+                        if field.name == 'faculty_id':
+                            dept = self.db.query(Department).filter(
+                                Department.id == int(field_value),
+                                Department.department_type == 'faculty'
+                            ).first()
+                            if dept:
+                                logger.info(f"Привязка к факультету: {dept.name} (ID: {dept.id})")
+                            else:
+                                logger.error(f"Факультет с ID {field_value} не найден")
+                                errors.append(f"Факультет с ID {field_value} не найден")
+                                continue
+                        
+                        elif field.name == 'department_id':
+                            dept = self.db.query(Department).filter(
+                                Department.id == int(field_value),
+                                Department.department_type.in_(['department', 'chair'])
+                            ).first()
+                            if dept:
+                                logger.info(f"Привязка к кафедре: {dept.name} (ID: {dept.id})")
+                            else:
+                                logger.error(f"Кафедра с ID {field_value} не найден")
+                                errors.append(f"Кафедра с ID {field_value} не найден")
+                                continue
+                    
+                    # Для старых полей факультета/кафедры получаем название по ID (для совместимости)
+                    elif field.name in ['faculty', 'department'] and field_value:
                         if field.name == 'faculty' and field_value.isdigit():
                             dept = self.db.query(Department).filter(
                                 Department.id == int(field_value),
@@ -276,7 +302,7 @@ class ProfileUpdateService:
                         elif field.name == 'department' and field_value.isdigit():
                             dept = self.db.query(Department).filter(
                                 Department.id == int(field_value),
-                                Department.department_type == 'department'
+                                Department.department_type.in_(['department', 'chair'])
                             ).first()
                             if dept:
                                 field_value = dept.name
