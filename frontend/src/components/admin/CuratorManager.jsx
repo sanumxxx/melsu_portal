@@ -192,61 +192,61 @@ const CuratorManager = () => {
       {/* Список кураторов */}
       {filteredCurators.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
-          {filteredCurators.map((curator) => (
+            {filteredCurators.map((curator) => (
             <div key={curator.id} className="bg-white shadow rounded-lg p-4 sm:p-6 border border-gray-200 hover:shadow-md transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex items-start space-x-3 min-w-0 flex-1">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                      <UserIcon className="h-6 w-6 text-red-600" />
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <UserIcon className="h-6 w-6 text-red-600" />
+                      </div>
                     </div>
-                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                       <div className="min-w-0">
                         <h3 className="text-sm sm:text-base font-medium text-gray-900 truncate">
-                          {curator.last_name} {curator.first_name} {curator.middle_name}
+                        {curator.last_name} {curator.first_name} {curator.middle_name}
                         </h3>
                         <p className="text-xs sm:text-sm text-gray-500 truncate">{curator.email}</p>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-xs sm:text-sm text-gray-500">
-                          <div className="flex items-center">
+                      <div className="flex items-center">
                             <UserGroupIcon className="h-4 w-4 mr-1 flex-shrink-0" />
                             <span>{curator.groups_count} групп</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveCurator(curator.id)}
-                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
-                          title="Удалить кураторский доступ"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
                       </div>
                     </div>
-                    
-                    {/* Группы */}
-                    {curator.groups.length > 0 && (
+                    <button
+                      onClick={() => handleRemoveCurator(curator.id)}
+                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
+                      title="Удалить кураторский доступ"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Группы */}
+                {curator.groups.length > 0 && (
                       <div className="mt-3">
                         <div className="text-xs text-gray-500 mb-2">Группы:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {curator.groups.map((group) => (
-                            <span
-                              key={group.id}
+                    <div className="flex flex-wrap gap-1">
+                      {curator.groups.map((group) => (
+                        <span
+                          key={group.id}
                               className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {group.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                        >
+                          {group.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+            ))}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -345,9 +345,9 @@ const CuratorManager = () => {
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:ring-red-500 focus:border-red-500"
                           placeholder="Дополнительная информация о назначении..."
                         />
-                      </div>
                     </div>
                   </div>
+                </div>
                 
                 <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-0 sticky bottom-0 z-10">
                   <button

@@ -38,7 +38,7 @@ const VKAuthButton = ({ onSuccess, onError, disabled = false }) => {
       // Инициализируем VK ID конфигурацию только если еще не инициализирована
       if (!window.vkidConfigInitialized) {
         VKID.Config.init({
-          app: 53853965, // ID вашего приложения
+          app: parseInt(process.env.REACT_APP_VK_CLIENT_ID || '53853965'), // ID приложения из переменной окружения
           redirectUrl: `${window.location.origin}`,
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,

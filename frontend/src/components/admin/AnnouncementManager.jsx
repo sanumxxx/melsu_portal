@@ -197,15 +197,15 @@ const AnnouncementManager = () => {
       // Проверяем доступность файла по URL (только для изображений)
       if (mediaType === 'image' || mediaType === 'gif') {
         console.log('🔍 Testing image URL accessibility...');
-        const testImg = new Image();
-        testImg.onload = () => {
+      const testImg = new Image();
+      testImg.onload = () => {
           console.log('✅ Image URL is accessible');
-        };
-        testImg.onerror = (e) => {
+      };
+      testImg.onerror = (e) => {
           console.error('❌ Image URL is not accessible:', e);
-          console.error('Failed URL:', getMediaUrl(mediaUrl));
-        };
-        testImg.src = getMediaUrl(mediaUrl);
+        console.error('Failed URL:', getMediaUrl(mediaUrl));
+      };
+      testImg.src = getMediaUrl(mediaUrl);
       } else if (mediaType === 'video') {
         console.log('📹 Video uploaded, skipping URL accessibility test (videos cannot be tested with Image)');
       }

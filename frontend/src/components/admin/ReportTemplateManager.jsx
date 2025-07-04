@@ -407,7 +407,7 @@ const ReportTemplateManager = () => {
       {/* Список шаблонов */}
       {filteredTemplates.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {filteredTemplates.map((template) => (
+            {filteredTemplates.map((template) => (
             <div key={template.id} className="bg-white shadow rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
               <div className="p-4 sm:p-6">
                 <div className="flex items-start justify-between">
@@ -470,7 +470,7 @@ const ReportTemplateManager = () => {
                 </div>
               </div>
             </div>
-          ))}
+            ))}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -606,15 +606,15 @@ const ReportTemplateManager = () => {
                                   {field.label}
                                 </h4>
                                 <div className="flex items-center gap-2">
-                                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                                    {getFieldTypeInfo(field.type).label}
+                                <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                  {getFieldTypeInfo(field.type).label}
+                                </span>
+                                {field.required && (
+                                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                                    Обязательное
                                   </span>
-                                  {field.required && (
-                                    <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
-                                      Обязательное
-                                    </span>
-                                  )}
-                                </div>
+                                )}
+                              </div>
                               </div>
                               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                                 {field.name} {field.description && `• ${field.description}`}

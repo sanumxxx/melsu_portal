@@ -41,8 +41,18 @@ class EmailConfig:
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "email.melsu.ru")
     MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "МелГУ - Техническая поддержка")
     MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
-    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
+    MAIL_USE_TLS: bool = os.getenv("MAIL_USE_TLS", "False").lower() == "true"
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+class OAuthConfig:
+    """Конфигурация OAuth"""
+    # VK OAuth
+    VK_CLIENT_ID: str = os.getenv("VK_CLIENT_ID", "53853965")
+    VK_CLIENT_SECRET: str = os.getenv("VK_CLIENT_SECRET", "tWHc2hBJ0x4pRqyzzk6N")
+    VK_SERVICE_KEY: str = os.getenv("VK_SERVICE_KEY", "64ce093264ce093264ce09323667fbb63f664ce64ce09320ca8ef7e96140ae9209c2e5c")
+    
+    # Telegram OAuth
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "your_telegram_bot_token")
 
 class ServerConfig:
     """Конфигурация сервера"""
@@ -70,6 +80,12 @@ class Settings:
     MAIL_SERVER = EmailConfig.MAIL_SERVER
     MAIL_FROM_NAME = EmailConfig.MAIL_FROM_NAME
     FRONTEND_URL = EmailConfig.FRONTEND_URL
+    
+    # OAuth
+    VK_CLIENT_ID = OAuthConfig.VK_CLIENT_ID
+    VK_CLIENT_SECRET = OAuthConfig.VK_CLIENT_SECRET
+    VK_SERVICE_KEY = OAuthConfig.VK_SERVICE_KEY
+    TELEGRAM_BOT_TOKEN = OAuthConfig.TELEGRAM_BOT_TOKEN
     
     # Сервер
     HOST = ServerConfig.HOST

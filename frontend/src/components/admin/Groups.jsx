@@ -317,116 +317,116 @@ const Groups = () => {
             <>
               {/* Таблица для больших экранов */}
               <div className="hidden lg:block overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Группа
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Кафедра
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Факультет
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Курс/Год набора
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Образование
-                      </th>
-                      <th className="relative px-6 py-3">
-                        <span className="sr-only">Действия</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredGroups.map((group) => {
-                      const deptInfo = getDepartmentInfo(group.department_id);
-                      const admissionYear = getAdmissionYearFromName(group.name);
-                      const course = getCourseFromAdmissionYear(admissionYear);
-                      const educationInfo = getEducationInfoFromName(group.name);
-                      
-                      return (
-                        <tr key={group.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                  {group.name}
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Группа
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Кафедра
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Факультет
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Курс/Год набора
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Образование
+                    </th>
+                    <th className="relative px-6 py-3">
+                      <span className="sr-only">Действия</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredGroups.map((group) => {
+                    const deptInfo = getDepartmentInfo(group.department_id);
+                    const admissionYear = getAdmissionYearFromName(group.name);
+                    const course = getCourseFromAdmissionYear(admissionYear);
+                    const educationInfo = getEducationInfoFromName(group.name);
+                    
+                    return (
+                      <tr key={group.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {group.name}
+                              </div>
+                              {group.specialization && (
+                                <div className="text-sm text-gray-500">
+                                  {group.specialization}
                                 </div>
-                                {group.specialization && (
-                                  <div className="text-sm text-gray-500">
-                                    {group.specialization}
-                                  </div>
-                                )}
-                              </div>
+                              )}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-900">
-                                {deptInfo.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-sm text-gray-900">
-                                {deptInfo.faculty}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
-                              <div className="text-sm text-gray-900">
-                                <div>{course ? `${course} курс` : 'Не определен'}</div>
-                                {admissionYear && (
-                                  <div className="text-gray-500">Набор {admissionYear}</div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">
+                              {deptInfo.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">
+                              {deptInfo.faculty}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
                             <div className="text-sm text-gray-900">
-                              <div>
-                                {educationInfo.level ? getEducationLevelLabel(educationInfo.level) : 
-                                 (group.education_level ? getEducationLevelLabel(group.education_level) : 'Не указан')}
-                              </div>
-                              <div className="text-gray-500">
-                                {educationInfo.form ? getEducationFormLabel(educationInfo.form) : 
-                                 (group.education_form ? getEducationFormLabel(group.education_form) : 'Не указана')}
-                              </div>
+                              <div>{course ? `${course} курс` : 'Не определен'}</div>
+                              {admissionYear && (
+                                <div className="text-gray-500">Набор {admissionYear}</div>
+                              )}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button
-                                onClick={() => openEditModal(group)}
-                                className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
-                                title="Редактировать"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(group)}
-                                className="text-red-600 hover:text-red-900 p-1 rounded"
-                                title="Удалить"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>
+                              {educationInfo.level ? getEducationLevelLabel(educationInfo.level) : 
+                               (group.education_level ? getEducationLevelLabel(group.education_level) : 'Не указан')}
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            <div className="text-gray-500">
+                              {educationInfo.form ? getEducationFormLabel(educationInfo.form) : 
+                               (group.education_form ? getEducationFormLabel(group.education_form) : 'Не указана')}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={() => openEditModal(group)}
+                              className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                              title="Редактировать"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(group)}
+                              className="text-red-600 hover:text-red-900 p-1 rounded"
+                              title="Удалить"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
               
               {/* Карточки для мобильных и планшетов */}
               <div className="lg:hidden space-y-4">

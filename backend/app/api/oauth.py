@@ -14,16 +14,17 @@ from ..models.user_profile import UserProfile
 from ..models.user import User
 from ..schemas.user_profile import VKOAuthData, TelegramOAuthData, SocialConnectionStatus
 from ..dependencies import get_current_user
+from ..core.config import settings
 
 router = APIRouter(prefix="/api/oauth", tags=["oauth"])
 
-# Настройки VK OAuth
-VK_CLIENT_ID = "53853965"
-VK_CLIENT_SECRET = "tWHc2hBJ0x4pRqyzzk6N"
-VK_SERVICE_KEY = "64ce093264ce093264ce09323667fbb63f664ce64ce09320ca8ef7e96140ae9209c2e5c"
+# Настройки VK OAuth из переменных окружения
+VK_CLIENT_ID = settings.VK_CLIENT_ID
+VK_CLIENT_SECRET = settings.VK_CLIENT_SECRET
+VK_SERVICE_KEY = settings.VK_SERVICE_KEY
 
-# Настройки Telegram OAuth
-TELEGRAM_BOT_TOKEN = "your_telegram_bot_token"  # Замените на ваш токен
+# Настройки Telegram OAuth из переменных окружения
+TELEGRAM_BOT_TOKEN = settings.TELEGRAM_BOT_TOKEN
 
 
 
@@ -126,10 +127,10 @@ async def connect_telegram_account(
     """Подключить Telegram аккаунт через OAuth"""
     try:
         # Проверяем подлинность данных от Telegram
-        if TELEGRAM_BOT_TOKEN == "your_telegram_bot_token":
+        if not TELEGRAM_BOT_TOKEN or TELEGRAM_BOT_TOKEN == "your_telegram_bot_token":
             raise HTTPException(
                 status_code=500,
-                detail="Telegram бот не настроен. Замените токен в коде."
+                detail="Telegram бот не настроен. Установите TELEGRAM_BOT_TOKEN в переменных окружения."
             )
         
         # Проверяем актуальность данных (не старше 1 часа)

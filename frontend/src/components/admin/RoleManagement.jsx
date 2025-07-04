@@ -197,78 +197,78 @@ const RoleManagement = () => {
             <>
               {/* Таблица для больших экранов */}
               <div className="hidden lg:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Роль
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Описание
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Тип
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Статус
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {roles.map((role) => (
-                      <tr key={role.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {getRoleIcon(role)}
-                            <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">
-                                {role.display_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {role.name}
-                              </div>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Роль
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Описание
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Тип
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Статус
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Действия
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {roles.map((role) => (
+                    <tr key={role.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getRoleIcon(role)}
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {role.display_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {role.name}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs truncate">
-                            {role.description || 'Нет описания'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getRoleBadge(role)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(role)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                          {role.description || 'Нет описания'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getRoleBadge(role)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(role)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => handleEdit(role)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+                          {!role.is_system && (
                             <Button
-                              onClick={() => handleEdit(role)}
-                              variant="outline"
+                              onClick={() => handleDelete(role)}
+                              variant="danger"
                               size="sm"
                             >
-                              <PencilIcon className="h-4 w-4" />
+                              <TrashIcon className="h-4 w-4" />
                             </Button>
-                            {!role.is_system && (
-                              <Button
-                                onClick={() => handleDelete(role)}
-                                variant="danger"
-                                size="sm"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
               
               {/* Карточки для мобильных и планшетов */}
               <div className="lg:hidden space-y-4">
