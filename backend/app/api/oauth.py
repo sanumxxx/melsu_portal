@@ -50,6 +50,7 @@ async def connect_vk_account(
             )
         
         # Получаем информацию о пользователе
+        print(f"🔍 VK OAuth: Делаем запрос к VK API с токеном (первые 20 символов): {access_token[:20]}...")
         async with httpx.AsyncClient() as client:
             user_info_response = await client.get(
                 "https://api.vk.com/method/users.get",
@@ -59,6 +60,7 @@ async def connect_vk_account(
                     "v": "5.131"
                 }
             )
+            print(f"🔍 VK OAuth: Статус ответа VK API: {user_info_response.status_code}")
             
             if user_info_response.status_code != 200:
                 raise HTTPException(
@@ -67,8 +69,10 @@ async def connect_vk_account(
                 )
                 
             user_info = user_info_response.json()
+            print(f"🔍 VK OAuth: Полный ответ VK API: {user_info}")
             
             if "error" in user_info:
+                print(f"❌ VK OAuth: VK API вернул ошибку: {user_info['error']}")
                 raise HTTPException(
                     status_code=400,
                     detail=f"Ошибка VK API: {user_info['error']['error_msg']}"
