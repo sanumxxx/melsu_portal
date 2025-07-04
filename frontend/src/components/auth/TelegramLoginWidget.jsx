@@ -40,7 +40,7 @@ const TelegramLoginWidget = ({ onAuth, botName = "melsu_portal_auth_bot" }) => {
   return (
     <div 
       ref={telegramRef}
-      className="telegram-login-widget"
+      className="telegram-login-widget flex items-center justify-center"
       style={{ minHeight: '38px' }}
     />
   );
