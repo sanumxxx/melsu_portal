@@ -56,7 +56,7 @@ async def generate_telegram_link(
     }
     
     # Получаем имя бота - нужно будет заменить на реальное имя вашего бота
-    bot_username = "melsu_portal_bot"  # Замените на реальное имя вашего бота
+    bot_username = "my_melsu_ru_auth_bot"  # Замените на реальное имя вашего бота
     
     # Формируем ссылку
     telegram_link = f"https://t.me/{bot_username}?start={connection_code}"
