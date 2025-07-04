@@ -19,6 +19,7 @@ import RequestRouter from './components/requests/RequestRouter';
 import Groups from './components/admin/Groups';
 import AnnouncementManager from './components/admin/AnnouncementManager';
 import StudentList from './components/StudentList';
+import StudentsList from './components/admin/StudentsList';
 import GroupList from './components/GroupList';
 import CuratorManager from './components/admin/CuratorManager';
 import Reports from './components/Reports';
@@ -176,6 +177,7 @@ function App() {
               {user?.roles?.some(role => ['employee', 'teacher', 'admin'].includes(role)) && (
                 <>
                   <Route path="/references/students" element={<StudentList />} />
+                  <Route path="/students/list" element={<StudentsList />} />
                   <Route path="/references/groups" element={<GroupList />} />
                   <Route path="/student-portfolio/:studentId" element={<StudentPortfolio />} />
                 </>

@@ -15,6 +15,12 @@ from ..schemas.student_access import (
     StudentAccessAssignRequest
 )
 from ..dependencies import get_current_user, UserInfo
+from ..models.user import User
+from ..models.user_profile import UserProfile
+from ..models.department import Department
+from ..models.group import Group
+from ..models.user_assignment import UserDepartmentAssignment
+from ..schemas.user import UserResponse
 
 router = APIRouter(prefix="/student-access", tags=["Student Access"])
 
@@ -479,3 +485,273 @@ async def check_student_access(
             "course": student.profile.course
         }
     } 
+
+@router.get("/students/accessible", response_model=List[UserResponse])
+async def get_accessible_students(
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение списка студентов доступных текущему пользователю (деканат/сотрудники)"""
+    
+    # Получаем назначения текущего пользователя в подразделениях
+    user_assignments = db.query(UserDepartmentAssignment).filter(
+        UserDepartmentAssignment.user_id == current_user.id,
+        UserDepartmentAssignment.is_active == True
+    ).all()
+    
+    if not user_assignments:
+        return []
+    
+    # Получаем ID подразделений где работает пользователь
+    department_ids = [assignment.department_id for assignment in user_assignments]
+    
+    # Получаем названия подразделений
+    departments = db.query(Department).filter(
+        Department.id.in_(department_ids)
+    ).all()
+    
+    department_names = [dept.name for dept in departments]
+    
+    # Ищем студентов, у которых в профиле указаны эти подразделения
+    accessible_students = []
+    
+    # Поиск по факультетам
+    faculty_departments = [dept for dept in departments if dept.department_type == "faculty"]
+    if faculty_departments:
+        faculty_names = [dept.name for dept in faculty_departments]
+        students_by_faculty = db.query(User).join(UserProfile).filter(
+            UserProfile.faculty.in_(faculty_names),
+            User.roles.contains(["student"])
+        ).all()
+        accessible_students.extend(students_by_faculty)
+    
+    # Поиск по кафедрам  
+    department_departments = [dept for dept in departments if dept.department_type == "department"]
+    if department_departments:
+        department_names = [dept.name for dept in department_departments]
+        students_by_department = db.query(User).join(UserProfile).filter(
+            UserProfile.department.in_(department_names),
+            User.roles.contains(["student"])
+        ).all()
+        accessible_students.extend(students_by_department)
+    
+    # Поиск по группам (через связь с подразделениями)
+    groups = db.query(Group).filter(
+        Group.department_id.in_(department_ids)
+    ).all()
+    
+    if groups:
+        group_ids = [group.id for group in groups]
+        students_by_group = db.query(User).join(UserProfile).filter(
+            UserProfile.group_id.in_(group_ids),
+            User.roles.contains(["student"])
+        ).all()
+        accessible_students.extend(students_by_group)
+    
+    # Убираем дубликаты
+    unique_students = []
+    seen_ids = set()
+    for student in accessible_students:
+        if student.id not in seen_ids:
+            unique_students.append(student)
+            seen_ids.add(student.id)
+    
+    return unique_students
+
+@router.get("/students/by-department/{department_id}", response_model=List[UserResponse])
+async def get_students_by_department(
+    department_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение студентов конкретного подразделения"""
+    
+    # Проверяем, что пользователь имеет доступ к этому подразделению
+    user_assignment = db.query(UserDepartmentAssignment).filter(
+        UserDepartmentAssignment.user_id == current_user.id,
+        UserDepartmentAssignment.department_id == department_id,
+        UserDepartmentAssignment.is_active == True
+    ).first()
+    
+    if not user_assignment and 'admin' not in (current_user.roles or []):
+        raise HTTPException(
+            status_code=403,
+            detail="Недостаточно прав для просмотра студентов этого подразделения"
+        )
+    
+    # Получаем подразделение
+    department = db.query(Department).filter(Department.id == department_id).first()
+    if not department:
+        raise HTTPException(status_code=404, detail="Подразделение не найдено")
+    
+    students = []
+    
+    # Поиск студентов в зависимости от типа подразделения
+    if department.department_type == "faculty":
+        # Поиск по факультету
+        students = db.query(User).join(UserProfile).filter(
+            UserProfile.faculty == department.name,
+            User.roles.contains(["student"])
+        ).all()
+    elif department.department_type == "department":
+        # Поиск по кафедре
+        students = db.query(User).join(UserProfile).filter(
+            UserProfile.department == department.name,
+            User.roles.contains(["student"])
+        ).all()
+    else:
+        # Поиск по группам этого подразделения
+        groups = db.query(Group).filter(Group.department_id == department_id).all()
+        if groups:
+            group_ids = [group.id for group in groups]
+            students = db.query(User).join(UserProfile).filter(
+                UserProfile.group_id.in_(group_ids),
+                User.roles.contains(["student"])
+            ).all()
+    
+    return students
+
+@router.get("/students/{student_id}/profile")
+async def get_student_profile(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение профиля студента (для сотрудников деканата)"""
+    
+    # Получаем студента
+    student = db.query(User).filter(User.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Студент не найден")
+    
+    # Проверяем, что это студент
+    if 'student' not in (student.roles or []):
+        raise HTTPException(status_code=404, detail="Пользователь не является студентом")
+    
+    # Получаем профиль студента
+    profile = db.query(UserProfile).filter(UserProfile.user_id == student_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Профиль студента не найден")
+    
+    # Проверяем доступ - есть ли у текущего пользователя доступ к этому студенту
+    has_access = False
+    
+    # Админы имеют доступ ко всем
+    if 'admin' in (current_user.roles or []):
+        has_access = True
+    else:
+        # Проверяем доступ через назначения в подразделениях
+        user_assignments = db.query(UserDepartmentAssignment).filter(
+            UserDepartmentAssignment.user_id == current_user.id,
+            UserDepartmentAssignment.is_active == True
+        ).all()
+        
+        department_ids = [assignment.department_id for assignment in user_assignments]
+        departments = db.query(Department).filter(
+            Department.id.in_(department_ids)
+        ).all()
+        
+        # Проверяем доступ по факультету
+        faculty_departments = [dept for dept in departments if dept.department_type == "faculty"]
+        if faculty_departments:
+            faculty_names = [dept.name for dept in faculty_departments]
+            if profile.faculty in faculty_names:
+                has_access = True
+        
+        # Проверяем доступ по кафедре
+        if not has_access:
+            department_departments = [dept for dept in departments if dept.department_type == "department"]
+            if department_departments:
+                department_names = [dept.name for dept in department_departments]
+                if profile.department in department_names:
+                    has_access = True
+        
+        # Проверяем доступ по группе
+        if not has_access and profile.group_id:
+            group = db.query(Group).filter(Group.id == profile.group_id).first()
+            if group and group.department_id in department_ids:
+                has_access = True
+    
+    if not has_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Недостаточно прав для просмотра профиля этого студента"
+        )
+    
+    # Получаем информацию о группе
+    group_info = None
+    if profile.group_id:
+        group = db.query(Group).filter(Group.id == profile.group_id).first()
+        if group:
+            group_info = {
+                "id": group.id,
+                "name": group.name,
+                "specialization": group.specialization,
+                "course": group.course,
+                "admission_year": group.parsed_year,
+                "education_level": group.parsed_education_level,
+                "education_form": group.parsed_education_form
+            }
+    
+    # Формируем данные профиля
+    profile_data = {
+        "user_id": student.id,
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "middle_name": student.middle_name,
+        "email": student.email,
+        "birth_date": student.birth_date.isoformat() if student.birth_date else None,
+        "gender": student.gender,
+        "phone": profile.phone,
+        "student_id": profile.student_id,
+        "group_id": profile.group_id,
+        "group": group_info,
+        "course": profile.course,
+        "semester": profile.semester,
+        "faculty": profile.faculty,
+        "department": profile.department,
+        "specialization": profile.specialization,
+        "education_level": profile.education_level,
+        "education_form": profile.education_form,
+        "funding_type": profile.funding_type,
+        "enrollment_date": profile.enrollment_date.isoformat() if profile.enrollment_date else None,
+        "graduation_date": profile.graduation_date.isoformat() if profile.graduation_date else None,
+        "academic_status": profile.academic_status,
+        "gpa": profile.gpa,
+        "created_at": profile.created_at.isoformat() if profile.created_at else None,
+        "updated_at": profile.updated_at.isoformat() if profile.updated_at else None,
+    }
+    
+    return profile_data
+
+@router.get("/departments/my-assignments")
+async def get_my_department_assignments(
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получение назначений текущего пользователя в подразделениях"""
+    
+    assignments = db.query(UserDepartmentAssignment).options(
+        joinedload(UserDepartmentAssignment.department),
+        joinedload(UserDepartmentAssignment.role)
+    ).filter(
+        UserDepartmentAssignment.user_id == current_user.id,
+        UserDepartmentAssignment.is_active == True
+    ).all()
+    
+    result = []
+    for assignment in assignments:
+        assignment_data = {
+            "id": assignment.id,
+            "department_id": assignment.department_id,
+            "department_name": assignment.department.name if assignment.department else None,
+            "department_type": assignment.department.department_type if assignment.department else None,
+            "role_id": assignment.role_id,
+            "role_name": assignment.role.name if assignment.role else None,
+            "is_primary": assignment.is_primary,
+            "start_date": assignment.start_date.isoformat() if assignment.start_date else None,
+            "end_date": assignment.end_date.isoformat() if assignment.end_date else None
+        }
+        result.append(assignment_data)
+    
+    return result 

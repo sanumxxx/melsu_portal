@@ -136,7 +136,7 @@ const Layout = ({ children, user, onLogout }) => {
         name: 'Справочники',
         icon: FolderIcon,
         children: [
-          { name: 'Список студентов', href: '/references/students' },
+          { name: 'Студенты', href: '/students/list' },
           { name: 'Список групп', href: '/references/groups' }
         ]
       });
