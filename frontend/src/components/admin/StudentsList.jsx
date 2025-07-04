@@ -217,11 +217,23 @@ const StudentsList = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Факультет</label>
-                  <p className="text-gray-900">{getValueOrNotSpecified(studentProfile.faculty)}</p>
+                  <p className="text-gray-900">
+                    {getValueOrNotSpecified(
+                      typeof studentProfile.faculty === 'object' && studentProfile.faculty?.name 
+                        ? studentProfile.faculty.name 
+                        : studentProfile.faculty
+                    )}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Кафедра</label>
-                  <p className="text-gray-900">{getValueOrNotSpecified(studentProfile.department)}</p>
+                  <p className="text-gray-900">
+                    {getValueOrNotSpecified(
+                      typeof studentProfile.department === 'object' && studentProfile.department?.name 
+                        ? studentProfile.department.name 
+                        : studentProfile.department
+                    )}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Специальность</label>

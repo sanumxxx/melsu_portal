@@ -552,7 +552,11 @@ const Profile = ({ user }) => {
                           <span className="text-gray-500 text-sm ml-2">({profileData.faculty_info.short_name})</span>
                         )}
                       </span>
-                    ) : (profileData.faculty || 'Не указано')}
+                    ) : (
+                      typeof profileData.faculty === 'object' && profileData.faculty?.name 
+                        ? profileData.faculty.name 
+                        : profileData.faculty || 'Не указано'
+                    )}
                   </p>
                 </div>
                 <div>
@@ -565,7 +569,11 @@ const Profile = ({ user }) => {
                           <span className="text-gray-500 text-sm ml-2">({profileData.department_info.short_name})</span>
                         )}
                       </span>
-                    ) : (profileData.department || 'Не указано')}
+                    ) : (
+                      typeof profileData.department === 'object' && profileData.department?.name 
+                        ? profileData.department.name 
+                        : profileData.department || 'Не указано'
+                    )}
                   </p>
                 </div>
                 <div>

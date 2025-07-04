@@ -329,6 +329,152 @@ safe_restart() {
     log_success "Сервисы перезапущены"
 }
 
+# Функция полного исправления миграций с использованием комплексного скрипта
+fix_migrations_complete() {
+    log_step "Запуск полного исправления миграций..."
+    
+    # Проверяем наличие скрипта исправления
+    local fix_script="$BACKEND_PATH/fix_migrations_complete.sh"
+    if [ ! -f "$fix_script" ]; then
+        log_error "Скрипт исправления миграций не найден: $fix_script"
+        log_info "Создаю скрипт исправления миграций..."
+        
+        # Создаем скрипт если его нет
+        cat > "$fix_script" << 'EOF'
+#!/bin/bash
+
+# Полное исправление конфликтов миграций
+# Автоматически создано melsu_control.sh
+
+set -e
+
+echo "🔧 Полное исправление миграций MELSU Portal"
+echo "==========================================="
+
+# Остановка сервисов
+echo "⏹️ Остановка сервисов..."
+systemctl stop melsu-api melsu-worker
+
+# Переход в директорию backend
+cd /var/www/melsu/backend
+
+# Создание резервной копии
+echo "💾 Создание резервной копии БД..."
+mkdir -p /var/backups/melsu
+sudo -u postgres pg_dump melsu_db > /var/backups/melsu/melsu_db_before_migration_fix_$(date +%Y%m%d_%H%M%S).sql
+
+# Удаление проблемных merge ревизий
+echo "🗑️ Удаление проблемных merge ревизий..."
+find alembic/versions/ -name "*merge*" -type f -delete 2>/dev/null || true
+find alembic/versions/ -name "*ad3c0d6caa7f*" -type f -delete 2>/dev/null || true
+
+# Очистка истории миграций
+echo "🧹 Очистка истории миграций..."
+sudo -u postgres psql melsu_db -c "DELETE FROM alembic_version;" 2>/dev/null || true
+
+# Проверка и добавление отсутствующих полей
+echo "🔍 Проверка структуры БД..."
+sudo -u postgres psql melsu_db -c "
+DO \$\$
+BEGIN
+    -- Добавляем faculty_id если не существует
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='faculty_id') THEN
+        ALTER TABLE user_profiles ADD COLUMN faculty_id INTEGER;
+        ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_faculty_id FOREIGN KEY (faculty_id) REFERENCES departments(id);
+        RAISE NOTICE 'Добавлено поле faculty_id';
+    END IF;
+    
+    -- Добавляем department_id если не существует
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='department_id') THEN
+        ALTER TABLE user_profiles ADD COLUMN department_id INTEGER;
+        ALTER TABLE user_profiles ADD CONSTRAINT fk_user_profiles_department_id FOREIGN KEY (department_id) REFERENCES departments(id);
+        RAISE NOTICE 'Добавлено поле department_id';
+    END IF;
+END
+\$\$;
+" || echo "Предупреждение: Не удалось проверить/добавить поля"
+
+# Определение правильной ревизии
+echo "🎯 Определение текущей ревизии..."
+if sudo -u postgres psql melsu_db -c "SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='faculty_id';" | grep -q "1 row"; then
+    echo "Поля faculty_id и department_id найдены, устанавливаю ревизию d34404f8ec53"
+    sudo -u postgres psql melsu_db -c "INSERT INTO alembic_version (version_num) VALUES ('d34404f8ec53');"
+else
+    echo "Поля faculty_id и department_id не найдены, устанавливаю ревизию a7843b1b03ca"
+    sudo -u postgres psql melsu_db -c "INSERT INTO alembic_version (version_num) VALUES ('a7843b1b03ca');"
+fi
+
+# Применение оставшихся миграций
+echo "📦 Применение миграций..."
+sudo -u melsu /var/www/melsu/backend/venv/bin/alembic upgrade head
+
+# Инициализация данных
+echo "🔄 Инициализация системных данных..."
+sudo -u melsu /var/www/melsu/backend/venv/bin/python -c "
+import sys
+sys.path.append('/var/www/melsu/backend')
+from app.startup import init_departments, init_roles, init_request_templates
+from app.database import get_db
+from sqlalchemy.orm import Session
+
+# Получаем сессию БД
+db = next(get_db())
+
+try:
+    print('Инициализация департаментов...')
+    init_departments(db)
+    
+    print('Инициализация ролей...')
+    init_roles(db)
+    
+    print('Инициализация шаблонов заявок...')
+    init_request_templates(db)
+    
+    db.commit()
+    print('✅ Инициализация завершена успешно')
+except Exception as e:
+    db.rollback()
+    print(f'❌ Ошибка инициализации: {e}')
+    raise
+finally:
+    db.close()
+"
+
+# Запуск сервисов
+echo "🚀 Запуск сервисов..."
+systemctl start melsu-api melsu-worker
+
+# Проверка статуса
+echo "✅ Исправление миграций завершено!"
+echo "Проверяю статус сервисов..."
+sleep 5
+systemctl status melsu-api --no-pager -l
+systemctl status melsu-worker --no-pager -l
+
+echo "🎉 Все готово!"
+EOF
+
+        chmod +x "$fix_script"
+        chown melsu:melsu "$fix_script"
+        log_success "Скрипт исправления миграций создан"
+    fi
+    
+    # Запускаем скрипт исправления
+    log_info "Запуск скрипта полного исправления миграций..."
+    bash "$fix_script"
+    
+    if [ $? -eq 0 ]; then
+        log_success "✅ Полное исправление миграций завершено успешно"
+        
+        # Проверяем состояние после исправления
+        log_info "Проверка состояния после исправления..."
+        diagnose_migrations
+    else
+        log_error "❌ Ошибка при выполнении полного исправления миграций"
+        return 1
+    fi
+}
+
 # Функция полного обновления
 full_update() {
     log_info "🔄 Начинаю полное обновление системы..."
@@ -474,6 +620,9 @@ main() {
             log_info "🚀 Запуск полного развертывания..."
             bash /var/www/melsu/deploy.sh
             ;;
+        fix-migrations-complete)
+            fix_migrations_complete
+            ;;
         *)
             echo -e "${BLUE}🚀 MELSU Portal - Система управления${NC}"
             echo "====================================="
@@ -486,10 +635,11 @@ main() {
             echo "  status      - Показать статус системы"
             echo ""
             echo -e "${YELLOW}Управление БД:${NC}"
-            echo "  migrate           - Применить миграции БД"
-            echo "  fix-migrations    - Исправить конфликты миграций"
-            echo "  diagnose-migrations - Диагностика состояния миграций"
-            echo "  backup            - Создать резервную копию БД"
+            echo "  migrate              - Применить миграции БД"
+            echo "  fix-migrations       - Исправить конфликты миграций"
+            echo "  fix-migrations-complete - Полное исправление миграций с очисткой"
+            echo "  diagnose-migrations  - Диагностика состояния миграций"
+            echo "  backup               - Создать резервную копию БД"
             echo ""
             echo -e "${YELLOW}Мониторинг:${NC}"
             echo "  logs        - Показать последние логи"
@@ -501,11 +651,12 @@ main() {
             echo "  deploy      - Полное развертывание системы"
             echo ""
             echo -e "${GREEN}Примеры использования:${NC}"
-            echo "  melsu update             # Обновить проект"
-            echo "  melsu status             # Проверить статус"
-            echo "  melsu fix-migrations     # Исправить конфликты миграций"
-            echo "  melsu diagnose-migrations # Диагностика миграций"
-            echo "  melsu live-logs          # Мониторинг в реальном времени"
+            echo "  melsu update                    # Обновить проект"
+            echo "  melsu status                    # Проверить статус"
+            echo "  melsu fix-migrations            # Исправить конфликты миграций"
+            echo "  melsu fix-migrations-complete   # Полное исправление с очисткой"
+            echo "  melsu diagnose-migrations       # Диагностика миграций"
+            echo "  melsu live-logs                 # Мониторинг в реальном времени"
             ;;
     esac
 }

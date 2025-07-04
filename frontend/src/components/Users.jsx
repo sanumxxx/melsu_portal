@@ -1370,11 +1370,21 @@ const Users = () => {
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Факультет</label>
-                              <p className="text-gray-900">{userDetails.profile.faculty || 'Не указано'}</p>
+                              <p className="text-gray-900">
+                                {typeof userDetails.profile.faculty === 'object' && userDetails.profile.faculty?.name 
+                                  ? userDetails.profile.faculty.name 
+                                  : userDetails.profile.faculty || 'Не указано'
+                                }
+                              </p>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-2">Кафедра/Отделение</label>
-                              <p className="text-gray-900">{userDetails.profile.academic_department || 'Не указано'}</p>
+                              <p className="text-gray-900">
+                                {typeof userDetails.profile.department === 'object' && userDetails.profile.department?.name 
+                                  ? userDetails.profile.department.name 
+                                  : userDetails.profile.department || 'Не указано'
+                                }
+                              </p>
                             </div>
                             <div className="md:col-span-2">
                               <label className="block text-sm font-medium text-gray-700 mb-2">Специализация</label>

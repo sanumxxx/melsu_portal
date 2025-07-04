@@ -191,14 +191,24 @@ const StudentPortfolio = () => {
                 {studentInfo.profile?.faculty && (
                   <div className="flex items-center text-sm text-gray-700">
                     <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>{studentInfo.profile.faculty}</span>
+                    <span>
+                      {typeof studentInfo.profile.faculty === 'object' && studentInfo.profile.faculty?.name 
+                        ? studentInfo.profile.faculty.name 
+                        : studentInfo.profile.faculty
+                      }
+                    </span>
                   </div>
                 )}
                 
                 {studentInfo.profile?.department && (
                   <div className="flex items-center text-sm text-gray-700">
                     <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>{studentInfo.profile.department}</span>
+                    <span>
+                      {typeof studentInfo.profile.department === 'object' && studentInfo.profile.department?.name 
+                        ? studentInfo.profile.department.name 
+                        : studentInfo.profile.department
+                      }
+                    </span>
                   </div>
                 )}
                 
