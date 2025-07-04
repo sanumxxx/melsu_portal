@@ -47,6 +47,24 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class UserResponse(User):
+    """Схема для ответов API с информацией о пользователе"""
+    full_name: Optional[str] = None
+    department_name: Optional[str] = None
+    group_name: Optional[str] = None
+    course: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+    @field_serializer('full_name')
+    def get_full_name(self, _):
+        """Генерирует полное имя из компонентов"""
+        parts = [self.last_name, self.first_name]
+        if self.middle_name:
+            parts.append(self.middle_name)
+        return ' '.join(parts)
+
 class UserRoleUpdate(BaseModel):
     user_id: int
     roles: List[str]
