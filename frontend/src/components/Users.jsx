@@ -812,9 +812,36 @@ const Users = () => {
                           )}
                         </div>
                         <p className="text-sm text-gray-600">{user.email}</p>
-                        <p className="text-xs text-gray-500">
-                          Роли: {formatRoles(user.roles)}
-                        </p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs text-gray-500">
+                            Роли: {formatRoles(user.roles)}
+                          </p>
+                          {/* Индикаторы социальных сетей */}
+                          {user.social_networks && (
+                            <div className="flex space-x-1">
+                              {user.social_networks.vk_connected && (
+                                <div className="group relative">
+                                  <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1.029-1.49-1.172-1.744-1.172-.357 0-.458.101-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.101-.491.593-.491h1.744c.441 0 .61.203.78.677.863 2.49 2.303 4.675 2.896 4.675.221 0 .322-.101.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.169-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.169.508.271.508.221 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.271.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .763.186.254.796.78 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z"/>
+                                  </svg>
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                    ВКонтакте: {user.social_networks.vk_id}
+                                  </div>
+                                </div>
+                              )}
+                              {user.social_networks.telegram_connected && (
+                                <div className="group relative">
+                                  <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.58 7.44c-.12.54-.43.67-.87.42l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.43 4.54-4.1c.2-.18-.04-.28-.31-.1L9.39 13.17l-2.27-.71c-.49-.15-.5-.49.1-.73l8.86-3.42c.41-.15.77.1.63.69z"/>
+                                  </svg>
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                    Telegram: @{user.social_networks.telegram_username || 'подключен'}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end space-y-2">
@@ -1091,6 +1118,104 @@ const Users = () => {
                               <p className="text-gray-900">{userDetails.profile.emergency_contact || 'Не указано'}</p>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Социальные сети */}
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h4 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            Социальные сети
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">ВКонтакте</label>
+                              {userDetails.profile?.vk_id ? (
+                                <div className="flex items-center space-x-2">
+                                  <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1.029-1.49-1.172-1.744-1.172-.357 0-.458.101-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.101-.491.593-.491h1.744c.441 0 .61.203.78.677.863 2.49 2.303 4.675 2.896 4.675.221 0 .322-.101.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.169-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.169.508.271.508.221 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.271.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .763.186.254.796.78 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z"/>
+                                  </svg>
+                                  <a 
+                                    href={`https://vk.com/${userDetails.profile.vk_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline"
+                                  >
+                                    vk.com/{userDetails.profile.vk_id}
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-gray-500">
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                  Не подключен
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Telegram</label>
+                              {userDetails.profile?.telegram_id ? (
+                                <div className="flex items-center space-x-2">
+                                  <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16l-1.58 7.44c-.12.54-.43.67-.87.42l-2.4-1.77-1.16 1.12c-.13.13-.24.24-.49.24l.17-2.43 4.54-4.1c.2-.18-.04-.28-.31-.1L9.39 13.17l-2.27-.71c-.49-.15-.5-.49.1-.73l8.86-3.42c.41-.15.77.1.63.69z"/>
+                                  </svg>
+                                  <a 
+                                    href={`https://t.me/${userDetails.profile.telegram_username || userDetails.profile.telegram_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:text-blue-700 underline"
+                                  >
+                                    @{userDetails.profile.telegram_username || userDetails.profile.telegram_id}
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-gray-500">
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                  Не подключен
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Дополнительная информация о Telegram */}
+                          {userDetails.profile?.telegram_user_info && (
+                            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                              <h5 className="text-sm font-medium text-gray-700 mb-2">Информация Telegram:</h5>
+                              <div className="text-xs text-gray-600">
+                                {(() => {
+                                  try {
+                                    const telegramInfo = typeof userDetails.profile.telegram_user_info === 'string' 
+                                      ? JSON.parse(userDetails.profile.telegram_user_info)
+                                      : userDetails.profile.telegram_user_info;
+                                    
+                                    return (
+                                      <div className="space-y-1">
+                                        {telegramInfo.first_name && (
+                                          <div>Имя: {telegramInfo.first_name}</div>
+                                        )}
+                                        {telegramInfo.last_name && (
+                                          <div>Фамилия: {telegramInfo.last_name}</div>
+                                        )}
+                                        {telegramInfo.username && (
+                                          <div>Username: @{telegramInfo.username}</div>
+                                        )}
+                                        {telegramInfo.language_code && (
+                                          <div>Язык: {telegramInfo.language_code}</div>
+                                        )}
+                                      </div>
+                                    );
+                                  } catch (e) {
+                                    return <div>Информация недоступна</div>;
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Документы */}

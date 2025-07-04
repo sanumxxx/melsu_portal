@@ -19,6 +19,7 @@ import PixelCard from './common/PixelCard';
 import TelegramLoginWidget from './auth/TelegramLoginWidget';
 import VKAuthButton from './auth/VKAuthButton';
 import TelegramConnect from './TelegramConnect';
+import ChangePassword from './ChangePassword';
 
 const Profile = ({ user }) => {
   const [profileData, setProfileData] = useState({});
@@ -38,6 +39,7 @@ const Profile = ({ user }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmMessage, setConfirmMessage] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -605,6 +607,34 @@ const Profile = ({ user }) => {
           </div>
         </div>
 
+        {/* Безопасность */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Безопасность
+          </h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Пароль</label>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-900">••••••••</p>
+                  <p className="text-xs text-gray-500">Последнее изменение: давно</p>
+                </div>
+                <button
+                  onClick={() => setShowChangePassword(true)}
+                  className="px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  Изменить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Социальные сети */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
@@ -735,6 +765,11 @@ const Profile = ({ user }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Модальное окно смены пароля */}
+      {showChangePassword && (
+        <ChangePassword onClose={() => setShowChangePassword(false)} />
       )}
     </div>
   );

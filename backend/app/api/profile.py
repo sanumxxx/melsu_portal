@@ -11,7 +11,7 @@ from ..models.role import Role
 from ..models.user_assignment import UserDepartmentAssignment
 from ..models.group import Group
 from ..schemas.user_profile import UserProfileResponse, UserProfileCreate, UserProfileUpdate
-from ..services.auth_service import verify_token
+from ..services.auth_service import verify_token, verify_password, get_password_hash
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 router = APIRouter()
@@ -438,3 +438,50 @@ async def get_social_status(
         "vk_id": profile.vk_id if profile else None,
         "telegram_id": profile.telegram_id if profile else None
     }
+
+
+# Схема для смены пароля
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+    
+    @validator('new_password')
+    def validate_new_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Новый пароль должен содержать минимум 6 символов')
+        return v
+    
+    @validator('confirm_password')
+    def passwords_match(cls, v, values):
+        if 'new_password' in values and v != values['new_password']:
+            raise ValueError('Пароли не совпадают')
+        return v
+
+
+@router.post("/profile/change-password")
+async def change_password(
+    password_data: PasswordChangeRequest,
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    """Смена пароля пользователя"""
+    
+    user = db.query(User).filter(User.id == current_user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # Проверяем текущий пароль
+    if not verify_password(password_data.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Неверный текущий пароль")
+    
+    # Проверяем, что новый пароль отличается от текущего
+    if verify_password(password_data.new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Новый пароль должен отличаться от текущего")
+    
+    # Обновляем пароль
+    user.password_hash = get_password_hash(password_data.new_password)
+    db.commit()
+    db.refresh(user)
+    
+    return {"message": "Пароль успешно изменен"}

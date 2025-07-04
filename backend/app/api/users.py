@@ -234,6 +234,11 @@ async def get_search_fields():
         'computer_skills': 'Компьютерные навыки',
         'hobbies': 'Хобби и интересы',
         
+        # Социальные сети
+        'vk_id': 'ВКонтакте ID',
+        'telegram_id': 'Telegram ID',
+        'telegram_username': 'Telegram Username',
+        
         # Дополнительно
         'bio': 'Биография/О себе',
         'profile_visibility': 'Видимость профиля',
@@ -321,6 +326,9 @@ async def get_users(
         # Формируем ответ
         users_data = []
         for user in paginated_users:
+            # Получаем основную информацию о социальных сетях
+            profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+            
             user_data = {
                 "id": user.id,
                 "email": user.email,
@@ -332,7 +340,14 @@ async def get_users(
                 "roles": user.roles or [],
                 "is_verified": user.is_verified,
                 "is_active": user.is_active,
-                "created_at": user.created_at.isoformat() if user.created_at else None
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                # Добавляем информацию о подключенных социальных сетях
+                "social_networks": {
+                    "vk_connected": bool(profile and profile.vk_id),
+                    "telegram_connected": bool(profile and profile.telegram_id),
+                    "vk_id": profile.vk_id if profile else None,
+                    "telegram_username": profile.telegram_username if profile else None
+                }
             }
             users_data.append(user_data)
         
@@ -464,16 +479,21 @@ async def get_user_details(
         
         # Достижения
         "gpa": profile.gpa if profile else None,
-        
-        
+        "scholarships": profile.scholarships if profile else None,
+        "honors": profile.honors if profile else None,
         
         # Навыки и интересы
+        "languages": profile.languages if profile else None,
+        "computer_skills": profile.computer_skills if profile else None,
+        "hobbies": profile.hobbies if profile else None,
+        "bio": profile.bio if profile else None,
+        "education_institutions": profile.education_institutions if profile else None,
         
-        
-        
-        
-        # Системная информация
-        
+        # Социальные сети
+        "vk_id": profile.vk_id if profile else None,
+        "telegram_id": profile.telegram_id if profile else None,
+        "telegram_username": profile.telegram_username if profile else None,
+        "telegram_user_info": profile.telegram_user_info if profile else None,
         
         # Метаданные
         "created_at": profile.created_at.isoformat() if profile and profile.created_at else None,
