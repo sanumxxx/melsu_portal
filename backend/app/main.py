@@ -200,6 +200,10 @@ app.include_router(announcements.router, prefix="/api", tags=["announcements"])
 from .api import curator_access
 app.include_router(curator_access.router, prefix="/api", tags=["curator-access"])
 
+# Система Telegram интеграции
+from .api import telegram
+app.include_router(telegram.router, prefix="/api", tags=["telegram"])
+
 # OAuth интеграция
 from .api import oauth
 app.include_router(oauth.router, tags=["oauth"])

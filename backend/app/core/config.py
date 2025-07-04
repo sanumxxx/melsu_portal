@@ -52,7 +52,8 @@ class OAuthConfig:
     VK_SERVICE_KEY: str = os.getenv("VK_SERVICE_KEY", "64ce093264ce093264ce09323667fbb63f664ce64ce09320ca8ef7e96140ae9209c2e5c")
     
     # Telegram OAuth
-    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "your_telegram_bot_token")
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "7768964028:AAF-S4uaBC2kLVJ0pMCnH6l6lxbE8UP5xZY")
+    TELEGRAM_WEBHOOK_URL: str = os.getenv("TELEGRAM_WEBHOOK_URL", "https://my.melsu.ru/api/telegram/webhook")
 
 class ServerConfig:
     """Конфигурация сервера"""
@@ -86,6 +87,7 @@ class Settings:
     VK_CLIENT_SECRET = OAuthConfig.VK_CLIENT_SECRET
     VK_SERVICE_KEY = OAuthConfig.VK_SERVICE_KEY
     TELEGRAM_BOT_TOKEN = OAuthConfig.TELEGRAM_BOT_TOKEN
+    TELEGRAM_WEBHOOK_URL = OAuthConfig.TELEGRAM_WEBHOOK_URL
     
     # Сервер
     HOST = ServerConfig.HOST
