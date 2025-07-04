@@ -196,6 +196,17 @@ const roleMapping = {
   'schoolchildren': 'schoolchild'
 };
 
+// Вспомогательная функция для форматирования VK ID
+const formatVkId = (vkId) => {
+  if (!vkId) return '';
+  // Если ID уже содержит префикс 'id', оставляем как есть
+  if (vkId.startsWith('id')) return vkId;
+  // Если это числовой ID, добавляем префикс 'id'
+  if (/^\d+$/.test(vkId)) return `id${vkId}`;
+  // Если это текстовый ID (screen_name), оставляем как есть
+  return vkId;
+};
+
 const Users = () => {
   const { type } = useParams(); // all, employees, teachers, students, schoolchildren
   const location = useLocation();
@@ -824,9 +835,9 @@ const Users = () => {
                                   <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1.029-1.49-1.172-1.744-1.172-.357 0-.458.101-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.101-.491.593-.491h1.744c.441 0 .61.203.78.677.863 2.49 2.303 4.675 2.896 4.675.221 0 .322-.101.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.169-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.169.508.271.508.221 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.271.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .763.186.254.796.78 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z"/>
                                   </svg>
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                    ВКонтакте: {user.social_networks.vk_id}
-                                  </div>
+                                                                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                     ВКонтакте: {formatVkId(user.social_networks.vk_id)}
+                                   </div>
                                 </div>
                               )}
                               {user.social_networks.telegram_connected && (
@@ -1136,14 +1147,14 @@ const Users = () => {
                                   <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1.029-1.49-1.172-1.744-1.172-.357 0-.458.101-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C4.624 10.857 4.03 8.57 4.03 8.096c0-.254.101-.491.593-.491h1.744c.441 0 .61.203.78.677.863 2.49 2.303 4.675 2.896 4.675.221 0 .322-.101.322-.66V9.721c-.068-1.186-.695-1.287-.695-1.71 0-.203.169-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .372.169.508.271.508.221 0 .407-.136.813-.542 1.254-1.406 2.151-3.574 2.151-3.574.119-.254.322-.491.763-.491h1.744c.525 0 .644.271.525.643-.22 1.017-2.354 4.031-2.354 4.031-.186.305-.254.44 0 .763.186.254.796.78 1.203 1.253.745.847 1.32 1.558 1.473 2.05.17.49-.085.744-.576.744z"/>
                                   </svg>
-                                  <a 
-                                    href={`https://vk.com/${userDetails.profile.vk_id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 underline"
-                                  >
-                                    vk.com/{userDetails.profile.vk_id}
-                                  </a>
+                                                                     <a 
+                                     href={`https://vk.com/${formatVkId(userDetails.profile.vk_id)}`}
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                                     className="text-blue-600 hover:text-blue-800 underline"
+                                   >
+                                     vk.com/{formatVkId(userDetails.profile.vk_id)}
+                                   </a>
                                 </div>
                               ) : (
                                 <div className="flex items-center text-gray-500">

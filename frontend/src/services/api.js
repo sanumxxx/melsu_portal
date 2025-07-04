@@ -613,6 +613,28 @@ class ApiService {
   async getPortfolioStats() {
     return this.get('/api/portfolio/stats');
   }
+
+  /**
+   * Получение информации о студенте для портфолио
+   */
+  async getStudentPortfolioInfo(studentId) {
+    return this.get(`/api/portfolio/student/${studentId}/info`);
+  }
+
+  /**
+   * Получение статистики портфолио студента
+   */
+  async getStudentPortfolioStats(studentId) {
+    return this.get(`/api/portfolio/student/${studentId}/stats`);
+  }
+
+  /**
+   * Получение достижений студента
+   */
+  async getStudentPortfolioAchievements(studentId, category = null) {
+    const params = category ? { category } : {};
+    return this.get(`/api/portfolio/student/${studentId}/achievements`, { params });
+  }
 }
 
 const api = new ApiService();

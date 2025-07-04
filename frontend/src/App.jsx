@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import Profile from './components/Profile';
 import Portfolio from './components/Portfolio';
+import StudentPortfolio from './components/StudentPortfolio';
 import Schedule from './components/Schedule';
 import Users from './components/Users';
 import Structure from './components/Structure';
@@ -176,6 +177,7 @@ function App() {
                 <>
                   <Route path="/references/students" element={<StudentList />} />
                   <Route path="/references/groups" element={<GroupList />} />
+                  <Route path="/student-portfolio/:studentId" element={<StudentPortfolio />} />
                 </>
               )}
 

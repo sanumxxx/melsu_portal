@@ -58,6 +58,95 @@ def check_student_access(user: User):
             detail="Доступ к портфолио разрешен только студентам"
         )
 
+async def check_portfolio_view_access(user: User, student_id: int, db: Session) -> bool:
+    """Проверка доступа к просмотру портфолио студента"""
+    # Студент может смотреть свое портфолио
+    if user.id == student_id:
+        return True
+    
+    # Администраторы имеют полный доступ
+    if 'admin' in user.roles:
+        return True
+    
+    # Проверяем доступ через систему назначений
+    from ..models.user_assignment import UserDepartmentAssignment
+    from ..models.group import Group
+    from ..models.user_profile import UserProfile
+    from datetime import date
+    
+    # Получаем информацию о студенте
+    student = db.query(User).options(joinedload(User.profile)).filter(
+        User.id == student_id
+    ).first()
+    
+    if not student or not student.profile:
+        return False
+    
+    today = date.today()
+    
+    # Получаем активные назначения текущего пользователя
+    user_assignments = db.query(UserDepartmentAssignment).filter(
+        UserDepartmentAssignment.user_id == user.id
+    ).filter(
+        # Назначение активно, если end_date is None или end_date >= today
+        (UserDepartmentAssignment.end_date.is_(None)) | 
+        (UserDepartmentAssignment.end_date >= today)
+    ).all()
+    
+    if not user_assignments:
+        return False
+    
+    # Для кураторов - проверяем через группы
+    curator_assignments = [a for a in user_assignments if a.assignment_type == 'curator']
+    if curator_assignments:
+        curator_dept_ids = [a.department_id for a in curator_assignments]
+        
+        # Получаем группы в подразделениях куратора
+        groups = db.query(Group).filter(
+            Group.department_id.in_(curator_dept_ids)
+        ).all()
+        
+        if groups:
+            group_ids = [group.id for group in groups]
+            if student.profile.group_id in group_ids:
+                return True
+    
+    # Для обычных назначений - проверяем через факультеты/кафедры
+    regular_assignments = [a for a in user_assignments if a.assignment_type != 'curator']
+    if regular_assignments:
+        from ..models.department import Department
+        
+        regular_dept_ids = [a.department_id for a in regular_assignments]
+        departments = db.query(Department).filter(Department.id.in_(regular_dept_ids)).all()
+        
+        # Расширяем список доступных подразделений с учетом иерархии
+        accessible_faculty_names = set()
+        accessible_department_names = set()
+        
+        for dept in departments:
+            if dept.department_type == 'faculty':
+                accessible_faculty_names.add(dept.name)
+                # Добавляем все кафедры этого факультета
+                child_departments = db.query(Department).filter(
+                    Department.parent_id == dept.id,
+                    Department.department_type == 'department',
+                    Department.is_active == True
+                ).all()
+                for child in child_departments:
+                    accessible_department_names.add(child.name)
+            elif dept.department_type == 'department':
+                accessible_department_names.add(dept.name)
+                # Добавляем факультет этой кафедры
+                if dept.parent:
+                    accessible_faculty_names.add(dept.parent.name)
+        
+        # Проверяем принадлежность студента к доступным подразделениям
+        if student.profile.faculty in accessible_faculty_names or \
+           student.profile.department in accessible_department_names:
+            return True
+    
+    return False
+
 @router.get("/achievements", response_model=List[PortfolioAchievementSchema])
 async def get_achievements(
     category: Optional[AchievementCategorySchema] = None,
@@ -295,4 +384,153 @@ async def get_portfolio_stats(
         total_achievements=total_achievements,
         achievements_by_category=achievements_by_category,
         recent_achievements=recent_achievements
-    ) 
+    )
+
+# Новые endpoint'ы для доступа к портфолио студентов
+
+@router.get("/student/{student_id}/achievements", response_model=List[PortfolioAchievementSchema])
+async def get_student_achievements(
+    student_id: int,
+    category: Optional[AchievementCategorySchema] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение списка достижений студента (для кураторов и сотрудников подразделений)"""
+    
+    # Проверяем доступ
+    has_access = await check_portfolio_view_access(current_user, student_id, db)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет доступа к портфолио этого студента"
+        )
+    
+    # Проверяем, что пользователь действительно студент
+    student = db.query(User).filter(User.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Студент не найден")
+    
+    if 'student' not in (student.roles or []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Указанный пользователь не является студентом"
+        )
+    
+    query = db.query(PortfolioAchievement).options(
+        joinedload(PortfolioAchievement.files)
+    ).filter(PortfolioAchievement.user_id == student_id)
+    
+    if category:
+        query = query.filter(PortfolioAchievement.category == category)
+    
+    achievements = query.order_by(PortfolioAchievement.achievement_date.desc()).all()
+    return achievements
+
+@router.get("/student/{student_id}/stats", response_model=PortfolioStats)
+async def get_student_portfolio_stats(
+    student_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение статистики портфолио студента (для кураторов и сотрудников подразделений)"""
+    
+    # Проверяем доступ
+    has_access = await check_portfolio_view_access(current_user, student_id, db)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет доступа к портфолио этого студента"
+        )
+    
+    # Проверяем, что пользователь действительно студент
+    student = db.query(User).filter(User.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Студент не найден")
+    
+    if 'student' not in (student.roles or []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Указанный пользователь не является студентом"
+        )
+    
+    # Общее количество достижений
+    total_achievements = db.query(PortfolioAchievement).filter(
+        PortfolioAchievement.user_id == student_id
+    ).count()
+    
+    # Статистика по категориям
+    achievements_by_category = {}
+    for category in AchievementCategory:
+        count = db.query(PortfolioAchievement).filter(
+            PortfolioAchievement.user_id == student_id,
+            PortfolioAchievement.category == category
+        ).count()
+        achievements_by_category[category.value] = count
+    
+    # Последние достижения
+    recent_achievements = db.query(PortfolioAchievement).options(
+        joinedload(PortfolioAchievement.files)
+    ).filter(
+        PortfolioAchievement.user_id == student_id
+    ).order_by(PortfolioAchievement.created_at.desc()).limit(5).all()
+    
+    return PortfolioStats(
+        total_achievements=total_achievements,
+        achievements_by_category=achievements_by_category,
+        recent_achievements=recent_achievements
+    )
+
+@router.get("/student/{student_id}/info")
+async def get_student_portfolio_info(
+    student_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение основной информации о студенте для портфолио"""
+    
+    # Проверяем доступ
+    has_access = await check_portfolio_view_access(current_user, student_id, db)
+    if not has_access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас нет доступа к информации об этом студенте"
+        )
+    
+    # Получаем информацию о студенте
+    student = db.query(User).options(
+        joinedload(User.profile),
+        joinedload(User.profile.group)
+    ).filter(User.id == student_id).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Студент не найден")
+    
+    if 'student' not in (student.roles or []):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Указанный пользователь не является студентом"
+        )
+    
+    profile = student.profile
+    
+    return {
+        "id": student.id,
+        "email": student.email,
+        "first_name": student.first_name,
+        "last_name": student.last_name,
+        "middle_name": student.middle_name,
+        "profile": {
+            "student_id": profile.student_id if profile else None,
+            "faculty": profile.faculty if profile else None,
+            "department": profile.department if profile else None,
+            "course": profile.course if profile else None,
+            "education_level": profile.education_level if profile else None,
+            "education_form": profile.education_form if profile else None,
+            "academic_status": profile.academic_status if profile else None,
+            "group": {
+                "id": profile.group.id,
+                "name": profile.group.name,
+                "specialization": profile.group.specialization
+            } if profile and profile.group else None
+        }
+    } 
