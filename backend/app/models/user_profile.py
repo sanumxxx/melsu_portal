@@ -86,6 +86,10 @@ class UserProfile(Base):
     # Новое поле: группа
     group_id = Column(Integer, ForeignKey('groups.id'), nullable=True)
     
+    # Новые поля: факультет и кафедра
+    faculty_id = Column(Integer, ForeignKey('departments.id'), nullable=True)
+    department_id = Column(Integer, ForeignKey('departments.id'), nullable=True)
+    
     # Даты создания и обновления
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -93,6 +97,8 @@ class UserProfile(Base):
     # Связь с основной таблицей пользователей
     user = relationship("User", back_populates="profile")
     group = relationship("Group", backref="members")
+    faculty = relationship("Department", foreign_keys=[faculty_id], backref="faculty_members")
+    department = relationship("Department", foreign_keys=[department_id], backref="department_members")
     # Старые связи с подразделением удалены - используйте UserDepartmentAssignment
     
     def __repr__(self):

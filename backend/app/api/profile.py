@@ -88,6 +88,32 @@ async def update_extended_profile(
             profile.education_level = group.parsed_education_level
             profile.education_form = group.parsed_education_form
     
+    # Проверяем и обновляем связи с факультетом
+    if 'faculty_id' in update_data:
+        faculty_id = update_data['faculty_id']
+        if faculty_id:
+            faculty = db.query(Department).filter(
+                Department.id == faculty_id,
+                Department.department_type == 'faculty'
+            ).first()
+            if not faculty:
+                raise HTTPException(status_code=404, detail="Факультет не найден")
+            # Обновляем текстовое поле факультета
+            profile.faculty = faculty.name
+    
+    # Проверяем и обновляем связи с кафедрой
+    if 'department_id' in update_data:
+        department_id = update_data['department_id']
+        if department_id:
+            department = db.query(Department).filter(
+                Department.id == department_id,
+                Department.department_type.in_(['chair', 'department'])
+            ).first()
+            if not department:
+                raise HTTPException(status_code=404, detail="Кафедра не найдена")
+            # Обновляем текстовое поле кафедры
+            profile.department = department.name
+    
     # Обновляем остальные поля
     for field, value in update_data.items():
         if hasattr(profile, field):
@@ -111,9 +137,33 @@ async def update_extended_profile(
                 "education_form": group.parsed_education_form
             }
     
+    faculty_info = None
+    if profile.faculty_id:
+        faculty = db.query(Department).filter(Department.id == profile.faculty_id).first()
+        if faculty:
+            faculty_info = {
+                "id": faculty.id,
+                "name": faculty.name,
+                "short_name": faculty.short_name,
+                "department_type": faculty.department_type
+            }
+    
+    department_info = None
+    if profile.department_id:
+        department = db.query(Department).filter(Department.id == profile.department_id).first()
+        if department:
+            department_info = {
+                "id": department.id,
+                "name": department.name,
+                "short_name": department.short_name,
+                "department_type": department.department_type
+            }
+    
     # Формируем ответ с полной информацией
     response_data = profile.__dict__
     response_data['group'] = group_info
+    response_data['faculty_info'] = faculty_info
+    response_data['department_info'] = department_info
     
     return response_data
 
@@ -182,14 +232,6 @@ async def get_basic_profile(current_user_id: int = Depends(get_current_user_id),
         "updated_at": user.updated_at.isoformat() if user.updated_at else None
     }
     
-    # Получаем или создаем профиль
-    if not profile:
-        # Создаем пустой профиль если его нет
-        profile = UserProfile(user_id=current_user_id)
-        db.add(profile)
-        db.commit()
-        db.refresh(profile)
-    
     # Получаем информацию о группе если она указана
     group_info = None
     if profile.group_id:
@@ -203,6 +245,30 @@ async def get_basic_profile(current_user_id: int = Depends(get_current_user_id),
                 "admission_year": group.parsed_year,
                 "education_level": group.parsed_education_level,
                 "education_form": group.parsed_education_form
+            }
+    
+    # Получаем информацию о факультете если он указан
+    faculty_info = None
+    if profile.faculty_id:
+        faculty = db.query(Department).filter(Department.id == profile.faculty_id).first()
+        if faculty:
+            faculty_info = {
+                "id": faculty.id,
+                "name": faculty.name,
+                "short_name": faculty.short_name,
+                "department_type": faculty.department_type
+            }
+    
+    # Получаем информацию о кафедре если она указана
+    department_info_profile = None
+    if profile.department_id:
+        department_profile = db.query(Department).filter(Department.id == profile.department_id).first()
+        if department_profile:
+            department_info_profile = {
+                "id": department_profile.id,
+                "name": department_profile.name,
+                "short_name": department_profile.short_name,
+                "department_type": department_profile.department_type
             }
     
     # Добавляем все данные профиля
@@ -240,6 +306,10 @@ async def get_basic_profile(current_user_id: int = Depends(get_current_user_id),
         "student_id": profile.student_id,
         "group_id": profile.group_id,
         "group": group_info,
+        "faculty_id": profile.faculty_id,
+        "faculty_info": faculty_info,
+        "department_id": profile.department_id,
+        "department_info": department_info_profile,
         "course": profile.course,
         "semester": profile.semester,
         "faculty": profile.faculty,

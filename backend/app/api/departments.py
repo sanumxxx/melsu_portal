@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
 from ..models.department import Department
 from ..models.user import User
-from ..models.user_profile import UserProfile
+from ..models.user_assignment import UserDepartmentAssignment
 from ..models.role import Role
 from ..schemas.department import DepartmentCreate, DepartmentUpdate, DepartmentResponse, DepartmentTree
+from ..dependencies import get_current_user, UserInfo
 
 router = APIRouter()
 
@@ -303,4 +304,53 @@ async def get_department_employees(
         "department_name": department.name,
         "employees": employee_list,
         "total_count": len(employee_list)
-    } 
+    }
+
+@router.get("/faculties")
+async def get_faculties(
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получить список факультетов"""
+    faculties = db.query(Department).filter(
+        Department.department_type == 'faculty',
+        Department.is_active == True
+    ).order_by(Department.name).all()
+    
+    return [
+        {
+            "id": faculty.id,
+            "name": faculty.name,
+            "short_name": faculty.short_name,
+            "department_type": faculty.department_type
+        }
+        for faculty in faculties
+    ]
+
+@router.get("/chairs")
+async def get_chairs(
+    faculty_id: Optional[int] = Query(None, description="Фильтр по факультету"),
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user)
+):
+    """Получить список кафедр"""
+    query = db.query(Department).filter(
+        Department.department_type.in_(['chair', 'department']),
+        Department.is_active == True
+    )
+    
+    if faculty_id:
+        query = query.filter(Department.parent_id == faculty_id)
+    
+    chairs = query.order_by(Department.name).all()
+    
+    return [
+        {
+            "id": chair.id,
+            "name": chair.name,
+            "short_name": chair.short_name,
+            "department_type": chair.department_type,
+            "parent_id": chair.parent_id
+        }
+        for chair in chairs
+    ] 

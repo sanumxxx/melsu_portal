@@ -39,6 +39,8 @@ class UserProfileAcademic(BaseModel):
     
     student_id: Optional[str] = Field(None, max_length=50, description="Номер студенческого билета")
     group_id: Optional[int] = Field(None, description="ID группы")
+    faculty_id: Optional[int] = Field(None, description="ID факультета")
+    department_id: Optional[int] = Field(None, description="ID кафедры")
     course: Optional[int] = Field(None, ge=1, le=6, description="Курс обучения")
     semester: Optional[int] = Field(None, ge=1, le=12, description="Семестр")
     faculty: Optional[str] = Field(None, max_length=200, description="Факультет")
@@ -121,6 +123,7 @@ class UserProfileResponse(UserProfileCreate):
     id: int
     user_id: int
     department_id: Optional[int] = None
+    faculty_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     

@@ -544,11 +544,29 @@ const Profile = ({ user }) => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Факультет</label>
-                  <p className="text-gray-900">{profileData.faculty || 'Не указано'}</p>
+                  <p className="text-gray-900">
+                    {profileData.faculty_info ? (
+                      <span>
+                        {profileData.faculty_info.name}
+                        {profileData.faculty_info.short_name && (
+                          <span className="text-gray-500 text-sm ml-2">({profileData.faculty_info.short_name})</span>
+                        )}
+                      </span>
+                    ) : (profileData.faculty || 'Не указано')}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Кафедра</label>
-                  <p className="text-gray-900">{profileData.department || 'Не указано'}</p>
+                  <p className="text-gray-900">
+                    {profileData.department_info ? (
+                      <span>
+                        {profileData.department_info.name}
+                        {profileData.department_info.short_name && (
+                          <span className="text-gray-500 text-sm ml-2">({profileData.department_info.short_name})</span>
+                        )}
+                      </span>
+                    ) : (profileData.department || 'Не указано')}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Специальность</label>
