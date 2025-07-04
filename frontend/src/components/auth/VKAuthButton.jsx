@@ -96,8 +96,8 @@ const VKAuthButton = ({ onSuccess, onError, disabled = false }) => {
   return (
     <div 
       ref={containerRef}
-      className={`vk-auth-button ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
-      style={{ minHeight: '40px' }}
+      className={`vk-auth-button w-full flex items-center justify-center ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+      style={{ minHeight: '44px' }}
     />
   );
 };

@@ -606,148 +606,177 @@ const Profile = ({ user }) => {
 
         {/* Социальные сети */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
-            <LinkIcon className="w-5 h-5 text-red-600 mr-2" />
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <LinkIcon className="w-6 h-6 text-red-600 mr-2" />
             Социальные сети
           </h3>
           
           <div className="space-y-4">
             {/* ВКонтакте */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
-                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M21.579 6.855c.14-.465 0-.806-.662-.806h-2.193c-.558 0-.813.295-.953.62 0 0-1.115 2.72-2.693 4.487-.511.512-.744.674-1.023.674-.14 0-.341-.162-.341-.627V6.855c0-.558-.161-.806-.625-.806H9.642c-.348 0-.558.258-.558.504 0 .528.79.65.871 2.138v3.228c0 .708-.127.836-.407.836-.744 0-2.551-2.729-3.624-5.853-.209-.607-.42-.852-.979-.852H2.752c-.627 0-.752.295-.752.62 0 .58.744 3.46 3.461 7.271 1.812 2.601 4.363 4.011 6.687 4.011 1.393 0 1.565-.314 1.565-.853v-1.966c0-.627.132-.752.574-.752.325 0 .882.162 2.182 1.408 1.486 1.486 1.732 2.153 2.567 2.153h2.193c.627 0 .94-.314.759-.931-.196-.615-.899-1.514-1.829-2.576-.512-.604-1.277-1.254-1.51-1.579-.325-.418-.233-.604 0-.976.001-.001 2.672-3.761 2.951-5.040z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-lg">ВКонтакте</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        socialConnections.vk_connected 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {socialConnections.vk_connected ? (
-                          <>
-                            <CheckBadgeIcon className="w-3 h-3 mr-1" />
-                            Подключен
-                          </>
-                        ) : (
-                          'Не подключен'
-                        )}
-                      </span>
-                      {socialConnections.vk_connected && socialConnections.vk_user_info && (
-                        <span className="text-sm text-gray-600">
-                          {socialConnections.vk_user_info.first_name} {socialConnections.vk_user_info.last_name}
+            <div className="social-network-card">
+              <div className="flex flex-col gap-4">
+                {/* Заголовок с иконкой */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21.579 6.855c.14-.465 0-.806-.662-.806h-2.193c-.558 0-.813.295-.953.62 0 0-1.115 2.72-2.693 4.487-.511.512-.744.674-1.023.674-.14 0-.341-.162-.341-.627V6.855c0-.558-.161-.806-.625-.806H9.642c-.348 0-.558.258-.558.504 0 .528.79.65.871 2.138v3.228c0 .708-.127.836-.407.836-.744 0-2.551-2.729-3.624-5.853-.209-.607-.42-.852-.979-.852H2.752c-.627 0-.752.295-.752.62 0 .58.744 3.46 3.461 7.271 1.812 2.601 4.363 4.011 6.687 4.011 1.393 0 1.565-.314 1.565-.853v-1.966c0-.627.132-.752.574-.752.325 0 .882.162 2.182 1.408 1.486 1.486 1.732 2.153 2.567 2.153h2.193c.627 0 .94-.314.759-.931-.196-.615-.899-1.514-1.829-2.576-.512-.604-1.277-1.254-1.51-1.579-.325-.418-.233-.604 0-.976.001-.001 2.672-3.761 2.951-5.040z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg">ВКонтакте</h4>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          socialConnections.vk_connected 
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                            : 'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}>
+                          {socialConnections.vk_connected ? (
+                            <>
+                              <CheckBadgeIcon className="w-3 h-3 mr-1" />
+                              Подключен
+                            </>
+                          ) : (
+                            'Не подключен'
+                          )}
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                {/* Информация о пользователе */}
+                {socialConnections.vk_connected && socialConnections.vk_user_info && (
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                    <div className="flex items-center gap-2 text-sm">
+                      <UserIcon className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-blue-900">
+                        {socialConnections.vk_user_info.first_name} {socialConnections.vk_user_info.last_name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Действия */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   {socialConnections.vk_connected ? (
-                    <div className="flex items-center gap-2">
+                    <>
                       {getVkUrl(socialConnections.vk_user_info) && (
                         <a 
                           href={getVkUrl(socialConnections.vk_user_info)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
+                          className="social-button primary flex-1 justify-center"
                         >
+                          <LinkIcon className="w-4 h-4 mr-2" />
                           Открыть профиль
                         </a>
                       )}
                       <button
                         onClick={disconnectVk}
                         disabled={socialLoading}
-                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200 transition-colors disabled:opacity-50"
+                        className="social-button danger flex-1 justify-center"
                         title="Отключить ВКонтакте"
                       >
-                        <XMarkIcon className="w-4 h-4 mr-1" />
+                        <XMarkIcon className="w-4 h-4 mr-2" />
                         Отключить
                       </button>
-                    </div>
+                    </>
                   ) : (
-                    <VKAuthButton
-                      onSuccess={handleVkSuccess}
-                      onError={handleVkError}
-                      disabled={connectingVk}
-                    />
+                    <div className="w-full flex justify-center">
+                      <VKAuthButton
+                        onSuccess={handleVkSuccess}
+                        onError={handleVkError}
+                        disabled={connectingVk}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Telegram */}
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
-                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-lg">Telegram</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        socialConnections.telegram_connected 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {socialConnections.telegram_connected ? (
-                          <>
-                            <CheckBadgeIcon className="w-3 h-3 mr-1" />
-                            Подключен
-                          </>
-                        ) : (
-                          'Не подключен'
-                        )}
-                      </span>
-                      {socialConnections.telegram_connected && socialConnections.telegram_user_info && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600">
-                            {socialConnections.telegram_user_info.first_name} {socialConnections.telegram_user_info.last_name || ''}
-                          </span>
-                          {socialConnections.telegram_user_info.username && (
-                            <span className="text-sm text-blue-600 font-medium">
-                              @{socialConnections.telegram_user_info.username}
-                            </span>
+            <div className="social-network-card">
+              <div className="flex flex-col gap-4">
+                {/* Заголовок с иконкой */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-lg">Telegram</h4>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          socialConnections.telegram_connected 
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                            : 'bg-gray-100 text-gray-700 border border-gray-200'
+                        }`}>
+                          {socialConnections.telegram_connected ? (
+                            <>
+                              <CheckBadgeIcon className="w-3 h-3 mr-1" />
+                              Подключен
+                            </>
+                          ) : (
+                            'Не подключен'
                           )}
-                        </div>
-                      )}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                {/* Информация о пользователе */}
+                {socialConnections.telegram_connected && socialConnections.telegram_user_info && (
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <UserIcon className="w-4 h-4 text-blue-600" />
+                        <span className="font-medium text-blue-900">
+                          {socialConnections.telegram_user_info.first_name} {socialConnections.telegram_user_info.last_name || ''}
+                        </span>
+                      </div>
+                      {socialConnections.telegram_user_info.username && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-blue-600">@</span>
+                          <span className="font-medium text-blue-600">
+                            {socialConnections.telegram_user_info.username}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Действия */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   {socialConnections.telegram_connected ? (
-                    <div className="flex items-center gap-2">
+                    <>
                       {getTelegramUrl(socialConnections.telegram_user_info) && (
                         <a 
                           href={getTelegramUrl(socialConnections.telegram_user_info)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors"
+                          className="social-button primary flex-1 justify-center"
                         >
+                          <LinkIcon className="w-4 h-4 mr-2" />
                           Открыть профиль
                         </a>
                       )}
                       <button
                         onClick={disconnectTelegram}
                         disabled={socialLoading}
-                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200 transition-colors disabled:opacity-50"
+                        className="social-button danger flex-1 justify-center"
                         title="Отключить Telegram"
                       >
-                        <XMarkIcon className="w-4 h-4 mr-1" />
+                        <XMarkIcon className="w-4 h-4 mr-2" />
                         Отключить
                       </button>
-                    </div>
+                    </>
                   ) : (
-                    <div className="telegram-login-widget">
+                    <div className="w-full flex justify-center">
                       <TelegramLoginWidget
                         onAuth={handleTelegramAuth}
                         botName="melsu_portal_auth_bot"
