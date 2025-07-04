@@ -14,8 +14,9 @@ from datetime import datetime
 
 from .database import get_db
 from .models.role import Role
-from .models.field import FieldType
+from .models.field import FieldType, Field
 from .models.department import Department
+from .models.request_template import RequestTemplate
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -183,43 +184,43 @@ BASE_DEPARTMENTS = [
     {
         "name": "Администрация",
         "description": "Административное управление университета",
-        "code": "ADMIN",
+        "department_type": "management",
         "is_active": True
     },
     {
         "name": "Деканат",
         "description": "Управление факультетами",
-        "code": "DEAN",
+        "department_type": "management",
         "is_active": True
     },
     {
         "name": "Учебная часть",
         "description": "Управление учебным процессом",
-        "code": "STUDY",
+        "department_type": "management",
         "is_active": True
     },
     {
         "name": "Приёмная комиссия",
         "description": "Приём абитуриентов",
-        "code": "ADMISSIONS",
+        "department_type": "service",
         "is_active": True
     },
     {
         "name": "Студенческий отдел",
         "description": "Работа со студентами",
-        "code": "STUDENT_OFFICE",
+        "department_type": "service",
         "is_active": True
     },
     {
         "name": "Библиотека",
         "description": "Библиотечные услуги",
-        "code": "LIBRARY",
+        "department_type": "service",
         "is_active": True
     },
     {
         "name": "IT-отдел",
         "description": "Информационные технологии",
-        "code": "IT",
+        "department_type": "service",
         "is_active": True
     }
 ]
@@ -303,7 +304,7 @@ def init_base_departments(db: Session) -> dict:
     for dept_data in BASE_DEPARTMENTS:
         try:
             existing = db.query(Department).filter(
-                Department.code == dept_data["code"]
+                Department.name == dept_data["name"]
             ).first()
             
             if existing:
@@ -317,6 +318,159 @@ def init_base_departments(db: Session) -> dict:
                 
         except Exception as e:
             logger.error(f"❌ Ошибка при обработке департамента {dept_data['name']}: {e}")
+            stats['errors'] += 1
+    
+    return stats
+
+def init_request_templates(db: Session) -> dict:
+    """Инициализация шаблонов заявок."""
+    stats = {'created': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+    
+    logger.info("🔧 Инициализация шаблонов заявок...")
+    
+    # Получаем ID типов полей
+    select_type = db.query(FieldType).filter(FieldType.name == "select").first()
+    text_type = db.query(FieldType).filter(FieldType.name == "text").first()
+    
+    if not select_type or not text_type:
+        logger.error("❌ Не найдены необходимые типы полей")
+        stats['errors'] += 1
+        return stats
+    
+    # Проверяем существование шаблона привязки к факультету
+    existing_template = db.query(RequestTemplate).filter(
+        RequestTemplate.name == "Привязка к факультету/кафедре"
+    ).first()
+    
+    if existing_template:
+        # Обновляем существующий шаблон
+        try:
+            # Получаем все факультеты для options
+            faculties = db.query(Department).filter(Department.parent_id.is_(None)).all()
+            faculty_options = [{"value": str(f.id), "label": f.name} for f in faculties]
+            
+            # Получаем все кафедры для options
+            departments = db.query(Department).filter(Department.parent_id.isnot(None)).all()
+            department_options = [{"value": str(d.id), "label": d.name} for d in departments]
+            
+            # Обновляем базовые поля шаблона
+            existing_template.description = "Заявка на привязку студента к факультету и кафедре"
+            existing_template.is_active = True
+            
+            # Удаляем старые поля
+            for field in existing_template.fields:
+                db.delete(field)
+            
+            # Создаем новые поля
+            # Поле факультета
+            faculty_field = Field(
+                name="faculty_id",
+                label="Факультет",
+                field_type_id=select_type.id,
+                is_required=True,
+                options=faculty_options,
+                profile_field_mapping="faculty_id",
+                update_profile_on_approve=True,
+                template_id=existing_template.id
+            )
+            db.add(faculty_field)
+            
+            # Поле кафедры
+            department_field = Field(
+                name="department_id",
+                label="Кафедра",
+                field_type_id=select_type.id,
+                is_required=True,
+                options=department_options,
+                profile_field_mapping="department_id",
+                update_profile_on_approve=True,
+                template_id=existing_template.id
+            )
+            db.add(department_field)
+            
+            # Поле группы (опционально)
+            group_field = Field(
+                name="group_id",
+                label="Группа",
+                field_type_id=text_type.id,
+                is_required=False,
+                profile_field_mapping="group_id",
+                update_profile_on_approve=True,
+                template_id=existing_template.id
+            )
+            db.add(group_field)
+            
+            stats['updated'] += 1
+            logger.info("🔄 Обновлен шаблон: Привязка к факультету/кафедре")
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка при обновлении шаблона: {e}")
+            stats['errors'] += 1
+    else:
+        # Создаем новый шаблон
+        try:
+            # Получаем все факультеты для options
+            faculties = db.query(Department).filter(Department.parent_id.is_(None)).all()
+            faculty_options = [{"value": str(f.id), "label": f.name} for f in faculties]
+            
+            # Получаем все кафедры для options
+            departments = db.query(Department).filter(Department.parent_id.isnot(None)).all()
+            department_options = [{"value": str(d.id), "label": d.name} for d in departments]
+            
+            # Создаем новый шаблон
+            template = RequestTemplate(
+                name="Привязка к факультету/кафедре",
+                description="Заявка на привязку студента к факультету и кафедре",
+                is_active=True
+            )
+            
+            db.add(template)
+            db.flush()  # Получаем ID шаблона
+            
+            # Создаем поля для шаблона
+            # Поле факультета
+            faculty_field = Field(
+                name="faculty_id",
+                label="Факультет",
+                field_type_id=select_type.id,
+                is_required=True,
+                options=faculty_options,
+                profile_field_mapping="faculty_id",
+                update_profile_on_approve=True,
+                template_id=template.id
+            )
+            db.add(faculty_field)
+            
+            # Поле кафедры
+            department_field = Field(
+                name="department_id",
+                label="Кафедра",
+                field_type_id=select_type.id,
+                is_required=True,
+                options=department_options,
+                profile_field_mapping="department_id",
+                update_profile_on_approve=True,
+                template_id=template.id
+            )
+            db.add(department_field)
+            
+            # Поле группы (опционально)
+            group_field = Field(
+                name="group_id",
+                label="Группа",
+                field_type_id=text_type.id,
+                is_required=False,
+                profile_field_mapping="group_id",
+                update_profile_on_approve=True,
+                template_id=template.id
+            )
+            db.add(group_field)
+            
+            stats['created'] += 1
+            logger.info("✅ Создан шаблон: Привязка к факультету/кафедре")
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка при создании шаблона: {e}")
             stats['errors'] += 1
     
     return stats
@@ -348,6 +502,7 @@ def startup_application():
     - Инициализацию системных ролей
     - Инициализацию типов полей
     - Инициализацию базовых департаментов
+    - Инициализацию шаблонов заявок
     """
     logger.info("🚀 Запуск приложения University Portal...")
     
@@ -369,13 +524,16 @@ def startup_application():
             # Инициализируем базовые департаменты
             depts_stats = init_base_departments(db)
             
+            # Инициализируем шаблоны заявок
+            templates_stats = init_request_templates(db)
+            
             # Сохраняем все изменения
             db.commit()
             
             # Выводим общую статистику
-            total_created = roles_stats['created'] + fields_stats['created'] + depts_stats['created']
-            total_updated = roles_stats['updated'] + fields_stats['updated'] + depts_stats['updated']
-            total_errors = roles_stats['errors'] + fields_stats['errors'] + depts_stats['errors']
+            total_created = roles_stats['created'] + fields_stats['created'] + depts_stats['created'] + templates_stats['created']
+            total_updated = roles_stats['updated'] + fields_stats['updated'] + depts_stats['updated'] + templates_stats['updated']
+            total_errors = roles_stats['errors'] + fields_stats['errors'] + depts_stats['errors'] + templates_stats['errors']
             
             logger.info("📊 Общая статистика инициализации:")
             logger.info(f"   ✅ Создано объектов: {total_created}")

@@ -1,98 +1,120 @@
-# Database and migrations reset script for MelGU (Windows)
-# Author: MelGU Development Team
-# Date: 2025-07-02
+# MELSU Portal - Database Reset Script (PowerShell)
+# Author: Sasha Honcharov (sanumxxx@yandex.ru)
 
-Write-Host "Starting full database and migrations reset for MelGU..." -ForegroundColor Cyan
+Write-Host "Database Reset for MELSU Portal" -ForegroundColor Blue
+Write-Host "===============================" -ForegroundColor Blue
+Write-Host ""
 
-# Direct database connection parameters
-$DB_USER = "melsu_user"
-$DB_NAME = "melsu_db"
-$DB_HOST = "localhost"
-$DB_PASSWORD = "MelsuPortal2024!"
-
-Write-Host "Database connection: $DB_USER@$DB_HOST/$DB_NAME" -ForegroundColor Yellow
-
-# Set PGPASSWORD environment variable for psql
-$env:PGPASSWORD = $DB_PASSWORD
-
-# 1. Clear database
-Write-Host "Step 1: Full database cleanup..." -ForegroundColor Cyan
-
-try {
-    # Execute SQL commands via psql
-    $sqlCommands = "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO $DB_USER; GRANT ALL ON SCHEMA public TO public;"
-    echo $sqlCommands | psql -U $DB_USER -h $DB_HOST -d $DB_NAME
-    Write-Host "SUCCESS: Database cleared" -ForegroundColor Green
-}
-catch {
-    Write-Host "ERROR: Failed to clear database!" -ForegroundColor Red
-    Write-Host "Please execute commands manually:" -ForegroundColor Yellow
-    Write-Host "   psql -U $DB_USER -h $DB_HOST -d $DB_NAME" -ForegroundColor White
-    Write-Host "   DROP SCHEMA public CASCADE;" -ForegroundColor White
-    Write-Host "   CREATE SCHEMA public;" -ForegroundColor White
-    Write-Host "   GRANT ALL ON SCHEMA public TO $DB_USER;" -ForegroundColor White
-    Write-Host "   GRANT ALL ON SCHEMA public TO public;" -ForegroundColor White
+# Check if we're in the correct directory
+if (!(Test-Path "alembic.ini")) {
+    Write-Host "ERROR: alembic.ini not found. Make sure you're in the backend directory" -ForegroundColor Red
     exit 1
 }
 
-# 2. Clear migration files
-Write-Host "Step 2: Clear migration files..." -ForegroundColor Cyan
-Remove-Item -Path "alembic\versions\*.py" -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "alembic\versions\__pycache__" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Host "SUCCESS: Migration files deleted" -ForegroundColor Green
-
-# 3. Create new initial migration
-Write-Host "Step 3: Creating new initial migration..." -ForegroundColor Cyan
-try {
-    python -m alembic revision --autogenerate -m "Initial migration"
-    Write-Host "SUCCESS: Initial migration created" -ForegroundColor Green
-}
-catch {
-    Write-Host "ERROR: Failed to create migration!" -ForegroundColor Red
-    Write-Host "Make sure you are in backend directory and Python is installed" -ForegroundColor Yellow
-    exit 1
-}
-
-# 4. Apply migration
-Write-Host "Step 4: Applying migration..." -ForegroundColor Cyan
-try {
-    python -m alembic upgrade head
-    Write-Host "SUCCESS: Migration applied" -ForegroundColor Green
-}
-catch {
-    Write-Host "ERROR: Failed to apply migration!" -ForegroundColor Red
-    exit 1
-}
-
-# 5. Initialize initial data
-Write-Host "Step 5: Initialize initial data..." -ForegroundColor Cyan
-if (Test-Path "scripts\init_system_roles.py") {
-    try {
-        python scripts\init_system_roles.py
-        Write-Host "SUCCESS: System roles initialized" -ForegroundColor Green
+# Load environment variables
+if (Test-Path "../.env") {
+    Get-Content "../.env" | ForEach-Object {
+        if ($_ -match "^([^#].*)=(.*)$") {
+            [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+        }
     }
-    catch {
-        Write-Host "WARNING: Error initializing system roles" -ForegroundColor Yellow
-    }
+    Write-Host "Environment variables loaded" -ForegroundColor Green
 } else {
-    Write-Host "WARNING: Script init_system_roles.py not found" -ForegroundColor Yellow
+    Write-Host "WARNING: .env file not found, using defaults" -ForegroundColor Yellow
 }
 
-# 6. Check migration status
-Write-Host "Step 6: Check migration status..." -ForegroundColor Cyan
-python -m alembic current
+# Get database connection parameters
+$DB_HOST = if ($env:DB_HOST) { $env:DB_HOST } else { "localhost" }
+$DB_PORT = if ($env:DB_PORT) { $env:DB_PORT } else { "5432" }
+$DB_NAME = if ($env:DB_NAME) { $env:DB_NAME } else { "melsu_db" }
+$DB_USER = if ($env:DB_USER) { $env:DB_USER } else { "melsu_user" }
 
-# Clean up environment variable
-Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+Write-Host "Connection parameters:" -ForegroundColor Blue
+Write-Host "   Database: $DB_NAME" -ForegroundColor White
+Write-Host "   User: $DB_USER" -ForegroundColor White  
+Write-Host "   Host: $DB_HOST`:$DB_PORT" -ForegroundColor White
+Write-Host ""
+
+# Confirmation
+Write-Host "WARNING: All data in the database will be deleted!" -ForegroundColor Yellow
+$confirmation = Read-Host "Continue? (y/N)"
+if (($confirmation -ne "y") -and ($confirmation -ne "Y")) {
+    Write-Host "Operation cancelled" -ForegroundColor Blue
+    exit 0
+}
+
+Write-Host "Starting database reset..." -ForegroundColor Blue
+
+# Drop all tables
+Write-Host "Dropping all tables..." -ForegroundColor Yellow
+$dropTablesScript = @"
+DO `$`$ DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+END `$`$;
+"@
+
+try {
+    & psql -U $DB_USER -h $DB_HOST -d $DB_NAME -c $dropTablesScript 2>$null
+    Write-Host "All tables dropped" -ForegroundColor Green
+} catch {
+    Write-Host "ERROR: Failed to drop tables" -ForegroundColor Red
+    exit 1
+}
+
+# Clear migration history
+Write-Host "Clearing migration history..." -ForegroundColor Yellow
+try {
+    & psql -U $DB_USER -h $DB_HOST -d $DB_NAME -c "DROP TABLE IF EXISTS alembic_version CASCADE;" 2>$null
+} catch {
+    # Ignore errors, table might not exist
+}
+
+# Create all tables
+Write-Host "Creating tables..." -ForegroundColor Yellow
+try {
+    if (Test-Path "venv\Scripts\alembic.exe") {
+        & .\venv\Scripts\alembic.exe upgrade head
+    } else {
+        & alembic upgrade head
+    }
+    Write-Host "Tables created" -ForegroundColor Green
+} catch {
+    Write-Host "ERROR: Failed to create tables" -ForegroundColor Red
+    exit 1
+}
+
+# Initialize base data
+Write-Host "Initializing base data..." -ForegroundColor Yellow
+try {
+    $startupCommand = "from app.startup import startup_application; startup_application()"
+    if (Test-Path "venv\Scripts\python.exe") {
+        & .\venv\Scripts\python.exe -c $startupCommand
+    } else {
+        & python -c $startupCommand
+    }
+    Write-Host "Base data initialized" -ForegroundColor Green
+} catch {
+    Write-Host "ERROR: Failed to initialize data" -ForegroundColor Red
+    exit 1
+}
 
 Write-Host ""
-Write-Host "SUCCESS: Reset completed successfully!" -ForegroundColor Green
+Write-Host "Database successfully reset and initialized!" -ForegroundColor Green
+Write-Host "What was done:" -ForegroundColor Blue
+Write-Host "   - Dropped all tables" -ForegroundColor White
+Write-Host "   - Cleared migration history" -ForegroundColor White
+Write-Host "   - Created new tables" -ForegroundColor White
+Write-Host "   - Initialized system roles" -ForegroundColor White
+Write-Host "   - Initialized field types" -ForegroundColor White
+Write-Host "   - Initialized base departments" -ForegroundColor White
+Write-Host "   - Created department assignment request template" -ForegroundColor White
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "   1. Start server: python run.py" -ForegroundColor White
-Write-Host "   2. Check API: http://localhost:8000/docs" -ForegroundColor White
-Write-Host "   3. Create administrator via API" -ForegroundColor White
-Write-Host ""
-Write-Host "For future model changes use:" -ForegroundColor Yellow
-Write-Host "   python -m alembic revision --autogenerate -m 'Change description'" -ForegroundColor White
-Write-Host "   python -m alembic upgrade head" -ForegroundColor White 
+Write-Host "Next steps:" -ForegroundColor Yellow
+Write-Host "   1. Create admin: python scripts/create_admin.py" -ForegroundColor White
+Write-Host "   2. Add faculties and departments via admin panel" -ForegroundColor White
+Write-Host "   3. Configure users and roles" -ForegroundColor White
+Write-Host "" 
