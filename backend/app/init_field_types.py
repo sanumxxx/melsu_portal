@@ -101,6 +101,13 @@ def init_field_types():
             "description": "Динамический список кафедр",
             "input_type": "select",
             "has_options": True
+        },
+        {
+            "name": "group_select",
+            "label": "Выбор группы",
+            "description": "Динамический список групп",
+            "input_type": "group_select",
+            "has_options": True
         }
     ]
     

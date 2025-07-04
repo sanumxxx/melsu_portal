@@ -199,6 +199,12 @@ PROFILE_FIELDS = {
         "group": "Академическая информация",
         "table": "user_profiles"
     },
+    "group_id": {
+        "label": "ID группы",
+        "type": ProfileFieldType.INTEGER,
+        "group": "Академическая информация",
+        "table": "user_profiles"
+    },
     "course": {
         "label": "Курс",
         "type": ProfileFieldType.INTEGER,

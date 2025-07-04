@@ -583,7 +583,7 @@ const RequestBuilder = () => {
       return;
     }
 
-    if (hasOptions() && fieldOptions.length === 0) {
+    if (hasOptions() && !isDynamicField() && fieldOptions.length === 0) {
       setError('Для данного типа поля необходимо указать хотя бы один вариант ответа');
       return;
     }
@@ -656,6 +656,12 @@ const RequestBuilder = () => {
   const hasOptions = () => {
     const selectedType = getSelectedFieldType();
     return selectedType?.has_options || false;
+  };
+
+  const isDynamicField = () => {
+    const selectedType = getSelectedFieldType();
+    const dynamicTypes = ['faculty_select', 'department_select', 'group_select'];
+    return dynamicTypes.includes(selectedType?.input_type);
   };
 
   // Функции для работы с вариантами ответов

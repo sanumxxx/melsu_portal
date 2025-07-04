@@ -282,6 +282,18 @@ class ProfileUpdateService:
                                 field_value = dept.name
                                 logger.info(f"Преобразован ID кафедры {field_value} в название: {dept.name}")
                     
+                    # Для поля группы - сохраняем ID группы напрямую
+                    if field.name == 'group' and field_value and field.profile_field_mapping == 'group_id':
+                        if field_value.isdigit():
+                            from ..models.group import Group
+                            group = self.db.query(Group).filter(Group.id == int(field_value)).first()
+                            if group:
+                                logger.info(f"Студент будет прикреплен к группе: {group.name} (ID: {group.id})")
+                            else:
+                                logger.error(f"Группа с ID {field_value} не найдена")
+                                errors.append(f"Группа с ID {field_value} не найдена")
+                                continue
+                    
                     if field_value is None or field_value == "":
                         logger.debug(f"Пропуск поля {field.name} - пустое значение")
                         continue
