@@ -226,23 +226,13 @@ async def get_search_fields():
         
         # Достижения
         'gpa': 'Средний балл',
-        'honors': 'Награды и достижения',
-        'scholarships': 'Стипендии',
-        
-        # Навыки и интересы
-        'languages': 'Языки',
-        'computer_skills': 'Компьютерные навыки',
-        'hobbies': 'Хобби и интересы',
         
         # Социальные сети
         'vk_id': 'ВКонтакте ID',
         'telegram_id': 'Telegram ID',
         'telegram_username': 'Telegram Username',
         
-        # Дополнительно
-        'bio': 'Биография/О себе',
-        'profile_visibility': 'Видимость профиля',
-        'avatar_url': 'Ссылка на аватар'
+        # Дополнительно (только поля, которые реально существуют в модели)
     }
     
     # Формируем результат
@@ -479,15 +469,6 @@ async def get_user_details(
         
         # Достижения
         "gpa": profile.gpa if profile else None,
-        "scholarships": profile.scholarships if profile else None,
-        "honors": profile.honors if profile else None,
-        
-        # Навыки и интересы
-        "languages": profile.languages if profile else None,
-        "computer_skills": profile.computer_skills if profile else None,
-        "hobbies": profile.hobbies if profile else None,
-        "bio": profile.bio if profile else None,
-        "education_institutions": profile.education_institutions if profile else None,
         
         # Социальные сети
         "vk_id": profile.vk_id if profile else None,

@@ -1453,12 +1453,6 @@ const Users = () => {
                                 <p className="text-gray-900">{userDetails.profile.education_title}</p>
                               </div>
                             )}
-                            {userDetails.profile.education_institutions && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Учебные заведения</label>
-                                <p className="text-gray-900">{userDetails.profile.education_institutions}</p>
-                              </div>
-                            )}
                             {userDetails.profile.marital_status && (
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Семейное положение</label>
@@ -1481,42 +1475,6 @@ const Users = () => {
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Военная служба</label>
                                 <p className="text-gray-900">{userDetails.profile.military_service}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.scholarships && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Стипендии</label>
-                                <p className="text-gray-900">{userDetails.profile.scholarships}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.honors && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Награды и достижения</label>
-                                <p className="text-gray-900">{userDetails.profile.honors}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.languages && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Языки</label>
-                                <p className="text-gray-900">{userDetails.profile.languages}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.computer_skills && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Компьютерные навыки</label>
-                                <p className="text-gray-900">{userDetails.profile.computer_skills}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.hobbies && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Хобби и интересы</label>
-                                <p className="text-gray-900">{userDetails.profile.hobbies}</p>
-                              </div>
-                            )}
-                            {userDetails.profile.bio && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Биография/О себе</label>
-                                <p className="text-gray-900">{userDetails.profile.bio}</p>
                               </div>
                             )}
                           </div>
