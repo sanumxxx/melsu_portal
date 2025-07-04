@@ -36,6 +36,31 @@ jobs:
           # Переходим в директорию проекта
           cd ${{ env.PROJECT_PATH }}
           
+          # Проверяем системные требования
+          echo "🔍 Проверка системных требований..."
+          
+          # Проверяем и обновляем Node.js если необходимо
+          echo "Node.js версия: $(node --version)"
+          NODE_VERSION=$(node --version | cut -d'v' -f2)
+          NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
+          
+          if [ "$NODE_MAJOR" -lt "20" ]; then
+            echo "⚠️  Обновление Node.js с версии $NODE_VERSION до версии 20 LTS..."
+            
+            # Обновляем Node.js до версии 20 LTS
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            
+            echo "✅ Node.js обновлен до версии $(node --version)"
+          else
+            echo "✅ Node.js версия подходящая: $(node --version)"
+          fi
+          
+          # Исправляем права доступа в начале
+          echo "🔧 Исправление прав доступа для проекта..."
+          sudo chown -R melsu:melsu ${{ env.PROJECT_PATH }}
+          sudo chmod -R 755 ${{ env.PROJECT_PATH }}
+          
           # Проверяем, что команда melsu доступна
           if ! command -v melsu &> /dev/null; then
             echo "⚠️  Команда melsu не найдена, используем стандартные команды..."
@@ -99,6 +124,20 @@ jobs:
           if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/package.json"; then
             echo "📦 Обновление Node.js зависимостей..."
             cd frontend
+            
+            # Исправляем права доступа
+            echo "🔧 Исправление прав доступа для frontend..."
+            sudo chown -R melsu:melsu .
+            sudo chmod -R 755 .
+            
+            # Очищаем кеш перед установкой
+            sudo -u melsu npm cache clean --force
+            
+            # Удаляем package-lock.json если есть проблемы с правами
+            if [ -f "package-lock.json" ]; then
+              sudo rm -f package-lock.json
+            fi
+            
             sudo -u melsu npm install
             cd ..
           fi
@@ -155,7 +194,69 @@ jobs:
           if git diff --name-only $CURRENT_COMMIT HEAD | grep -q "frontend/"; then
             echo "🏗️  Сборка frontend..."
             cd frontend
+            
+            # Исправляем права доступа перед сборкой
+            echo "🔧 Исправление прав доступа..."
+            sudo chown -R melsu:melsu .
+            sudo chmod -R 755 .
+            
+            # Проверяем версию Node.js
+            echo "🔍 Проверка версии Node.js..."
+            node --version
+            npm --version
+            
+            # Обновляем Node.js если версия не поддерживается
+            NODE_VERSION=$(node --version | cut -d'v' -f2)
+            NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1)
+            
+            if [ "$NODE_MAJOR" -lt "20" ]; then
+              echo "⚠️  Обновление Node.js с версии $NODE_VERSION..."
+              
+              # Устанавливаем Node.js 20 LTS
+              curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+              
+              echo "✅ Node.js обновлен до версии $(node --version)"
+            fi
+            
+            # Очищаем кеш npm и переустанавливаем зависимости
+            echo "🧹 Очистка npm кеша..."
+            sudo -u melsu npm cache clean --force
+            
+            # Удаляем старые файлы
+            if [ -f "package-lock.json" ]; then
+              echo "🗑️  Удаляем старый package-lock.json..."
+              sudo rm -f package-lock.json
+            fi
+            
+            if [ -d "node_modules" ]; then
+              echo "🗑️  Удаляем старый node_modules..."
+              sudo rm -rf node_modules
+            fi
+            
+            # Устанавливаем зависимости
+            echo "📦 Установка зависимостей..."
             sudo -u melsu npm install
+            
+            # Собираем проект
+            echo "🔨 Сборка проекта..."
+            if sudo -u melsu npm run build; then
+              echo "✅ Frontend собран успешно"
+            else
+              echo "❌ Ошибка сборки frontend!"
+              echo "📋 Диагностическая информация:"
+              echo "Node.js версия: $(node --version)"
+              echo "NPM версия: $(npm --version)"
+              echo "Права доступа:"
+              ls -la package.json package-lock.json
+              echo "📋 Проверяем наличие основных файлов:"
+              ls -la src/
+              echo "🔄 Откатываю к предыдущему коммиту..."
+              cd ..
+              git reset --hard $CURRENT_COMMIT
+              exit 1
+            fi
+            
             cd ..
           fi
           
