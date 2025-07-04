@@ -36,6 +36,9 @@ async def connect_vk_account(
 ):
     """Подключить VK аккаунт через VK ID SDK"""
     try:
+        print(f"🔍 VK OAuth: Получен запрос от пользователя {current_user.id}")
+        print(f"🔍 VK OAuth: Данные - user_id: {oauth_data.user_id}, expires_in: {oauth_data.expires_in}")
+        
         access_token = oauth_data.access_token
         user_id = oauth_data.user_id
         expires_in = oauth_data.expires_in or 3600
@@ -72,8 +75,10 @@ async def connect_vk_account(
                 )
             
             vk_user_data = user_info["response"][0]
+            print(f"🔍 VK OAuth: Получены данные пользователя VK: {vk_user_data}")
             
             # Проверяем, не привязан ли уже этот VK аккаунт к другому пользователю
+            print(f"🔍 VK OAuth: Проверяем существующий профиль для VK ID: {user_id}")
             existing_profile = db.query(UserProfile).filter(
                 UserProfile.vk_id == str(user_id),
                 UserProfile.user_id != current_user.id
@@ -86,21 +91,28 @@ async def connect_vk_account(
                 )
             
             # Получаем или создаем профиль текущего пользователя
+            print(f"🔍 VK OAuth: Ищем профиль для пользователя {current_user.id}")
             profile = db.query(UserProfile).filter(
                 UserProfile.user_id == current_user.id
             ).first()
             
             if not profile:
+                print(f"🔍 VK OAuth: Создаем новый профиль для пользователя {current_user.id}")
                 profile = UserProfile(user_id=current_user.id)
                 db.add(profile)
+            else:
+                print(f"🔍 VK OAuth: Найден существующий профиль с ID {profile.id}")
             
             # Обновляем OAuth данные
+            print(f"🔍 VK OAuth: Обновляем OAuth данные")
             profile.vk_id = str(user_id)
             profile.vk_oauth_token = access_token
             profile.vk_oauth_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
             profile.vk_user_info = vk_user_data
             
+            print(f"🔍 VK OAuth: Сохраняем в базу данных")
             db.commit()
+            print(f"🔍 VK OAuth: Успешно сохранено")
             
             return {
                 "message": "VK аккаунт успешно подключен",
@@ -108,11 +120,16 @@ async def connect_vk_account(
             }
             
     except httpx.RequestError as e:
+        print(f"❌ VK OAuth: Ошибка сетевого запроса: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка сетевого запроса: {str(e)}"
         )
     except Exception as e:
+        print(f"❌ VK OAuth: Внутренняя ошибка сервера: {str(e)}")
+        print(f"❌ VK OAuth: Тип ошибки: {type(e)}")
+        import traceback
+        print(f"❌ VK OAuth: Трассировка: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"Внутренняя ошибка сервера: {str(e)}"
