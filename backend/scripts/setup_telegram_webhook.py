@@ -7,10 +7,15 @@ import os
 import asyncio
 
 # Добавляем корневую папку проекта в PYTHONPATH
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, project_root)
 
-from backend.app.services.telegram_service import telegram_service
-from backend.app.core.config import settings
+# Добавляем папку backend в PYTHONPATH
+backend_root = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, backend_root)
+
+from app.services.telegram_service import telegram_service
+from app.core.config import settings
 
 async def setup_webhook():
     """Установка webhook для Telegram бота"""
