@@ -22,6 +22,7 @@ import AnnouncementManager from './components/admin/AnnouncementManager';
 
 
 import CuratorManager from './components/admin/CuratorManager';
+import DirectoryAccessManager from './components/admin/DirectoryAccessManager';
 import Reports from './components/Reports';
 import ReportViewer from './components/ReportViewer';
 import ReportTemplateManager from './components/admin/ReportTemplateManager';
@@ -229,6 +230,7 @@ function App() {
                   <Route path="/admin/groups" element={<Groups />} />
                   <Route path="/admin/announcements" element={<AnnouncementManager />} />
                   <Route path="/admin/curator-manager" element={<CuratorManager />} />
+                  <Route path="/admin/directory-access" element={<DirectoryAccessManager />} />
                   <Route path="/admin/report-templates" element={<ReportTemplateManager />} />
                   <Route path="/admin/activity-logs" element={<ActivityLogs />} />
                   <Route path="/test-roles" element={<TestRoles />} />

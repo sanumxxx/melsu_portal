@@ -40,6 +40,7 @@ class Department(Base):
     parent = relationship("Department", remote_side=[id], back_populates="children")
     children = relationship("Department", back_populates="parent", cascade="all, delete-orphan")
     user_assignments = relationship("UserDepartmentAssignment", back_populates="department", cascade="all, delete-orphan")
+    directory_accesses = relationship("DirectoryAccess", back_populates="department", cascade="all, delete-orphan")
     
     # Свойства для работы с назначениями
     @property

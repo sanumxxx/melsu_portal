@@ -18,14 +18,38 @@ router = APIRouter()
 # ПРОВЕРКА ДОСТУПА
 # ===========================================
 
-def check_directories_access(user: User):
-    """Проверка доступа к справочникам"""
-    allowed_roles = ['admin', 'employee', 'teacher', 'curator']
-    if not any(role in user.roles for role in allowed_roles):
+def check_directories_access(user: User, db: Session, scope: str = "all", department_id: Optional[int] = None):
+    """
+    Проверка доступа к справочникам с использованием новой системы доступа
+    
+    Args:
+        user: Пользователь
+        db: Сессия базы данных
+        scope: Область доступа (students, groups, departments, all)
+        department_id: ID подразделения (если требуется доступ к конкретному)
+    """
+    from ..services.directory_access_service import DirectoryAccessService
+    
+    # Администраторы имеют полный доступ
+    if 'admin' in user.roles:
+        return True
+    
+    # Используем новую систему доступа
+    service = DirectoryAccessService(db)
+    access_result = service.check_user_access(
+        user_id=user.id,
+        department_id=department_id,
+        scope=scope,
+        required_access_type="read"
+    )
+    
+    if not access_result.has_access:
         raise HTTPException(
             status_code=403,
-            detail="Доступ к справочникам разрешен только администраторам, сотрудникам, преподавателям и кураторам"
+            detail="У вас нет доступа к данному разделу справочников. Обратитесь к администратору для получения доступа."
         )
+    
+    return access_result
 
 # ===========================================
 # СПРАВОЧНИК СТУДЕНТОВ
@@ -45,7 +69,7 @@ async def get_students(
     db: Session = Depends(get_db)
 ):
     """Получение списка студентов с пагинацией и фильтрами"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "students")
     
     # Базовый запрос
     query = db.query(User).options(
@@ -204,7 +228,7 @@ async def get_student_details(
     db: Session = Depends(get_db)
 ):
     """Получение детальной информации о студенте"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "students")
     
     student = db.query(User).options(
         joinedload(User.profile)
@@ -310,7 +334,7 @@ async def get_groups(
     db: Session = Depends(get_db)
 ):
     """Получение списка групп с пагинацией и фильтрами"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "groups")
     
     # Базовый запрос
     query = db.query(Group)
@@ -402,7 +426,7 @@ async def get_group_details(
     db: Session = Depends(get_db)
 ):
     """Получение детальной информации о группе"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "groups")
     
     group = db.query(Group).filter(Group.id == group_id).first()
     
@@ -470,7 +494,7 @@ async def get_departments(
     db: Session = Depends(get_db)
 ):
     """Получение списка подразделений"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "departments")
     
     query = db.query(Department).filter(Department.is_active == True)
     
@@ -557,7 +581,7 @@ async def get_departments_tree(
     db: Session = Depends(get_db)
 ):
     """Получение иерархической структуры подразделений"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "departments")
     
     # Получаем все активные подразделения
     departments = db.query(Department).filter(Department.is_active == True).all()
@@ -632,7 +656,7 @@ async def get_department_details(
     db: Session = Depends(get_db)
 ):
     """Получение детальной информации о подразделении"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "departments")
     
     department = db.query(Department).filter(
         Department.id == department_id,
@@ -788,7 +812,7 @@ async def get_directories_stats(
     db: Session = Depends(get_db)
 ):
     """Получение общей статистики по справочникам"""
-    check_directories_access(current_user)
+    check_directories_access(current_user, db, "all")
     
     # Подсчитываем основные метрики
     total_students = db.query(User).filter(text("roles::text LIKE '%student%'")).count()

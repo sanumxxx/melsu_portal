@@ -153,13 +153,14 @@ const Layout = ({ children, user, onLogout }) => {
           icon: CogIcon,
           children: [
             { name: 'Конструктор заявок', href: '/request-builder' },
-            { name: 'Шаблоны отчетов', href: '/admin/report-templates' },
-            { name: 'Управление ролями', href: '/admin/roles' },
-            { name: 'Структура организации', href: '/admin/structure' },
-            { name: 'Группы', href: '/admin/groups' },
-            { name: 'Объявления', href: '/admin/announcements' },
-            { name: 'Кураторы', href: '/admin/curator-manager' },
-            { name: 'Журнал активности', href: '/admin/activity-logs' }
+                    { name: 'Шаблоны отчетов', href: '/admin/report-templates' },
+        { name: 'Управление ролями', href: '/admin/roles' },
+        { name: 'Структура организации', href: '/admin/structure' },
+        { name: 'Группы', href: '/admin/groups' },
+        { name: 'Объявления', href: '/admin/announcements' },
+        { name: 'Кураторы', href: '/admin/curator-manager' },
+        { name: 'Доступ к справочникам', href: '/admin/directory-access' },
+        { name: 'Журнал активности', href: '/admin/activity-logs' }
           ]
         },
         {

@@ -189,6 +189,10 @@ app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"]
 from .api import directories
 app.include_router(directories.router, prefix="/api/directories", tags=["directories"])
 
+# Управление доступом к справочникам
+from .api.admin import directory_access
+app.include_router(directory_access.router, prefix="/api/admin/directory-access", tags=["admin-directory-access"])
+
 
 
 # Система доступа к группам

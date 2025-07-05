@@ -15,11 +15,13 @@ from .announcement import Announcement, AnnouncementView
 from .report_template import ReportTemplate
 from .report import Report
 from .activity_log import ActivityLog, ActionType
+from .directory_access import DirectoryAccess, DirectoryAccessTemplate, AccessType, AccessScope
 
 __all__ = [
     "User", "EmailVerification", "UserProfile", "Gender", "UserRole", "Department", 
-    "UserDepartmentAssignment", "StudentAccess", "RequestTemplate", "RoutingType", "FieldType", "Field", 
+    "UserDepartmentAssignment", "RequestTemplate", "RoutingType", "FieldType", "Field", 
     "Request", "RequestComment", "RequestStatus", "RequestFile", "Role",
     "PortfolioAchievement", "PortfolioFile", "AchievementCategory", "Group",
-    "Announcement", "AnnouncementView", "ReportTemplate", "Report", "ActivityLog", "ActionType"
+    "Announcement", "AnnouncementView", "ReportTemplate", "Report", "ActivityLog", "ActionType",
+    "DirectoryAccess", "DirectoryAccessTemplate", "AccessType", "AccessScope"
 ] 
