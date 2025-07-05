@@ -577,7 +577,7 @@ async def get_student_portfolio_info(
         "profile": {
             "student_id": profile.student_id if profile else None,
             "phone": profile.phone if profile else None,
-            "birth_date": profile.birth_date.isoformat() if profile and profile.birth_date else None,
+            "birth_date": student.birth_date.isoformat() if student.birth_date else None,
             "course": profile.course if profile else None,
             "semester": profile.semester if profile else None,
             "education_level": profile.education_level if profile else None,
