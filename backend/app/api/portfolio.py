@@ -513,10 +513,7 @@ async def get_student_portfolio_info(
     from ..models.department import Department
     
     student = db.query(User).options(
-        joinedload(User.profile),
-        joinedload(User.profile.group),
-        joinedload(User.profile.faculty_info),
-        joinedload(User.profile.department_info)
+        joinedload(User.profile)
     ).filter(User.id == student_id).first()
     
     if not student:
@@ -539,7 +536,9 @@ async def get_student_portfolio_info(
         if profile.faculty_id:
             faculty_info = db.query(Department).filter(Department.id == profile.faculty_id).first()
         if profile.department_id:
-            department_info = db.query(Department).filter(Department.id == profile.department_id).first()
+            department_info = db.query(Department).options(
+                joinedload(Department.parent)
+            ).filter(Department.id == profile.department_id).first()
         
         # Через старые текстовые поля (для совместимости)
         if not faculty_info and profile.faculty:
@@ -555,16 +554,19 @@ async def get_student_portfolio_info(
     
     # Формируем полную информацию о группе
     group_info = None
-    if profile and profile.group:
-        group_info = {
-            "id": profile.group.id,
-            "name": profile.group.name,
-            "specialization": profile.group.specialization,
-            "course": profile.group.course,
-            "admission_year": profile.group.parsed_year,
-            "education_level": profile.group.parsed_education_level or profile.group.education_level,
-            "education_form": profile.group.parsed_education_form or profile.group.education_form
-        }
+    if profile and profile.group_id:
+        from ..models.group import Group
+        group = db.query(Group).filter(Group.id == profile.group_id).first()
+        if group:
+            group_info = {
+                "id": group.id,
+                "name": group.name,
+                "specialization": group.specialization,
+                "course": group.course,
+                "admission_year": group.parsed_year,
+                "education_level": group.parsed_education_level or group.education_level,
+                "education_form": group.parsed_education_form or group.education_form
+            }
     
     return {
         "id": student.id,

@@ -299,7 +299,7 @@ const StudentsList = () => {
                       <span className="text-gray-600">Уровень образования:</span>
                       <span className="ml-2 text-gray-900">
                         {educationLevels[student.education_level] || student.education_level || 'Не указан'}
-                      </span>
+      </span>
                     </div>
                   </div>
                 </div>
@@ -610,18 +610,18 @@ const StudentsList = () => {
               >
                 <div className="font-medium text-blue-900">
                   {assignment.department_name}
-                </div>
+                      </div>
                 <div className="text-sm text-blue-700">
                   {assignment.department_type === 'faculty' ? 'Факультет' : 'Кафедра'}
-                </div>
+                    </div>
                 <div className="text-xs text-blue-600">
                   Роль: {assignment.role_name}
                 </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+          </div>
+        )}
     </div>
   );
 };

@@ -462,14 +462,14 @@ const GroupList = () => {
               Управление доступными группами ({totalGroups})
             </p>
           </div>
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
           className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-        >
+          >
           <FunnelIcon className="w-4 h-4 mr-2" />
-          Фильтры
-        </button>
+            Фильтры
+          </button>
       </div>
 
       {/* Поиск и фильтры */}
@@ -484,111 +484,111 @@ const GroupList = () => {
               onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
             />
-          </div>
+      </div>
 
-          {showFilters && (
+      {showFilters && (
             <div className="border-t pt-4">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Факультет
                   </label>
-                  <select
-                    value={filters.faculty}
-                    onChange={(e) => handleFilterChange('faculty', e.target.value)}
+              <select
+                value={filters.faculty}
+                onChange={(e) => handleFilterChange('faculty', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="">Все факультеты</option>
-                    {departments
-                      .filter(dept => dept.department_type === 'faculty')
-                      .map(dept => (
+              >
+                <option value="">Все факультеты</option>
+                {departments
+                  .filter(dept => dept.department_type === 'faculty')
+                  .map(dept => (
                         <option key={dept.id} value={dept.name}>
                           {dept.name}
                         </option>
                       ))}
-                  </select>
-                </div>
-                <div>
+              </select>
+            </div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Кафедра
                   </label>
-                  <select
-                    value={filters.department}
-                    onChange={(e) => handleFilterChange('department', e.target.value)}
+              <select
+                value={filters.department}
+                onChange={(e) => handleFilterChange('department', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  >
-                    <option value="">Все кафедры</option>
-                    {departments
-                      .filter(dept => dept.department_type === 'department')
-                      .map(dept => (
+              >
+                <option value="">Все кафедры</option>
+                {departments
+                  .filter(dept => dept.department_type === 'department')
+                  .map(dept => (
                         <option key={dept.id} value={dept.name}>
                           {dept.name}
                         </option>
                       ))}
-                  </select>
-                </div>
-                <div>
+              </select>
+            </div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Курс
                   </label>
-                  <select
-                    value={filters.course}
-                    onChange={(e) => handleFilterChange('course', e.target.value)}
+              <select
+                value={filters.course}
+                onChange={(e) => handleFilterChange('course', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  >
-                    {courseOptions.map(option => (
+              >
+                {courseOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
+                ))}
+              </select>
+            </div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Уровень
                   </label>
-                  <select
-                    value={filters.education_level}
-                    onChange={(e) => handleFilterChange('education_level', e.target.value)}
+              <select
+                value={filters.education_level}
+                onChange={(e) => handleFilterChange('education_level', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  >
-                    {educationLevelOptions.map(option => (
+              >
+                {educationLevelOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
+                ))}
+              </select>
+            </div>
+            <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Форма
                   </label>
-                  <select
-                    value={filters.education_form}
-                    onChange={(e) => handleFilterChange('education_form', e.target.value)}
+              <select
+                value={filters.education_form}
+                onChange={(e) => handleFilterChange('education_form', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  >
-                    {educationFormOptions.map(option => (
+              >
+                {educationFormOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={clearFilters}
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={clearFilters}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
+            >
                   <XMarkIcon className="w-4 h-4 mr-2" />
                   Очистить
-                </button>
-              </div>
-            </div>
-          )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+        </div>
+                        </div>
 
       {/* Список групп */}
       {groups.length === 0 ? (

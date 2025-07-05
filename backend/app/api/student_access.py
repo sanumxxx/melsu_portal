@@ -310,11 +310,9 @@ async def get_my_accessible_students(
             "departments": []
         }
     
-    # Базовый запрос студентов с РАСШИРЕННОЙ фильтрацией
+    # Базовый запрос студентов с правильной загрузкой relationships
     students_query = db.query(User).join(UserProfile).options(
-        joinedload(User.profile).joinedload(UserProfile.faculty),
-        joinedload(User.profile).joinedload(UserProfile.department), 
-        joinedload(User.profile).joinedload(UserProfile.group)
+        joinedload(User.profile)
     ).filter(
         text("roles::text LIKE '%student%'"),
         or_(*filter_conditions)  # Используем OR для всех условий доступа
@@ -389,6 +387,7 @@ async def get_my_accessible_students(
         
         # Проверяем доступ через группу
         if student.profile and student.profile.group_id:
+            from ..models.group import Group
             group = db.query(Group).filter(Group.id == student.profile.group_id).first()
             if group and group.department_id in all_accessible_dept_ids:
                 dept = db.query(Department).filter(Department.id == group.department_id).first()
@@ -447,9 +446,10 @@ async def get_my_accessible_students(
                     }
             
             # Если нет прямых связей, пытаемся получить через группу
-            if (not faculty_info or not department_info) and student.profile.group:
-                group = student.profile.group
-                if group.department_id:
+            if (not faculty_info or not department_info) and student.profile.group_id:
+                from ..models.group import Group
+                group = db.query(Group).filter(Group.id == student.profile.group_id).first()
+                if group and group.department_id:
                     group_dept = db.query(Department).options(
                         joinedload(Department.parent)
                     ).filter(Department.id == group.department_id).first()
@@ -481,11 +481,29 @@ async def get_my_accessible_students(
                                 "department_type": group_dept.department_type
                             }
             
-            # Фоллбэк на старые текстовые поля
-            if not faculty_name and student.profile.faculty:
-                faculty_name = student.profile.faculty
-            if not department_name and student.profile.department:
-                department_name = student.profile.department
+            # Фоллбэк на старые текстовые поля (поля faculty и department не существуют, убираем)
+            # if not faculty_name and student.profile.faculty:
+            #     faculty_name = student.profile.faculty
+            # if not department_name and student.profile.department:
+            #     department_name = student.profile.department
+        
+        # Получаем информацию о группе
+        group_name = None
+        group_info = None
+        if student.profile and student.profile.group_id:
+            from ..models.group import Group
+            group = db.query(Group).filter(Group.id == student.profile.group_id).first()
+            if group:
+                group_name = group.name
+                group_info = {
+                    "id": group.id,
+                    "name": group.name,
+                    "specialization": group.specialization,
+                    "course": group.course,
+                    "admission_year": group.parsed_year,
+                    "education_level": group.parsed_education_level,
+                    "education_form": group.parsed_education_form
+                }
 
         result_students.append({
             "id": student.id,
@@ -499,16 +517,8 @@ async def get_my_accessible_students(
             "faculty_info": faculty_info,
             "department_info": department_info,
             # Информация о группе
-            "group_number": student.profile.group.name if student.profile and student.profile.group else None,
-            "group_info": {
-                "id": student.profile.group.id,
-                "name": student.profile.group.name,
-                "specialization": student.profile.group.specialization,
-                "course": student.profile.group.course,
-                "admission_year": student.profile.group.parsed_year,
-                "education_level": student.profile.group.parsed_education_level,
-                "education_form": student.profile.group.parsed_education_form
-            } if student.profile and student.profile.group else None,
+            "group_number": group_name,
+            "group_info": group_info,
             # Академическая информация
             "course": student.profile.course if student.profile else None,
             "student_id": student.profile.student_id if student.profile else None,
@@ -706,11 +716,9 @@ async def get_accessible_students(
     if not filter_conditions:
         return []
     
-    # Получаем студентов с расширенной фильтрацией
+    # Получаем студентов с правильной загрузкой
     students = db.query(User).join(UserProfile).options(
-        joinedload(User.profile).joinedload(UserProfile.faculty),
-        joinedload(User.profile).joinedload(UserProfile.department), 
-        joinedload(User.profile).joinedload(UserProfile.group)
+        joinedload(User.profile)
     ).filter(
         text("roles::text LIKE '%student%'"),
         or_(*filter_conditions)
@@ -722,6 +730,7 @@ async def get_accessible_students(
         
         # Проверяем доступ через группу
         if student.profile and student.profile.group_id:
+            from ..models.group import Group
             group = db.query(Group).filter(Group.id == student.profile.group_id).first()
             if group and group.department_id in all_accessible_dept_ids:
                 dept = db.query(Department).filter(Department.id == group.department_id).first()
@@ -756,28 +765,12 @@ async def get_accessible_students(
             "roles": student.roles,
             "is_verified": student.is_verified,
             "is_active": student.is_active,
-            "faculty": student.profile.faculty.name if student.profile and student.profile.faculty else None,
-            "department": student.profile.department.name if student.profile and student.profile.department else None,
-            "faculty_info": {
-                "id": student.profile.faculty.id,
-                "name": student.profile.faculty.name,
-                "short_name": student.profile.faculty.short_name,
-                "department_type": student.profile.faculty.department_type
-            } if student.profile and student.profile.faculty else None,
-            "department_info": {
-                "id": student.profile.department.id, 
-                "name": student.profile.department.name,
-                "short_name": student.profile.department.short_name,
-                "department_type": student.profile.department.department_type
-            } if student.profile and student.profile.department else None,
-            "group_number": student.profile.group.name if student.profile and student.profile.group else None,
-            "group_info": {
-                "id": student.profile.group.id,
-                "name": student.profile.group.name,
-                "specialization": student.profile.group.specialization,
-                "course": student.profile.group.course,
-                "admission_year": student.profile.group.parsed_year
-            } if student.profile and student.profile.group else None,
+            "faculty": None,
+            "department": None,
+            "faculty_info": None,
+            "department_info": None,
+            "group_number": None,
+            "group_info": None,
             "course": student.profile.course if student.profile else None,
             "student_id": student.profile.student_id if student.profile else None,
             "education_level": student.profile.education_level if student.profile else None,
@@ -860,16 +853,14 @@ async def get_students_by_department(
     if not filter_conditions:
         return []
     
-    # Получаем студентов с расширенной фильтрацией
+        # Получаем студентов с правильной загрузкой
     students = db.query(User).join(UserProfile).options(
-        joinedload(User.profile).joinedload(UserProfile.faculty),
-        joinedload(User.profile).joinedload(UserProfile.department), 
-        joinedload(User.profile).joinedload(UserProfile.group)
+        joinedload(User.profile)
     ).filter(
         text("roles::text LIKE '%student%'"),
         or_(*filter_conditions)
     ).all()
-    
+
     return students
 
 @router.get("/students/{student_id}/profile")
@@ -889,11 +880,8 @@ async def get_student_profile(
     if 'student' not in (student.roles or []):
         raise HTTPException(status_code=404, detail="Пользователь не является студентом")
     
-    # Получаем профиль студента с связанными данными
-    profile = db.query(UserProfile).options(
-        joinedload(UserProfile.faculty),
-        joinedload(UserProfile.department)
-    ).filter(UserProfile.user_id == student_id).first()
+    # Получаем профиль студента
+    profile = db.query(UserProfile).filter(UserProfile.user_id == student_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Профиль студента не найден")
     
