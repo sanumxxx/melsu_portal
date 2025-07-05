@@ -303,8 +303,8 @@ async def get_my_accessible_students(
     if dept_names:
         filter_conditions.append(
             or_(
-                UserProfile.faculty.in_(dept_names),
-                UserProfile.department.in_(dept_names)
+                UserProfile.__table__.c.faculty.in_(dept_names),
+                UserProfile.__table__.c.department.in_(dept_names)
             )
         )
     
@@ -355,7 +355,7 @@ async def get_my_accessible_students(
             students_query = students_query.filter(
                 or_(
                     UserProfile.faculty_id == faculty.id,      # Прямая связь
-                    UserProfile.faculty == faculty_filter,     # Старое текстовое поле
+                    UserProfile.__table__.c.faculty == faculty_filter,     # Старое текстовое поле
                     # Также через группы этого факультета
                     UserProfile.group_id.in_(
                         db.query(Group.id).filter(Group.department_id == faculty.id).subquery()
@@ -374,7 +374,7 @@ async def get_my_accessible_students(
             students_query = students_query.filter(
                 or_(
                     UserProfile.department_id == department.id,    # Прямая связь
-                    UserProfile.department == department_filter,   # Старое текстовое поле
+                    UserProfile.__table__.c.department == department_filter,   # Старое текстовое поле
                     # Также через группы этой кафедры
                     UserProfile.group_id.in_(
                         db.query(Group.id).filter(Group.department_id == department.id).subquery()
@@ -617,8 +617,8 @@ async def get_accessible_students(
     if dept_names:
         filter_conditions.append(
             or_(
-                UserProfile.faculty.in_(dept_names),
-                UserProfile.department.in_(dept_names)
+                UserProfile.__table__.c.faculty.in_(dept_names),
+                UserProfile.__table__.c.department.in_(dept_names)
             )
         )
     
@@ -699,12 +699,12 @@ async def get_students_by_department(
     # 2. Фильтрация через прямую связь с факультетом
     if department.department_type == 'faculty':
         filter_conditions.append(UserProfile.faculty_id == department_id)
-        filter_conditions.append(UserProfile.faculty == department.name)  # Старое поле
+        filter_conditions.append(UserProfile.__table__.c.faculty == department.name)  # Старое поле
     
     # 3. Фильтрация через прямую связь с кафедрой
     if department.department_type == 'department':
         filter_conditions.append(UserProfile.department_id == department_id)
-        filter_conditions.append(UserProfile.department == department.name)  # Старое поле
+        filter_conditions.append(UserProfile.__table__.c.department == department.name)  # Старое поле
     
     if not filter_conditions:
         return []

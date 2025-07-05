@@ -127,24 +127,18 @@ jobs:
           # ====================
           # 4. FRONTEND
           # ====================
-          echo "🌐 Этап 4: Сборка Frontend..."
+          echo "🌐 Этап 4: Подготовка Frontend..."
           
           cd ${{ env.FRONTEND_PATH }}
           
-          # Проверяем Node.js
-          if ! command -v node &> /dev/null || [ "$(node --version | cut -d'v' -f2 | cut -d'.' -f1)" -lt "18" ]; then
-            echo "📦 Обновление Node.js..."
-            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-          fi
-          
           # Устанавливаем зависимости
           echo "📦 Установка npm зависимостей..."
-          sudo -u melsu npm ci || sudo -u melsu npm install
+          sudo -u melsu npm install
           
-          # Собираем проект
-          echo "🔨 Сборка проекта..."
-          sudo -u melsu npm run build
+          # Запускаем development сервер в фоновом режиме
+          echo "🚀 Запуск development сервера..."
+          sudo -u melsu nohup npm start > /dev/null 2>&1 &
+          echo "Development сервер запущен в фоновом режиме"
           
           # ====================
           # 5. ПЕРЕЗАПУСК СЕРВИСОВ
