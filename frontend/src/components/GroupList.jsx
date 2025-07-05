@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   MagnifyingGlassIcon,
-  AdjustmentsHorizontalIcon,
   UserGroupIcon,
   AcademicCapIcon,
   CalendarIcon,
   BuildingOfficeIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ExclamationTriangleIcon,
+  FunnelIcon,
+  XMarkIcon,
+  InformationCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   EyeIcon,
   PencilIcon,
-  WrenchScrewdriverIcon
+  UsersIcon,
+  BookOpenIcon,
+  GraduationCapIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 
@@ -22,6 +26,7 @@ const GroupList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [departments, setDepartments] = useState([]);
+  const [expandedGroup, setExpandedGroup] = useState(null);
   
   // Фильтры
   const [filters, setFilters] = useState({
@@ -36,7 +41,7 @@ const GroupList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalGroups, setTotalGroups] = useState(0);
-  const pageSize = 10;
+  const pageSize = 20;
 
   // Опции для фильтров
   const courseOptions = [
@@ -61,6 +66,33 @@ const GroupList = () => {
     { value: '2', label: 'Очно-заочная' },
     { value: '3', label: 'Заочная' }
   ];
+
+  const educationLevels = {
+    'bachelor': 'Бакалавриат',
+    'master': 'Магистратура',
+    'postgraduate': 'Аспирантура',
+    'specialist': 'Специалитет',
+    '1': 'Бакалавриат',
+    '3': 'Магистратура'
+  };
+
+  const educationForms = {
+    'full_time': 'Очная',
+    'part_time': 'Заочная',
+    'evening': 'Очно-заочная',
+    'distance': 'Дистанционная',
+    '1': 'Очная',
+    '2': 'Очно-заочная',
+    '3': 'Заочная'
+  };
+
+  const getEducationLevelLabel = (level) => {
+    return educationLevels[level] || level || 'Не указан';
+  };
+
+  const getEducationFormLabel = (form) => {
+    return educationForms[form] || form || 'Не указана';
+  };
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -105,10 +137,9 @@ const GroupList = () => {
     fetchGroups();
   }, [fetchGroups]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
     setCurrentPage(1);
-    fetchGroups();
   };
 
   const handleFilterChange = (filterName, value) => {
@@ -136,30 +167,186 @@ const GroupList = () => {
     }
   };
 
-  const getEducationLevelLabel = (level) => {
-    const levelMap = {
-      // Числовые коды (для фильтров)
-      '1': 'Бакалавриат',
-      '3': 'Магистратура',
-      // Строковые значения (из API)
-      'bachelor': 'Бакалавриат',
-      'master': 'Магистратура'
-    };
-    return levelMap[level] || level;
+  const toggleGroupExpansion = (groupId) => {
+    setExpandedGroup(expandedGroup === groupId ? null : groupId);
   };
 
-  const getEducationFormLabel = (form) => {
-    const formMap = {
-      // Числовые коды (для фильтров)
-      '1': 'Очная',
-      '2': 'Очно-заочная', 
-      '3': 'Заочная',
-      // Строковые значения (из API)
-      'full_time': 'Очная',
-      'evening': 'Очно-заочная',
-      'part_time': 'Заочная'
-    };
-    return formMap[form] || form;
+  const getStatusColor = (isActive) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+  };
+
+  const renderGroupCard = (group) => {
+    const isExpanded = expandedGroup === group.id;
+    
+    return (
+      <div key={group.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+        <div 
+          className="p-6 cursor-pointer"
+          onClick={() => toggleGroupExpansion(group.id)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                  <UserGroupIcon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900 truncate">
+                    {group.name}
+                  </h3>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(group.is_active)}`}>
+                    {group.is_active ? 'Активная' : 'Неактивная'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                  <div className="flex items-center">
+                    <AcademicCapIcon className="w-4 h-4 mr-1" />
+                    {group.course ? `${group.course} курс` : 'Курс не указан'}
+                  </div>
+                  <div className="flex items-center">
+                    <CalendarIcon className="w-4 h-4 mr-1" />
+                    {group.admission_year || 'Год не указан'}
+                  </div>
+                  <div className="flex items-center">
+                    <UsersIcon className="w-4 h-4 mr-1" />
+                    {group.student_count || 0} студентов
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="text-right">
+                <div className="text-sm text-gray-500">
+                  {getEducationLevelLabel(group.education_level)}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {getEducationFormLabel(group.education_form)}
+                </div>
+              </div>
+              {isExpanded ? (
+                <ChevronUpIcon className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+              )}
+            </div>
+          </div>
+
+          {isExpanded && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Основная информация */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 flex items-center">
+                    <InformationCircleIcon className="w-5 h-5 mr-2 text-green-600" />
+                    Основная информация
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center">
+                      <BookOpenIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Название:</span>
+                      <span className="ml-2 text-gray-900 font-medium">{group.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <AcademicCapIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Курс:</span>
+                      <span className="ml-2 text-gray-900">{group.course || 'Не указан'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Год поступления:</span>
+                      <span className="ml-2 text-gray-900">{group.admission_year || 'Не указан'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <UsersIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Количество студентов:</span>
+                      <span className="ml-2 text-gray-900">{group.student_count || 0}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <GraduationCapIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Уровень образования:</span>
+                      <span className="ml-2 text-gray-900">{getEducationLevelLabel(group.education_level)}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <ClockIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="text-gray-600">Форма обучения:</span>
+                      <span className="ml-2 text-gray-900">{getEducationFormLabel(group.education_form)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Академическая информация */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 flex items-center">
+                    <BuildingOfficeIcon className="w-5 h-5 mr-2 text-green-600" />
+                    Привязка к подразделениям
+                  </h4>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Кафедра:</span>
+                      <div className="mt-1 p-2 bg-gray-50 rounded">
+                        {group.department_name || 'Не указана'}
+                      </div>
+                    </div>
+                    {group.specialization && (
+                      <div>
+                        <span className="text-gray-600">Специализация:</span>
+                        <div className="mt-1 p-2 bg-gray-50 rounded">
+                          {group.specialization}
+                        </div>
+                      </div>
+                    )}
+                    {group.curator && (
+                      <div>
+                        <span className="text-gray-600">Куратор:</span>
+                        <div className="mt-1 p-2 bg-gray-50 rounded">
+                          {group.curator}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-gray-600">Статус:</span>
+                      <div className="mt-1">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(group.is_active)}`}>
+                          {group.is_active ? 'Активная группа' : 'Неактивная группа'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Действия */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to group details
+                    }}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <EyeIcon className="w-4 h-4 mr-2" />
+                    Студенты
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to edit group
+                    }}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <PencilIcon className="w-4 h-4 mr-2" />
+                    Редактировать
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const renderPagination = () => {
@@ -175,44 +362,66 @@ const GroupList = () => {
     }
 
     for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
+      pages.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`px-3 py-2 text-sm font-medium rounded-md ${
+            i === currentPage
+              ? 'bg-green-600 text-white'
+              : 'text-gray-700 hover:bg-gray-50 border border-gray-300'
+          }`}
+        >
+          {i}
+        </button>
+      );
     }
 
     return (
-      <div className="flex items-center justify-between mt-6">
-        <div className="text-sm text-gray-700">
-          Показано {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalGroups)} из {totalGroups} групп
-        </div>
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+        <div className="flex justify-between flex-1 sm:hidden">
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="p-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
-            <ChevronLeftIcon className="h-5 w-5" />
+            Предыдущая
           </button>
-          
-          {pages.map(page => (
-            <button
-              key={page}
-              onClick={() => handlePageChange(page)}
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                page === currentPage
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              {page}
-            </button>
-          ))}
-          
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
+            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="p-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
           >
-            <ChevronRightIcon className="h-5 w-5" />
+            Следующая
           </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Показано <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+              <span className="font-medium">
+                {Math.min(currentPage * pageSize, totalGroups)}
+              </span>{' '}
+              из <span className="font-medium">{totalGroups}</span> групп
+            </p>
+          </div>
+          <div className="flex space-x-1">
+            <button
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md disabled:opacity-50"
+            >
+              ‹
+            </button>
+            {pages}
+            <button
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md disabled:opacity-50"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -220,271 +429,185 @@ const GroupList = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="flex justify-center items-center min-h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <UserGroupIcon className="mx-auto h-12 w-12 text-red-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Ошибка загрузки</h3>
+        <p className="mt-1 text-sm text-gray-500 mb-4">{error}</p>
+        <button
+          onClick={fetchGroups}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          Попробовать снова
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="space-y-6">
       {/* Заголовок */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <UserGroupIcon className="w-8 h-8 text-green-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Список групп</h1>
-            <p className="text-gray-600 mt-1">Группы, к которым у вас есть доступ ({totalGroups})</p>
+            <p className="text-sm text-gray-600">
+              Управление доступными группами ({totalGroups})
+            </p>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
-            Фильтры
-          </button>
         </div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          <FunnelIcon className="w-4 h-4 mr-2" />
+          Фильтры
+        </button>
       </div>
 
-      {/* Поиск */}
-      <div className="mb-6">
-        <form onSubmit={handleSearch} className="flex gap-4">
-          <div className="flex-1 relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Поиск и фильтры */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex flex-col space-y-4">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Поиск по названию группы или специализации..."
+              placeholder="Поиск по названию группы, специализации..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+              onChange={handleSearchChange}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
             />
           </div>
-        </form>
+
+          {showFilters && (
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Факультет
+                  </label>
+                  <select
+                    value={filters.faculty}
+                    onChange={(e) => handleFilterChange('faculty', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="">Все факультеты</option>
+                    {departments
+                      .filter(dept => dept.department_type === 'faculty')
+                      .map(dept => (
+                        <option key={dept.id} value={dept.name}>
+                          {dept.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Кафедра
+                  </label>
+                  <select
+                    value={filters.department}
+                    onChange={(e) => handleFilterChange('department', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="">Все кафедры</option>
+                    {departments
+                      .filter(dept => dept.department_type === 'department')
+                      .map(dept => (
+                        <option key={dept.id} value={dept.name}>
+                          {dept.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Курс
+                  </label>
+                  <select
+                    value={filters.course}
+                    onChange={(e) => handleFilterChange('course', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  >
+                    {courseOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Уровень
+                  </label>
+                  <select
+                    value={filters.education_level}
+                    onChange={(e) => handleFilterChange('education_level', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  >
+                    {educationLevelOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Форма
+                  </label>
+                  <select
+                    value={filters.education_form}
+                    onChange={(e) => handleFilterChange('education_form', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                  >
+                    {educationFormOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <XMarkIcon className="w-4 h-4 mr-2" />
+                  Очистить
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Фильтры */}
-      {showFilters && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Факультет</label>
-              <select
-                value={filters.faculty}
-                onChange={(e) => handleFilterChange('faculty', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
-              >
-                <option value="">Все факультеты</option>
-                {departments
-                  .filter(dept => dept.department_type === 'faculty')
-                  .map(dept => (
-                    <option key={dept.id} value={dept.name}>{dept.name}</option>
-                  ))
-                }
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Кафедра</label>
-              <select
-                value={filters.department}
-                onChange={(e) => handleFilterChange('department', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
-              >
-                <option value="">Все кафедры</option>
-                {departments
-                  .filter(dept => dept.department_type === 'department')
-                  .map(dept => (
-                    <option key={dept.id} value={dept.name}>{dept.name}</option>
-                  ))
-                }
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Курс</label>
-              <select
-                value={filters.course}
-                onChange={(e) => handleFilterChange('course', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
-              >
-                {courseOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Уровень образования</label>
-              <select
-                value={filters.education_level}
-                onChange={(e) => handleFilterChange('education_level', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
-              >
-                {educationLevelOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Форма обучения</label>
-              <select
-                value={filters.education_form}
-                onChange={(e) => handleFilterChange('education_form', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
-              >
-                {educationFormOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Очистить фильтры
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Сообщение об ошибке */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mr-2" />
-            <span className="text-red-700">{error}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Таблица групп */}
-      {groups.length > 0 ? (
-        <>
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Группа
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Факультет
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Кафедра
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Курс/Год набора
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Образование
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Специализация
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {groups.map((group) => (
-                  <tr key={group.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <UserGroupIcon className="h-5 w-5 text-gray-400 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{group.name}</div>
-                          <div className="text-sm text-gray-500">ID: {group.id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
-                          {group.faculty_name || 'Не указан'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
-                          {group.department_name || 'Не указана'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
-                        <div className="text-sm text-gray-900">
-                          <div>{group.course ? `${group.course} курс` : 'Не определен'}</div>
-                          {group.admission_year && (
-                            <div className="text-gray-500">Набор {group.admission_year}</div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div>
-                          {group.education_level ? getEducationLevelLabel(group.education_level) : 'Не указан'}
-                        </div>
-                        <div className="text-gray-500">
-                          {group.education_form ? getEducationFormLabel(group.education_form) : 'Не указана'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {group.specialization || 'Не указана'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {renderPagination()}
-        </>
-      ) : (
+      {/* Список групп */}
+      {groups.length === 0 ? (
         <div className="text-center py-12">
           <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Нет доступных групп</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Группы не найдены</h3>
           <p className="mt-1 text-sm text-gray-500">
-            У вас пока нет доступа к группам
+            Попробуйте изменить параметры поиска или фильтры
           </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groups.map(renderGroupCard)}
         </div>
       )}
 
-      {/* Информация о доступных подразделениях */}
-      {departments.length > 0 && (
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">
-            Ваш доступ к подразделениям:
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {departments.map((dept) => (
-              <span
-                key={dept.id}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-              >
-                {dept.name} ({dept.department_type === 'faculty' ? 'Факультет' : 'Кафедра'})
-                <span className="ml-1 text-blue-600">
-                  {dept.access_level === 'read' ? (
-                    <EyeIcon className="h-3 w-3 inline" />
-                  ) : dept.access_level === 'write' ? (
-                    <PencilIcon className="h-3 w-3 inline" />
-                  ) : (
-                    <WrenchScrewdriverIcon className="h-3 w-3 inline" />
-                  )}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Пагинация */}
+      {groups.length > 0 && renderPagination()}
     </div>
   );
 };
