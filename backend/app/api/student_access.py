@@ -272,18 +272,16 @@ async def get_my_accessible_students(
             group_ids = [group.id for group in groups]
             filter_conditions.append(UserProfile.group_id.in_(group_ids))
     
-    # Для обычных назначений: используем старую логику через факультеты/кафедры
+    # Для обычных назначений: используем логику через группы (как у кураторов)
     if regular_assignments:
         regular_dept_ids = [a.department_id for a in regular_assignments]
         regular_departments = db.query(Department).filter(Department.id.in_(regular_dept_ids)).all()
         
-        # Расширяем список доступных подразделений с учетом иерархии
-        accessible_department_names = set()
-        accessible_faculty_names = set()
+        # Собираем все подразделения с учетом иерархии
+        all_accessible_dept_ids = set(regular_dept_ids)
         
         for dept in regular_departments:
             if dept.department_type == 'faculty':
-                accessible_faculty_names.add(dept.name)
                 # Добавляем все кафедры этого факультета
                 child_departments = db.query(Department).filter(
                     Department.parent_id == dept.id,
@@ -291,24 +289,21 @@ async def get_my_accessible_students(
                     Department.is_active == True
                 ).all()
                 for child in child_departments:
-                    accessible_department_names.add(child.name)
+                    all_accessible_dept_ids.add(child.id)
             elif dept.department_type == 'department':
-                accessible_department_names.add(dept.name)
-                # Добавляем факультет этой кафедры
-                if dept.parent:
-                    accessible_faculty_names.add(dept.parent.name)
+                # Добавляем родительский факультет
+                if dept.parent_id:
+                    all_accessible_dept_ids.add(dept.parent_id)
         
-        # Фильтруем студентов по доступным подразделениям
-        department_filter_conditions = []
-        if accessible_faculty_names:
-            department_filter_conditions.append(UserProfile.faculty.in_(accessible_faculty_names))
-        if accessible_department_names:
-            department_filter_conditions.append(UserProfile.department.in_(accessible_department_names))
+        # Получаем группы во всех доступных подразделениях
+        groups = db.query(Group).filter(
+            Group.department_id.in_(all_accessible_dept_ids)
+        ).all()
         
-        if department_filter_conditions:
-            filter_conditions.extend(department_filter_conditions)
+        if groups:
+            group_ids = [group.id for group in groups]
+            filter_conditions.append(UserProfile.group_id.in_(group_ids))
     
-    # Если нет ни кураторских, ни обычных назначений
     if not filter_conditions:
         return {
             "students": [],
@@ -415,76 +410,78 @@ async def check_student_access(
     if not student:
         raise HTTPException(status_code=404, detail="Студент не найден")
     
-    if not student.profile:
+    if not student.profile or not student.profile.group_id:
         return {"has_access": False, "access_level": None}
     
-    # Получаем назначения доступа для текущего пользователя
-    access_assignments = db.query(StudentAccess).filter(
-        StudentAccess.employee_id == current_user.id,
-        StudentAccess.is_active == True
+    # Используем UserDepartmentAssignment вместо StudentAccess
+    from ..models.user_assignment import UserDepartmentAssignment
+    from ..models.group import Group
+    from datetime import date
+    
+    today = date.today()
+    
+    # Получаем активные назначения пользователя
+    user_assignments = db.query(UserDepartmentAssignment).filter(
+        UserDepartmentAssignment.user_id == current_user.id
+    ).filter(
+        (UserDepartmentAssignment.end_date.is_(None)) | 
+        (UserDepartmentAssignment.end_date >= today)
     ).all()
     
-    if not access_assignments:
+    if not user_assignments:
         return {"has_access": False, "access_level": None}
     
-    # Проверяем доступ к студенту
+    # Получаем группу студента
+    student_group = db.query(Group).filter(Group.id == student.profile.group_id).first()
+    if not student_group:
+        return {"has_access": False, "access_level": None}
+    
+    # Проверяем доступ через назначения
     accessible_assignments = []
+    department_ids = [assignment.department_id for assignment in user_assignments]
     
-    for assignment in access_assignments:
-        department = db.query(Department).filter(Department.id == assignment.department_id).first()
-        if not department:
-            continue
-            
-        # Прямое совпадение названия подразделения
-        if (department.name == student.profile.faculty or 
-            department.name == student.profile.department):
-            accessible_assignments.append(assignment)
-            continue
-        
-        # Если это доступ к факультету, проверяем принадлежность к кафедрам факультета
-        if department.department_type == 'faculty':
-            # Проверяем, что студент принадлежит к этому факультету
-            if department.name == student.profile.faculty:
-                accessible_assignments.append(assignment)
-                continue
-                
-            # Или что кафедра студента принадлежит к этому факультету
-            student_department = db.query(Department).filter(
-                Department.name == student.profile.department,
-                Department.parent_id == department.id
-            ).first()
-            if student_department:
-                accessible_assignments.append(assignment)
+    # Получаем все доступные подразделения с учетом иерархии
+    departments = db.query(Department).filter(Department.id.in_(department_ids)).all()
+    all_accessible_dept_ids = set(department_ids)
     
-    if not accessible_assignments:
-        return {"has_access": False, "access_level": None}
+    for dept in departments:
+        if dept.department_type == 'faculty':
+            # Добавляем все кафедры этого факультета
+            child_departments = db.query(Department).filter(
+                Department.parent_id == dept.id,
+                Department.department_type == 'department',
+                Department.is_active == True
+            ).all()
+            for child in child_departments:
+                all_accessible_dept_ids.add(child.id)
+        elif dept.department_type == 'department':
+            # Добавляем родительский факультет
+            if dept.parent_id:
+                all_accessible_dept_ids.add(dept.parent_id)
     
-    # Возвращаем максимальный уровень доступа
-    access_levels = ["read", "write", "full"]
-    max_level = max(
-        access_levels.index(assignment.access_level) 
-        for assignment in accessible_assignments
-    )
-    
-    return {
-        "has_access": True, 
-        "access_level": access_levels[max_level],
-        "student": {
-            "id": student.id,
-            "first_name": student.first_name,
-            "last_name": student.last_name,
-            "email": student.email,
-            "faculty": student.profile.faculty,
-            "department": student.profile.department,
-            "group_id": student.profile.group_id,
-            "group": {
-                "id": student.profile.group.id,
-                "name": student.profile.group.name,
-                "specialization": student.profile.group.specialization
-            } if student.profile.group else None,
-            "course": student.profile.course
+    # Проверяем, принадлежит ли группа студента к доступным подразделениям
+    if student_group.department_id in all_accessible_dept_ids:
+        return {
+            "has_access": True, 
+            "access_level": "write",  # Упрощаем уровень доступа
+            "student": {
+                "id": student.id,
+                "first_name": student.first_name,
+                "last_name": student.last_name,
+                "email": student.email,
+                "faculty": student.profile.faculty,
+                "department": student.profile.department,
+                "group_id": student.profile.group_id,
+                "group": {
+                    "id": student_group.id,
+                    "name": student_group.name,
+                    "specialization": student_group.specialization
+                },
+                "course": student.profile.course
+            }
         }
-    } 
+    
+    return {"has_access": False, "access_level": None}
 
 @router.get("/students/accessible", response_model=List[UserResponse])
 async def get_accessible_students(
@@ -493,70 +490,62 @@ async def get_accessible_students(
 ):
     """Получение списка студентов доступных текущему пользователю (деканат/сотрудники)"""
     
-    # Получаем назначения текущего пользователя в подразделениях
+    from ..models.user_assignment import UserDepartmentAssignment
+    from ..models.group import Group
+    from datetime import date
+    
+    today = date.today()
+    
+    # Получаем активные назначения пользователя
     user_assignments = db.query(UserDepartmentAssignment).filter(
-        UserDepartmentAssignment.user_id == current_user.id,
-        UserDepartmentAssignment.is_active == True
+        UserDepartmentAssignment.user_id == current_user.id
+    ).filter(
+        (UserDepartmentAssignment.end_date.is_(None)) | 
+        (UserDepartmentAssignment.end_date >= today)
     ).all()
     
     if not user_assignments:
         return []
     
-    # Получаем ID подразделений где работает пользователь
+    # Получаем ID подразделений
     department_ids = [assignment.department_id for assignment in user_assignments]
+    departments = db.query(Department).filter(Department.id.in_(department_ids)).all()
     
-    # Получаем названия подразделений
-    departments = db.query(Department).filter(
-        Department.id.in_(department_ids)
-    ).all()
+    # Собираем все доступные подразделения с учетом иерархии
+    all_accessible_dept_ids = set(department_ids)
     
-    department_names = [dept.name for dept in departments]
+    for dept in departments:
+        if dept.department_type == 'faculty':
+            # Добавляем все кафедры этого факультета
+            child_departments = db.query(Department).filter(
+                Department.parent_id == dept.id,
+                Department.department_type == 'department',
+                Department.is_active == True
+            ).all()
+            for child in child_departments:
+                all_accessible_dept_ids.add(child.id)
+        elif dept.department_type == 'department':
+            # Добавляем родительский факультет
+            if dept.parent_id:
+                all_accessible_dept_ids.add(dept.parent_id)
     
-    # Ищем студентов, у которых в профиле указаны эти подразделения
-    accessible_students = []
-    
-    # Поиск по факультетам
-    faculty_departments = [dept for dept in departments if dept.department_type == "faculty"]
-    if faculty_departments:
-        faculty_names = [dept.name for dept in faculty_departments]
-        students_by_faculty = db.query(User).join(UserProfile).filter(
-            UserProfile.faculty.in_(faculty_names),
-            User.roles.contains(["student"])
-        ).all()
-        accessible_students.extend(students_by_faculty)
-    
-    # Поиск по кафедрам  
-    department_departments = [dept for dept in departments if dept.department_type == "department"]
-    if department_departments:
-        department_names = [dept.name for dept in department_departments]
-        students_by_department = db.query(User).join(UserProfile).filter(
-            UserProfile.department.in_(department_names),
-            User.roles.contains(["student"])
-        ).all()
-        accessible_students.extend(students_by_department)
-    
-    # Поиск по группам (через связь с подразделениями)
+    # Получаем группы во всех доступных подразделениях
     groups = db.query(Group).filter(
-        Group.department_id.in_(department_ids)
+        Group.department_id.in_(all_accessible_dept_ids)
     ).all()
     
-    if groups:
-        group_ids = [group.id for group in groups]
-        students_by_group = db.query(User).join(UserProfile).filter(
-            UserProfile.group_id.in_(group_ids),
-            User.roles.contains(["student"])
-        ).all()
-        accessible_students.extend(students_by_group)
+    if not groups:
+        return []
     
-    # Убираем дубликаты
-    unique_students = []
-    seen_ids = set()
-    for student in accessible_students:
-        if student.id not in seen_ids:
-            unique_students.append(student)
-            seen_ids.add(student.id)
+    group_ids = [group.id for group in groups]
     
-    return unique_students
+    # Получаем студентов через группы
+    students = db.query(User).join(UserProfile).filter(
+        text("roles::text LIKE '%student%'"),
+        UserProfile.group_id.in_(group_ids)
+    ).all()
+    
+    return students
 
 @router.get("/students/by-department/{department_id}", response_model=List[UserResponse])
 async def get_students_by_department(
@@ -565,6 +554,9 @@ async def get_students_by_department(
     current_user: UserInfo = Depends(get_current_user)
 ):
     """Получение студентов конкретного подразделения"""
+    
+    from ..models.user_assignment import UserDepartmentAssignment
+    from ..models.group import Group
     
     # Проверяем, что пользователь имеет доступ к этому подразделению
     user_assignment = db.query(UserDepartmentAssignment).filter(
@@ -584,30 +576,38 @@ async def get_students_by_department(
     if not department:
         raise HTTPException(status_code=404, detail="Подразделение не найдено")
     
-    students = []
+    # Собираем ID подразделений с учетом иерархии
+    accessible_dept_ids = {department_id}
     
-    # Поиск студентов в зависимости от типа подразделения
-    if department.department_type == "faculty":
-        # Поиск по факультету
-        students = db.query(User).join(UserProfile).filter(
-            UserProfile.faculty == department.name,
-            User.roles.contains(["student"])
+    if department.department_type == 'faculty':
+        # Добавляем все кафедры этого факультета
+        child_departments = db.query(Department).filter(
+            Department.parent_id == department_id,
+            Department.department_type == 'department',
+            Department.is_active == True
         ).all()
-    elif department.department_type == "department":
-        # Поиск по кафедре
-        students = db.query(User).join(UserProfile).filter(
-            UserProfile.department == department.name,
-            User.roles.contains(["student"])
-        ).all()
-    else:
-        # Поиск по группам этого подразделения
-        groups = db.query(Group).filter(Group.department_id == department_id).all()
-        if groups:
-            group_ids = [group.id for group in groups]
-            students = db.query(User).join(UserProfile).filter(
-                UserProfile.group_id.in_(group_ids),
-                User.roles.contains(["student"])
-            ).all()
+        for child in child_departments:
+            accessible_dept_ids.add(child.id)
+    elif department.department_type == 'department':
+        # Добавляем родительский факультет
+        if department.parent_id:
+            accessible_dept_ids.add(department.parent_id)
+    
+    # Получаем группы в этих подразделениях
+    groups = db.query(Group).filter(
+        Group.department_id.in_(accessible_dept_ids)
+    ).all()
+    
+    if not groups:
+        return []
+    
+    group_ids = [group.id for group in groups]
+    
+    # Получаем студентов через группы
+    students = db.query(User).join(UserProfile).filter(
+        text("roles::text LIKE '%student%'"),
+        UserProfile.group_id.in_(group_ids)
+    ).all()
     
     return students
 
@@ -754,4 +754,4 @@ async def get_my_department_assignments(
         }
         result.append(assignment_data)
     
-    return result 
+    return result
