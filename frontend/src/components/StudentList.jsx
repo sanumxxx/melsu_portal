@@ -71,15 +71,28 @@ const StudentList = () => {
   };
 
   const getDepartmentName = (student, type) => {
+    console.log(`getDepartmentName для студента ${student.id}, тип: ${type}`, {
+      faculty: student.faculty,
+      faculty_info: student.faculty_info,
+      department: student.department,
+      department_info: student.department_info,
+      group_number: student.group_number,
+      group_info: student.group_info
+    });
+    
     if (type === 'faculty') {
       if (student.faculty_info && student.faculty_info.name) {
+        console.log(`Возвращаем faculty_info.name: ${student.faculty_info.name}`);
         return student.faculty_info.name;
       }
+      console.log(`Возвращаем faculty или fallback: ${student.faculty || 'Не указан'}`);
       return student.faculty || 'Не указан';
     } else if (type === 'department') {
       if (student.department_info && student.department_info.name) {
+        console.log(`Возвращаем department_info.name: ${student.department_info.name}`);
         return student.department_info.name;
       }
+      console.log(`Возвращаем department или fallback: ${student.department || 'Не указана'}`);
       return student.department || 'Не указана';
     }
     return 'Не указано';
@@ -102,6 +115,24 @@ const StudentList = () => {
       };
 
       const response = await api.get('/api/student-access/my-students', { params });
+      
+      console.log('API Response:', response.data);
+      console.log('Students data:', response.data.students);
+      
+      // Логируем первого студента для отладки
+      if (response.data.students && response.data.students.length > 0) {
+        const firstStudent = response.data.students[0];
+        console.log('Первый студент:', {
+          id: firstStudent.id,
+          name: `${firstStudent.first_name} ${firstStudent.last_name}`,
+          faculty: firstStudent.faculty,
+          faculty_info: firstStudent.faculty_info,
+          department: firstStudent.department,
+          department_info: firstStudent.department_info,
+          group_number: firstStudent.group_number,
+          group_info: firstStudent.group_info
+        });
+      }
       
       setStudents(response.data.students || []);
       setTotalStudents(response.data.total || 0);

@@ -220,6 +220,10 @@ async def get_my_accessible_students(
 ):
     """Получить список студентов, к которым у текущего пользователя есть доступ"""
     
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Получение списка студентов для пользователя {current_user.id}")
+    
     # Используем UserDepartmentAssignment вместо StudentAccess
     from ..models.user_assignment import UserDepartmentAssignment
     from ..models.group import Group
@@ -376,10 +380,12 @@ async def get_my_accessible_students(
     
     # Получаем общее количество
     total = students_query.count()
+    logger.info(f"Найдено {total} студентов")
     
     # Применяем пагинацию
     offset = (page - 1) * size
     students = students_query.offset(offset).limit(size).all()
+    logger.info(f"Загружено {len(students)} студентов для страницы {page}")
     
     # Определяем причину доступа для каждого студента
     def get_access_reason(student):
@@ -411,6 +417,8 @@ async def get_my_accessible_students(
     # Формируем ответ с правильным получением информации о подразделениях
     result_students = []
     for student in students:
+        logger.info(f"Обработка студента {student.id}: {student.first_name} {student.last_name}")
+        
         # Получаем информацию о факультете и кафедре для каждого студента
         faculty_info = None
         department_info = None
@@ -418,6 +426,8 @@ async def get_my_accessible_students(
         department_name = None
         
         if student.profile:
+            logger.info(f"Студент {student.id} имеет профиль: faculty_id={student.profile.faculty_id}, department_id={student.profile.department_id}, group_id={student.profile.group_id}")
+            
             # Получаем факультет через faculty_id
             if student.profile.faculty_id:
                 faculty = db.query(Department).filter(Department.id == student.profile.faculty_id).first()
@@ -429,6 +439,11 @@ async def get_my_accessible_students(
                         "short_name": faculty.short_name,
                         "department_type": faculty.department_type
                     }
+                    logger.info(f"Найден факультет для студента {student.id}: {faculty_name}")
+                else:
+                    logger.warning(f"Факультет с ID {student.profile.faculty_id} не найден для студента {student.id}")
+            else:
+                logger.info(f"У студента {student.id} нет faculty_id")
             
                          # Получаем кафедру через department_id
             if student.profile.department_id:
@@ -444,6 +459,11 @@ async def get_my_accessible_students(
                         "department_type": department.department_type,
                         "faculty_name": department.parent.name if department.parent else None
                     }
+                    logger.info(f"Найдена кафедра для студента {student.id}: {department_name}")
+                else:
+                    logger.warning(f"Кафедра с ID {student.profile.department_id} не найдена для студента {student.id}")
+            else:
+                logger.info(f"У студента {student.id} нет department_id")
             
             # Если нет прямых связей, пытаемся получить через группу
             if (not faculty_info or not department_info) and student.profile.group_id:
@@ -504,8 +524,13 @@ async def get_my_accessible_students(
                     "education_level": group.parsed_education_level,
                     "education_form": group.parsed_education_form
                 }
+                logger.info(f"Найдена группа для студента {student.id}: {group_name}")
+            else:
+                logger.warning(f"Группа с ID {student.profile.group_id} не найдена для студента {student.id}")
+        else:
+            logger.info(f"У студента {student.id} нет group_id")
 
-        result_students.append({
+        student_data = {
             "id": student.id,
             "first_name": student.first_name,
             "last_name": student.last_name,
@@ -527,9 +552,12 @@ async def get_my_accessible_students(
             "academic_status": student.profile.academic_status if student.profile else None,
             "phone": student.profile.phone if student.profile else None,
             "access_reasons": get_access_reason(student)
-        })
+        }
+        
+        logger.info(f"Итоговые данные студента {student.id}: faculty={faculty_name}, department={department_name}, group={group_name}")
+        result_students.append(student_data)
 
-    return {
+    result = {
         "students": result_students,
         "total": total,
         "page": page,
@@ -550,6 +578,9 @@ async def get_my_accessible_students(
             for dept in departments
         ]
     }
+    
+    logger.info(f"Возвращаем результат: {len(result_students)} студентов, {len(departments)} подразделений")
+    return result
 
 @router.get("/check-access/{student_id}")
 async def check_student_access(

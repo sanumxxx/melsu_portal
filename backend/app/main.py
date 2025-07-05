@@ -2,8 +2,13 @@ import os
 import logging
 from dotenv import load_dotenv
 
+# Импорт системы логирования
+from .core.logging_config import setup_logging
+
 # Настройка логирования
+setup_logging()
 logger = logging.getLogger(__name__)
+logger.info("Система логирования инициализирована")
 
 # Загружаем переменные окружения из .env файла в корне проекта (если существует)
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
