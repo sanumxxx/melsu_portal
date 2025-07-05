@@ -14,7 +14,6 @@ import {
   PencilIcon,
   UsersIcon,
   BookOpenIcon,
-  GraduationCapIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
@@ -264,7 +263,7 @@ const GroupList = () => {
                       <span className="ml-2 text-gray-900">{group.student_count || 0}</span>
                     </div>
                     <div className="flex items-center">
-                      <GraduationCapIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <AcademicCapIcon className="w-4 h-4 mr-2 text-gray-400" />
                       <span className="text-gray-600">Уровень образования:</span>
                       <span className="ml-2 text-gray-900">{getEducationLevelLabel(group.education_level)}</span>
                     </div>
