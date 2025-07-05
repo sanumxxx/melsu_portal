@@ -145,7 +145,7 @@ async def check_portfolio_view_access(user: User, student_id: int, db: Session) 
         accessible_faculty_ids = set()
         accessible_department_ids = set()
         
-        for dept in my_departments:
+        for dept in departments:
             if dept.department_type == "faculty":
                 accessible_faculty_ids.add(dept.id)
             elif dept.department_type == "department":
@@ -527,30 +527,27 @@ async def get_student_portfolio_info(
     
     profile = student.profile
     
+    # Отладочный вывод для проверки данных
+    print(f"[DEBUG] Student profile data:")
+    print(f"  - profile exists: {profile is not None}")
+    if profile:
+        print(f"  - group_id: {profile.group_id}")
+        print(f"  - faculty_id: {profile.faculty_id}")
+        print(f"  - department_id: {profile.department_id}")
+        print(f"  - course: {profile.course}")
+    
     # Получаем информацию о факультете и кафедре
     faculty_info = None
     department_info = None
     
     if profile:
-        # Через новые ID поля
+        # Через ID поля
         if profile.faculty_id:
             faculty_info = db.query(Department).filter(Department.id == profile.faculty_id).first()
         if profile.department_id:
             department_info = db.query(Department).options(
                 joinedload(Department.parent)
             ).filter(Department.id == profile.department_id).first()
-        
-        # Через старые текстовые поля (для совместимости)
-        if not faculty_info and profile.faculty:
-            faculty_info = db.query(Department).filter(
-                Department.name == profile.faculty,
-                Department.department_type == 'faculty'
-            ).first()
-        if not department_info and profile.department:
-            department_info = db.query(Department).filter(
-                Department.name == profile.department,
-                Department.department_type == 'department'
-            ).first()
     
     # Формируем полную информацию о группе
     group_info = None
@@ -562,7 +559,7 @@ async def get_student_portfolio_info(
                 "id": group.id,
                 "name": group.name,
                 "specialization": group.specialization,
-                "course": group.course,
+                "course": profile.course if profile.course else group.course,
                 "admission_year": group.parsed_year,
                 "education_level": group.parsed_education_level or group.education_level,
                 "education_form": group.parsed_education_form or group.education_form
@@ -587,7 +584,6 @@ async def get_student_portfolio_info(
             
             # Факультет
             "faculty_id": profile.faculty_id if profile else None,
-            "faculty": profile.faculty if profile else None,
             "faculty_info": {
                 "id": faculty_info.id,
                 "name": faculty_info.name,
@@ -596,7 +592,6 @@ async def get_student_portfolio_info(
             
             # Кафедра  
             "department_id": profile.department_id if profile else None,
-            "department": profile.department if profile else None,
             "department_info": {
                 "id": department_info.id,
                 "name": department_info.name,

@@ -82,8 +82,6 @@ def setup_test_departments():
         print(f"\n🔗 Привязка пользователя {user.first_name} {user.last_name}...")
         
         profile = user.profile
-        profile.faculty = faculty.name
-        profile.department = department.name
         profile.faculty_id = faculty.id
         profile.department_id = department.id
         profile.group_id = group.id
@@ -92,8 +90,8 @@ def setup_test_departments():
         
         db.commit()
         print(f"✅ Профиль обновлен:")
-        print(f"   Факультет: {profile.faculty} (ID: {profile.faculty_id})")
-        print(f"   Кафедра: {profile.department} (ID: {profile.department_id})")
+        print(f"   Факультет: {faculty.name} (ID: {profile.faculty_id})")
+        print(f"   Кафедра: {department.name} (ID: {profile.department_id})")
         print(f"   Группа: {group.name} (ID: {profile.group_id})")
         print(f"   Курс: {profile.course}")
         print(f"   Студ. билет: {profile.student_id}")
