@@ -54,9 +54,14 @@ async def get_students(
         text("roles::text LIKE '%student%'")
     )
     
-    # Применяем фильтры
+    # Применяем фильтры с учетом иерархии подразделений
+    join_applied = False
+    
     if search:
         search_term = f"%{search.lower()}%"
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
         query = query.filter(
             or_(
                 func.lower(User.first_name).contains(search_term),
@@ -68,19 +73,63 @@ async def get_students(
         )
     
     if faculty_id:
-        query = query.join(UserProfile).filter(UserProfile.faculty_id == faculty_id)
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
+        
+        # Находим все кафедры этого факультета
+        child_departments = db.query(Department).filter(
+            Department.parent_id == faculty_id,
+            Department.is_active == True
+        ).all()
+        child_dept_ids = [dept.id for dept in child_departments]
+        
+        # Находим все группы кафедр этого факультета
+        faculty_groups = db.query(Group).filter(
+            Group.department_id.in_(child_dept_ids)
+        ).all() if child_dept_ids else []
+        faculty_group_ids = [group.id for group in faculty_groups]
+        
+        # Студенты факультета: напрямую привязанные ИЛИ через группы кафедр факультета
+        faculty_condition = or_(
+            UserProfile.faculty_id == faculty_id,
+            UserProfile.group_id.in_(faculty_group_ids) if faculty_group_ids else False
+        )
+        query = query.filter(faculty_condition)
     
     if department_id:
-        query = query.join(UserProfile).filter(UserProfile.department_id == department_id)
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
+            
+        # Находим все группы этой кафедры
+        dept_groups = db.query(Group).filter(Group.department_id == department_id).all()
+        dept_group_ids = [group.id for group in dept_groups]
+        
+        # Студенты кафедры: напрямую привязанные ИЛИ через группы кафедры
+        department_condition = or_(
+            UserProfile.department_id == department_id,
+            UserProfile.group_id.in_(dept_group_ids) if dept_group_ids else False
+        )
+        query = query.filter(department_condition)
     
     if group_id:
-        query = query.join(UserProfile).filter(UserProfile.group_id == group_id)
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
+        query = query.filter(UserProfile.group_id == group_id)
     
     if course:
-        query = query.join(UserProfile).filter(UserProfile.course == course)
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
+        query = query.filter(UserProfile.course == course)
     
     if education_form:
-        query = query.join(UserProfile).filter(UserProfile.education_form == education_form)
+        if not join_applied:
+            query = query.join(UserProfile)
+            join_applied = True
+        query = query.filter(UserProfile.education_form == education_form)
     
     # Подсчет общего количества
     total = query.count()
@@ -277,7 +326,19 @@ async def get_groups(
         )
     
     if department_id:
-        query = query.filter(Group.department_id == department_id)
+        # Проверяем тип подразделения
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if department and department.department_type == 'faculty':
+            # Для факультета: группы всех его кафедр
+            child_departments = db.query(Department).filter(
+                Department.parent_id == department_id,
+                Department.is_active == True
+            ).all()
+            child_dept_ids = [child_dept.id for child_dept in child_departments]
+            query = query.filter(Group.department_id.in_(child_dept_ids)) if child_dept_ids else query.filter(False)
+        else:
+            # Для кафедры: только свои группы
+            query = query.filter(Group.department_id == department_id)
     
     if course:
         query = query.filter(Group.course == course)
@@ -420,14 +481,50 @@ async def get_departments(
     
     result = []
     for dept in departments:
-        # Подсчитываем связанные сущности
-        groups_count = db.query(Group).filter(Group.department_id == dept.id).count()
-        students_count = db.query(UserProfile).filter(
-            or_(
-                UserProfile.faculty_id == dept.id,
-                UserProfile.department_id == dept.id
-            )
-        ).count()
+        # Подсчитываем связанные сущности с учетом иерархии
+        groups_count = 0
+        students_count = 0
+        
+        if dept.department_type == 'faculty':
+            # Для факультета: группы всех его кафедр
+            child_departments = db.query(Department).filter(
+                Department.parent_id == dept.id,
+                Department.is_active == True
+            ).all()
+            child_dept_ids = [child_dept.id for child_dept in child_departments]
+            
+            # Группы кафедр факультета
+            groups_count = db.query(Group).filter(
+                Group.department_id.in_(child_dept_ids)
+            ).count() if child_dept_ids else 0
+            
+            # Студенты: напрямую + через группы кафедр
+            faculty_groups = db.query(Group).filter(
+                Group.department_id.in_(child_dept_ids)
+            ).all() if child_dept_ids else []
+            faculty_group_ids = [group.id for group in faculty_groups]
+            
+            students_count = db.query(UserProfile).filter(
+                or_(
+                    UserProfile.faculty_id == dept.id,
+                    UserProfile.group_id.in_(faculty_group_ids) if faculty_group_ids else False
+                )
+            ).count()
+            
+        else:
+            # Для кафедры: свои группы
+            groups_count = db.query(Group).filter(Group.department_id == dept.id).count()
+            
+            # Студенты: напрямую + через группы кафедры
+            dept_groups = db.query(Group).filter(Group.department_id == dept.id).all()
+            dept_group_ids = [group.id for group in dept_groups]
+            
+            students_count = db.query(UserProfile).filter(
+                or_(
+                    UserProfile.department_id == dept.id,
+                    UserProfile.group_id.in_(dept_group_ids) if dept_group_ids else False
+                )
+            ).count()
         
         # Получаем информацию о родительском подразделении
         parent_info = None
@@ -470,14 +567,49 @@ async def get_departments_tree(
         children = []
         for dept in departments:
             if dept.parent_id == parent_id:
-                # Подсчитываем связанные сущности
-                groups_count = db.query(Group).filter(Group.department_id == dept.id).count()
-                students_count = db.query(UserProfile).filter(
-                    or_(
-                        UserProfile.faculty_id == dept.id,
-                        UserProfile.department_id == dept.id
-                    )
-                ).count()
+                # Подсчитываем связанные сущности с учетом иерархии
+                groups_count = 0
+                students_count = 0
+                
+                if dept.department_type == 'faculty':
+                    # Для факультета: группы всех его кафедр
+                    child_departments = db.query(Department).filter(
+                        Department.parent_id == dept.id,
+                        Department.is_active == True
+                    ).all()
+                    child_dept_ids = [child_dept.id for child_dept in child_departments]
+                    
+                    groups_count = db.query(Group).filter(
+                        Group.department_id.in_(child_dept_ids)
+                    ).count() if child_dept_ids else 0
+                    
+                    # Студенты: напрямую + через группы кафедр
+                    faculty_groups = db.query(Group).filter(
+                        Group.department_id.in_(child_dept_ids)
+                    ).all() if child_dept_ids else []
+                    faculty_group_ids = [group.id for group in faculty_groups]
+                    
+                    students_count = db.query(UserProfile).filter(
+                        or_(
+                            UserProfile.faculty_id == dept.id,
+                            UserProfile.group_id.in_(faculty_group_ids) if faculty_group_ids else False
+                        )
+                    ).count()
+                    
+                else:
+                    # Для кафедры: свои группы
+                    groups_count = db.query(Group).filter(Group.department_id == dept.id).count()
+                    
+                    # Студенты: напрямую + через группы кафедры
+                    dept_groups = db.query(Group).filter(Group.department_id == dept.id).all()
+                    dept_group_ids = [group.id for group in dept_groups]
+                    
+                    students_count = db.query(UserProfile).filter(
+                        or_(
+                            UserProfile.department_id == dept.id,
+                            UserProfile.group_id.in_(dept_group_ids) if dept_group_ids else False
+                        )
+                    ).count()
                 
                 dept_data = {
                     "id": dept.id,
@@ -510,19 +642,59 @@ async def get_department_details(
     if not department:
         raise HTTPException(status_code=404, detail="Подразделение не найдено")
     
-    # Получаем связанные группы
-    groups = db.query(Group).filter(Group.department_id == department_id).all()
+    # Получаем связанные группы с учетом иерархии
+    if department.department_type == 'faculty':
+        # Для факультета: все группы всех его кафедр
+        child_departments = db.query(Department).filter(
+            Department.parent_id == department_id,
+            Department.is_active == True
+        ).all()
+        child_dept_ids = [child_dept.id for child_dept in child_departments]
+        
+        groups = db.query(Group).filter(
+            Group.department_id.in_(child_dept_ids)
+        ).all() if child_dept_ids else []
+    else:
+        # Для кафедры: только свои группы
+        groups = db.query(Group).filter(Group.department_id == department_id).all()
     
-    # Получаем студентов подразделения
-    students_query = db.query(User).options(
-        joinedload(User.profile)
-    ).join(UserProfile).filter(
-        or_(
-            UserProfile.faculty_id == department_id,
-            UserProfile.department_id == department_id
-        ),
-        text("roles::text LIKE '%student%'")
-    )
+    # Получаем студентов подразделения с учетом иерархии
+    if department.department_type == 'faculty':
+        # Для факультета: студенты напрямую + через группы кафедр
+        child_departments = db.query(Department).filter(
+            Department.parent_id == department_id,
+            Department.is_active == True
+        ).all()
+        child_dept_ids = [child_dept.id for child_dept in child_departments]
+        
+        faculty_groups = db.query(Group).filter(
+            Group.department_id.in_(child_dept_ids)
+        ).all() if child_dept_ids else []
+        faculty_group_ids = [group.id for group in faculty_groups]
+        
+        students_query = db.query(User).options(
+            joinedload(User.profile)
+        ).join(UserProfile).filter(
+            or_(
+                UserProfile.faculty_id == department_id,
+                UserProfile.group_id.in_(faculty_group_ids) if faculty_group_ids else False
+            ),
+            text("roles::text LIKE '%student%'")
+        )
+    else:
+        # Для кафедры: студенты напрямую + через группы кафедры
+        dept_groups = db.query(Group).filter(Group.department_id == department_id).all()
+        dept_group_ids = [group.id for group in dept_groups]
+        
+        students_query = db.query(User).options(
+            joinedload(User.profile)
+        ).join(UserProfile).filter(
+            or_(
+                UserProfile.department_id == department_id,
+                UserProfile.group_id.in_(dept_group_ids) if dept_group_ids else False
+            ),
+            text("roles::text LIKE '%student%'")
+        )
     
     students = students_query.all()
     
@@ -569,11 +741,17 @@ async def get_department_details(
     
     child_departments_list = []
     for child in child_departments:
+        # Для кафедры: свои группы
         child_groups_count = db.query(Group).filter(Group.department_id == child.id).count()
+        
+        # Студенты: напрямую + через группы кафедры
+        child_dept_groups = db.query(Group).filter(Group.department_id == child.id).all()
+        child_dept_group_ids = [group.id for group in child_dept_groups]
+        
         child_students_count = db.query(UserProfile).filter(
             or_(
-                UserProfile.faculty_id == child.id,
-                UserProfile.department_id == child.id
+                UserProfile.department_id == child.id,
+                UserProfile.group_id.in_(child_dept_group_ids) if child_dept_group_ids else False
             )
         ).count()
         
