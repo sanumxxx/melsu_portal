@@ -436,8 +436,8 @@ async def get_user_details(
             "name": profile.group.name,
             "specialization": profile.group.specialization
         } if profile and profile.group else None,
-        "faculty": profile.faculty if profile else None,
-        "department": profile.department if profile else None,
+        "faculty": None,  # Удалено - используйте faculty_id
+        "department": None,  # Удалено - используйте department_id
         # Дополнительные поля для совместимости с новой системой
         "faculty_id": profile.faculty_id if profile else None,
         "department_id": profile.department_id if profile else None,

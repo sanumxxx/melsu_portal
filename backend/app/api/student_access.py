@@ -657,8 +657,8 @@ async def check_student_access(
                 "first_name": student.first_name,
                 "last_name": student.last_name,
                 "email": student.email,
-                "faculty": student.profile.faculty,
-                "department": student.profile.department,
+                "faculty": None,  # Удалено - используйте faculty_id
+                "department": None,  # Удалено - используйте department_id
                 "group_id": student.profile.group_id,
                 "group": {
                     "id": student_group.id,
@@ -785,6 +785,49 @@ async def get_accessible_students(
     # Преобразуем в расширенный формат для совместимости
     students_with_access = []
     for student in students:
+        profile = student.profile
+        
+        # Получаем информацию о факультете
+        faculty_info = None
+        if profile and profile.faculty_id:
+            faculty = db.query(Department).filter(Department.id == profile.faculty_id).first()
+            if faculty:
+                faculty_info = {
+                    "id": faculty.id,
+                    "name": faculty.name,
+                    "short_name": faculty.short_name
+                }
+        
+        # Получаем информацию о кафедре
+        department_info = None
+        if profile and profile.department_id:
+            department = db.query(Department).options(
+                joinedload(Department.parent)
+            ).filter(Department.id == profile.department_id).first()
+            if department:
+                department_info = {
+                    "id": department.id,
+                    "name": department.name,
+                    "short_name": department.short_name,
+                    "faculty_name": department.parent.name if department.parent else None
+                }
+        
+        # Получаем информацию о группе
+        group_info = None
+        if profile and profile.group_id:
+            from ..models.group import Group
+            group = db.query(Group).filter(Group.id == profile.group_id).first()
+            if group:
+                group_info = {
+                    "id": group.id,
+                    "name": group.name,
+                    "specialization": group.specialization,
+                    "course": profile.course if profile.course else group.course,
+                    "admission_year": group.parsed_year,
+                    "education_level": group.parsed_education_level or group.education_level,
+                    "education_form": group.parsed_education_form or group.education_form
+                }
+        
         student_dict = {
             "id": student.id,
             "first_name": student.first_name,
@@ -796,12 +839,12 @@ async def get_accessible_students(
             "roles": student.roles,
             "is_verified": student.is_verified,
             "is_active": student.is_active,
-            "faculty": None,
-            "department": None,
-            "faculty_info": None,
-            "department_info": None,
-            "group_number": None,
-            "group_info": None,
+            "faculty": faculty_info["name"] if faculty_info else None,
+            "department": department_info["name"] if department_info else None,
+            "faculty_info": faculty_info,
+            "department_info": department_info,
+            "group_number": group_info["name"] if group_info else None,
+            "group_info": group_info,
             "course": student.profile.course if student.profile else None,
             "student_id": student.profile.student_id if student.profile else None,
             "education_level": student.profile.education_level if student.profile else None,
@@ -892,7 +935,79 @@ async def get_students_by_department(
         or_(*filter_conditions)
     ).all()
 
-    return students
+    # Преобразуем в расширенный формат для совместимости
+    students_with_access = []
+    for student in students:
+        profile = student.profile
+        
+        # Получаем информацию о факультете
+        faculty_info = None
+        if profile and profile.faculty_id:
+            faculty = db.query(Department).filter(Department.id == profile.faculty_id).first()
+            if faculty:
+                faculty_info = {
+                    "id": faculty.id,
+                    "name": faculty.name,
+                    "short_name": faculty.short_name
+                }
+        
+        # Получаем информацию о кафедре
+        department_info = None
+        if profile and profile.department_id:
+            department = db.query(Department).options(
+                joinedload(Department.parent)
+            ).filter(Department.id == profile.department_id).first()
+            if department:
+                department_info = {
+                    "id": department.id,
+                    "name": department.name,
+                    "short_name": department.short_name,
+                    "faculty_name": department.parent.name if department.parent else None
+                }
+        
+        # Получаем информацию о группе
+        group_info = None
+        if profile and profile.group_id:
+            from ..models.group import Group
+            group = db.query(Group).filter(Group.id == profile.group_id).first()
+            if group:
+                group_info = {
+                    "id": group.id,
+                    "name": group.name,
+                    "specialization": group.specialization,
+                    "course": profile.course if profile.course else group.course,
+                    "admission_year": group.parsed_year,
+                    "education_level": group.parsed_education_level or group.education_level,
+                    "education_form": group.parsed_education_form or group.education_form
+                }
+        
+        student_dict = {
+            "id": student.id,
+            "first_name": student.first_name,
+            "last_name": student.last_name,
+            "middle_name": student.middle_name,
+            "email": student.email,
+            "birth_date": student.birth_date.isoformat() if student.birth_date else None,
+            "gender": student.gender,
+            "roles": student.roles,
+            "is_verified": student.is_verified,
+            "is_active": student.is_active,
+            "faculty": faculty_info["name"] if faculty_info else None,
+            "department": department_info["name"] if department_info else None,
+            "faculty_info": faculty_info,
+            "department_info": department_info,
+            "group_number": group_info["name"] if group_info else None,
+            "group_info": group_info,
+            "course": student.profile.course if student.profile else None,
+            "student_id": student.profile.student_id if student.profile else None,
+            "education_level": student.profile.education_level if student.profile else None,
+            "education_form": student.profile.education_form if student.profile else None,
+            "academic_status": student.profile.academic_status if student.profile else None,
+            "phone": student.profile.phone if student.profile else None,
+        }
+        students_with_access.append(student_dict)
+
+    return students_with_access
 
 @router.get("/students/{student_id}/profile")
 async def get_student_profile(
@@ -961,6 +1076,31 @@ async def get_student_profile(
             detail="Недостаточно прав для просмотра профиля этого студента"
         )
     
+    # Получаем информацию о факультете
+    faculty_info = None
+    if profile.faculty_id:
+        faculty = db.query(Department).filter(Department.id == profile.faculty_id).first()
+        if faculty:
+            faculty_info = {
+                "id": faculty.id,
+                "name": faculty.name,
+                "short_name": faculty.short_name
+            }
+    
+    # Получаем информацию о кафедре
+    department_info = None
+    if profile.department_id:
+        department = db.query(Department).options(
+            joinedload(Department.parent)
+        ).filter(Department.id == profile.department_id).first()
+        if department:
+            department_info = {
+                "id": department.id,
+                "name": department.name,
+                "short_name": department.short_name,
+                "faculty_name": department.parent.name if department.parent else None
+            }
+    
     # Получаем информацию о группе
     group_info = None
     if profile.group_id:
@@ -991,8 +1131,10 @@ async def get_student_profile(
         "group": group_info,
         "course": profile.course,
         "semester": profile.semester,
-        "faculty": profile.faculty.name if profile.faculty else None,
-        "department": profile.department.name if profile.department else None,
+        "faculty": faculty_info["name"] if faculty_info else None,
+        "department": department_info["name"] if department_info else None,
+        "faculty_info": faculty_info,
+        "department_info": department_info,
         "specialization": profile.specialization,
         "education_level": profile.education_level,
         "education_form": profile.education_form,

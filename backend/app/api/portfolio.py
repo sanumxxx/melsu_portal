@@ -527,15 +527,6 @@ async def get_student_portfolio_info(
     
     profile = student.profile
     
-    # Отладочный вывод для проверки данных
-    print(f"[DEBUG] Student profile data:")
-    print(f"  - profile exists: {profile is not None}")
-    if profile:
-        print(f"  - group_id: {profile.group_id}")
-        print(f"  - faculty_id: {profile.faculty_id}")
-        print(f"  - department_id: {profile.department_id}")
-        print(f"  - course: {profile.course}")
-    
     # Получаем информацию о факультете и кафедре
     faculty_info = None
     department_info = None

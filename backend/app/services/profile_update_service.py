@@ -133,10 +133,10 @@ class ProfileUpdateService:
             
             departments_to_grant_access = []
             
-            # Ищем подразделения по названиям из профиля
-            if profile.faculty:
+            # Ищем подразделения по ID из профиля
+            if profile.faculty_id:
                 faculty_dept = self.db.query(Department).filter(
-                    Department.name == profile.faculty,
+                    Department.id == profile.faculty_id,
                     Department.department_type == 'faculty',
                     Department.is_active == True
                 ).first()
@@ -144,9 +144,9 @@ class ProfileUpdateService:
                     departments_to_grant_access.append(faculty_dept)
                     logger.info(f"Найден факультет: {faculty_dept.name} (ID: {faculty_dept.id})")
             
-            if profile.department:
+            if profile.department_id:
                 department_dept = self.db.query(Department).filter(
-                    Department.name == profile.department,
+                    Department.id == profile.department_id,
                     Department.department_type == 'department',
                     Department.is_active == True
                 ).first()

@@ -98,8 +98,7 @@ async def update_extended_profile(
             ).first()
             if not faculty:
                 raise HTTPException(status_code=404, detail="Факультет не найден")
-            # Обновляем текстовое поле факультета
-            profile.faculty = faculty.name
+            # Текстовое поле факультета удалено - используется только faculty_id
     
     # Проверяем и обновляем связи с кафедрой
     if 'department_id' in update_data:
@@ -111,8 +110,7 @@ async def update_extended_profile(
             ).first()
             if not department:
                 raise HTTPException(status_code=404, detail="Кафедра не найдена")
-            # Обновляем текстовое поле кафедры
-            profile.department = department.name
+            # Текстовое поле кафедры удалено - используется только department_id
     
     # Обновляем остальные поля
     for field, value in update_data.items():
@@ -312,8 +310,8 @@ async def get_basic_profile(current_user_id: int = Depends(get_current_user_id),
         "department_info": department_info_profile,
         "course": profile.course,
         "semester": profile.semester,
-        "faculty": profile.faculty,
-        "department": profile.department,
+        "faculty": faculty_info["name"] if faculty_info else None,  # Получаем из faculty_info
+        "department": department_info_profile["name"] if department_info_profile else None,  # Получаем из department_info_profile
         "specialization": profile.specialization,
         "education_level": profile.education_level,
         "education_form": profile.education_form,
