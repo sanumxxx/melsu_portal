@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_serializer
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import date
 
 class UserBase(BaseModel):
@@ -18,7 +18,7 @@ class UserRegistration(BaseModel):
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
-    birth_date: str  # Принимаем как строку для совместимости с frontend
+    birth_date: Optional[str] = None  # Принимаем как строку для совместимости с frontend
     gender: str      # Принимаем как строку вместо enum
     password: str
 
@@ -31,7 +31,7 @@ class User(UserBase):
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
-    birth_date: str
+    birth_date: Optional[Union[str, date]] = None
     gender: str
     roles: List[str] = []
     is_verified: bool
@@ -40,6 +40,8 @@ class User(UserBase):
     @field_serializer('birth_date')
     def serialize_birth_date(self, value):
         """Преобразует datetime.date в строку"""
+        if value is None:
+            return None
         if isinstance(value, date):
             return value.strftime('%Y-%m-%d')
         return value
@@ -57,9 +59,20 @@ class UserResponse(User):
     class Config:
         from_attributes = True
 
+    @field_serializer('birth_date')
+    def serialize_birth_date(self, value):
+        """Преобразует datetime.date в строку"""
+        if value is None:
+            return None
+        if isinstance(value, date):
+            return value.strftime('%Y-%m-%d')
+        return value
+
     @field_serializer('full_name')
-    def get_full_name(self, _):
+    def get_full_name(self, value):
         """Генерирует полное имя из компонентов"""
+        if value is not None:
+            return value
         parts = [self.last_name, self.first_name]
         if self.middle_name:
             parts.append(self.middle_name)
