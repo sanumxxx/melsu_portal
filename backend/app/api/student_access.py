@@ -298,15 +298,8 @@ async def get_my_accessible_students(
     if department_only_ids:
         filter_conditions.append(UserProfile.department_id.in_(department_only_ids))
     
-    # 4. Дополнительно: фильтрация через старые текстовые поля (для совместимости)
-    dept_names = [dept.name for dept in departments]
-    if dept_names:
-        filter_conditions.append(
-            or_(
-                UserProfile.__table__.c.faculty.in_(dept_names),
-                UserProfile.__table__.c.department.in_(dept_names)
-            )
-        )
+    # Примечание: Старые текстовые поля faculty и department не существуют в БД
+    # Фильтрация только через ID поля faculty_id и department_id
     
     if not filter_conditions:
         return {
@@ -355,7 +348,6 @@ async def get_my_accessible_students(
             students_query = students_query.filter(
                 or_(
                     UserProfile.faculty_id == faculty.id,      # Прямая связь
-                    UserProfile.__table__.c.faculty == faculty_filter,     # Старое текстовое поле
                     # Также через группы этого факультета
                     UserProfile.group_id.in_(
                         db.query(Group.id).filter(Group.department_id == faculty.id).subquery()
@@ -374,7 +366,6 @@ async def get_my_accessible_students(
             students_query = students_query.filter(
                 or_(
                     UserProfile.department_id == department.id,    # Прямая связь
-                    UserProfile.__table__.c.department == department_filter,   # Старое текстовое поле
                     # Также через группы этой кафедры
                     UserProfile.group_id.in_(
                         db.query(Group.id).filter(Group.department_id == department.id).subquery()
@@ -401,8 +392,8 @@ async def get_my_accessible_students(
                 "middle_name": student.middle_name,
                 "email": student.email,
                 # Старые текстовые поля для обратной совместимости
-                "faculty": student.profile.faculty if student.profile else None,
-                "department": student.profile.department if student.profile else None,
+                "faculty": student.profile.faculty.name if student.profile and student.profile.faculty else None,
+                "department": student.profile.department.name if student.profile and student.profile.department else None,
                 # Новые поля с полной информацией о подразделениях
                 "faculty_info": {
                     "id": student.profile.faculty.id,
@@ -612,15 +603,8 @@ async def get_accessible_students(
     if department_only_ids:
         filter_conditions.append(UserProfile.department_id.in_(department_only_ids))
     
-    # 4. Фильтрация через старые текстовые поля
-    dept_names = [dept.name for dept in departments]
-    if dept_names:
-        filter_conditions.append(
-            or_(
-                UserProfile.__table__.c.faculty.in_(dept_names),
-                UserProfile.__table__.c.department.in_(dept_names)
-            )
-        )
+    # Примечание: Старые текстовые поля faculty и department не существуют в БД
+    # Фильтрация только через ID поля faculty_id и department_id
     
     if not filter_conditions:
         return []
@@ -699,12 +683,10 @@ async def get_students_by_department(
     # 2. Фильтрация через прямую связь с факультетом
     if department.department_type == 'faculty':
         filter_conditions.append(UserProfile.faculty_id == department_id)
-        filter_conditions.append(UserProfile.__table__.c.faculty == department.name)  # Старое поле
     
     # 3. Фильтрация через прямую связь с кафедрой
     if department.department_type == 'department':
         filter_conditions.append(UserProfile.department_id == department_id)
-        filter_conditions.append(UserProfile.__table__.c.department == department.name)  # Старое поле
     
     if not filter_conditions:
         return []
@@ -738,8 +720,11 @@ async def get_student_profile(
     if 'student' not in (student.roles or []):
         raise HTTPException(status_code=404, detail="Пользователь не является студентом")
     
-    # Получаем профиль студента
-    profile = db.query(UserProfile).filter(UserProfile.user_id == student_id).first()
+    # Получаем профиль студента с связанными данными
+    profile = db.query(UserProfile).options(
+        joinedload(UserProfile.faculty),
+        joinedload(UserProfile.department)
+    ).filter(UserProfile.user_id == student_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Профиль студента не найден")
     
@@ -764,16 +749,16 @@ async def get_student_profile(
         # Проверяем доступ по факультету
         faculty_departments = [dept for dept in departments if dept.department_type == "faculty"]
         if faculty_departments:
-            faculty_names = [dept.name for dept in faculty_departments]
-            if profile.faculty in faculty_names:
+            faculty_ids = [dept.id for dept in faculty_departments]
+            if profile.faculty_id in faculty_ids:
                 has_access = True
         
         # Проверяем доступ по кафедре
         if not has_access:
             department_departments = [dept for dept in departments if dept.department_type == "department"]
             if department_departments:
-                department_names = [dept.name for dept in department_departments]
-                if profile.department in department_names:
+                department_ids = [dept.id for dept in department_departments]
+                if profile.department_id in department_ids:
                     has_access = True
         
         # Проверяем доступ по группе
@@ -818,8 +803,8 @@ async def get_student_profile(
         "group": group_info,
         "course": profile.course,
         "semester": profile.semester,
-        "faculty": profile.faculty,
-        "department": profile.department,
+        "faculty": profile.faculty.name if profile.faculty else None,
+        "department": profile.department.name if profile.department else None,
         "specialization": profile.specialization,
         "education_level": profile.education_level,
         "education_form": profile.education_form,

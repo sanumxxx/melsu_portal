@@ -141,8 +141,21 @@ async def check_portfolio_view_access(user: User, student_id: int, db: Session) 
                     accessible_faculty_names.add(dept.parent.name)
         
         # Проверяем принадлежность студента к доступным подразделениям
-        if student.profile.faculty in accessible_faculty_names or \
-           student.profile.department in accessible_department_names:
+        # Преобразуем имена в ID для сравнения
+        accessible_faculty_ids = set()
+        accessible_department_ids = set()
+        
+        for dept in my_departments:
+            if dept.department_type == "faculty":
+                accessible_faculty_ids.add(dept.id)
+            elif dept.department_type == "department":
+                accessible_department_ids.add(dept.id)
+                # Добавляем родительский факультет если есть
+                if dept.parent:
+                    accessible_faculty_ids.add(dept.parent.id)
+        
+        if student.profile.faculty_id in accessible_faculty_ids or \
+           student.profile.department_id in accessible_department_ids:
             return True
     
     return False

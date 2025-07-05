@@ -40,8 +40,7 @@ class UserProfile(Base):
     student_id = Column(String(50), nullable=True)
     course = Column(Integer, nullable=True)
     semester = Column(Integer, nullable=True)
-    faculty = Column(String(200), nullable=True)
-    department = Column(String(200), nullable=True)
+    # Старые текстовые поля faculty и department удалены - используйте faculty_id и department_id
     specialization = Column(String(200), nullable=True)
     education_level = Column(String(50), nullable=True)  # бакалавр, магистр, аспирант
     education_form = Column(String(50), nullable=True)   # очная, заочная, очно-заочная
