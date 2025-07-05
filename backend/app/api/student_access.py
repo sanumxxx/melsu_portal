@@ -338,11 +338,35 @@ async def get_my_accessible_students(
         students_query = students_query.outerjoin(Group, UserProfile.group_id == Group.id)
         students_query = students_query.filter(search_filter)
     
+    # Новая логика фильтрации по факультету
     if faculty_filter:
-        students_query = students_query.filter(UserProfile.faculty == faculty_filter)
+        # Ищем факультет по названию и фильтруем по faculty_id
+        faculty = db.query(Department).filter(
+            Department.name == faculty_filter,
+            Department.department_type == 'faculty'
+        ).first()
+        if faculty:
+            students_query = students_query.filter(
+                or_(
+                    UserProfile.faculty_id == faculty.id,
+                    UserProfile.faculty == faculty_filter  # fallback для старых записей
+                )
+            )
     
+    # Новая логика фильтрации по кафедре
     if department_filter:
-        students_query = students_query.filter(UserProfile.department == department_filter)
+        # Ищем кафедру по названию и фильтруем по department_id
+        department = db.query(Department).filter(
+            Department.name == department_filter,
+            Department.department_type == 'department'
+        ).first()
+        if department:
+            students_query = students_query.filter(
+                or_(
+                    UserProfile.department_id == department.id,
+                    UserProfile.department == department_filter  # fallback для старых записей
+                )
+            )
     
     if course_filter:
         students_query = students_query.filter(UserProfile.course == course_filter)
