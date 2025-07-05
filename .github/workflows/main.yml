@@ -67,7 +67,8 @@ jobs:
             
             # Стандартное обновление без автоматизации
             echo "📦 Обновление кода..."
-            git pull origin main
+            git stash
+            git pull
             
             echo "🔄 Перезапуск сервисов..."
             systemctl restart melsu-api melsu-worker nginx || {
