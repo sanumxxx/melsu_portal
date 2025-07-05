@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   UsersIcon,
   MagnifyingGlassIcon,
@@ -22,6 +23,7 @@ import {
 import api from '../../services/api';
 
 const StudentsList = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -362,7 +364,7 @@ const StudentsList = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Navigate to portfolio
+                      navigate(`/portfolio/${student.id}`);
                     }}
                     className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >

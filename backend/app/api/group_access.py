@@ -158,6 +158,9 @@ async def get_my_accessible_groups(
             elif department.parent:
                 faculty_name = department.parent.name
         
+        # Подсчитываем количество студентов в группе
+        student_count = db.query(UserProfile).filter(UserProfile.group_id == group.id).count()
+        
         result_groups.append({
             "id": group.id,
             "name": group.name,
@@ -169,6 +172,8 @@ async def get_my_accessible_groups(
             "admission_year": group.parsed_year,
             "education_level": group.parsed_education_level,
             "education_form": group.parsed_education_form,
+            "student_count": student_count,
+            "is_active": True,  # По умолчанию все группы активны
             "created_at": group.created_at.isoformat() if group.created_at else None,
             "updated_at": group.updated_at.isoformat() if group.updated_at else None
         })
