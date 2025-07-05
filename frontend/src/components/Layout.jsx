@@ -130,20 +130,19 @@ const Layout = ({ children, user, onLogout }) => {
       });
     }
 
-
-
+    // Удаляем этот блок кода:
     // Справочники для сотрудников, преподавателей, кураторов и админов
-    if (user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role))) {
-      baseNavigation.push({
-        name: 'Справочники',
-        icon: FolderIcon,
-        children: [
-          { name: 'Студенты', href: '/directories/students' },
-          { name: 'Группы', href: '/directories/groups' },
-          { name: 'Подразделения', href: '/directories/departments' }
-        ]
-      });
-    }
+    // if (user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role))) {
+    //   baseNavigation.push({
+    //     name: 'Справочники',
+    //     icon: FolderIcon,
+    //     children: [
+    //       { name: 'Студенты', href: '/directories/students' },
+    //       { name: 'Группы', href: '/directories/groups' },
+    //       { name: 'Подразделения', href: '/directories/departments' }
+    //     ]
+    //   });
+    // }
 
     // Административные разделы - объединяем управление системой и пользователями
     if (user?.roles?.includes('admin')) {
@@ -153,13 +152,13 @@ const Layout = ({ children, user, onLogout }) => {
           icon: CogIcon,
           children: [
             { name: 'Конструктор заявок', href: '/request-builder' },
-                    { name: 'Шаблоны отчетов', href: '/admin/report-templates' },
-        { name: 'Управление ролями', href: '/admin/roles' },
-        { name: 'Структура организации', href: '/admin/structure' },
-        { name: 'Группы', href: '/admin/groups' },
-        { name: 'Объявления', href: '/admin/announcements' },
-        { name: 'Кураторы', href: '/admin/curator-manager' },
-        { name: 'Журнал активности', href: '/admin/activity-logs' }
+            { name: 'Шаблоны отчетов', href: '/admin/report-templates' },
+            { name: 'Управление ролями', href: '/admin/roles' },
+            { name: 'Структура организации', href: '/admin/structure' },
+            { name: 'Группы', href: '/admin/groups' },
+            { name: 'Объявления', href: '/admin/announcements' },
+            { name: 'Кураторы', href: '/admin/curator-manager' },
+            { name: 'Журнал активности', href: '/admin/activity-logs' }
           ]
         },
         {
@@ -279,8 +278,8 @@ const Layout = ({ children, user, onLogout }) => {
             {/* Заявки */}
             {navigation.slice(user?.roles?.includes('student') ? 3 : 2, user?.roles?.includes('student') ? 4 : 3).map((item) => renderNavigationItem(item, false))}
             
-            {/* Отчеты и Справочники */}
-            {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => ['Отчеты', 'Справочники'].includes(item.name)).map((item) => renderNavigationItem(item, false))}
+            {/* Отчеты (убираем Справочники из фильтра) */}
+            {navigation.slice(user?.roles?.includes('student') ? 4 : 3).filter(item => ['Отчеты'].includes(item.name)).map((item) => renderNavigationItem(item, false))}
             
             {/* Административные разделы */}
             {user?.roles?.includes('admin') && (
@@ -505,4 +504,4 @@ const Layout = ({ children, user, onLogout }) => {
   );
 };
 
-export default Layout; 
+export default Layout;
