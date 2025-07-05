@@ -170,96 +170,164 @@ const StudentPortfolio = () => {
       {/* Информация о студенте */}
       {studentInfo && (
         <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-6 mb-6">
-          <div className="flex items-start space-x-4">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <UserIcon className="w-8 h-8 text-red-600" />
+          <div className="flex items-start space-x-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <UserIcon className="w-10 h-10 text-white" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {studentInfo.last_name} {studentInfo.first_name} {studentInfo.middle_name}
-              </h1>
-              <p className="text-gray-600">{studentInfo.email}</p>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {studentInfo.last_name} {studentInfo.first_name} {studentInfo.middle_name}
+                  </h1>
+                  <p className="text-lg text-gray-600 mt-1">{studentInfo.email}</p>
+                  {studentInfo.profile?.phone && (
+                    <p className="text-gray-600">{studentInfo.profile.phone}</p>
+                  )}
+                </div>
+                {studentInfo.profile?.academic_status && (
+                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+                    studentInfo.profile.academic_status === 'active' 
+                      ? 'bg-green-100 text-green-800'
+                      : studentInfo.profile.academic_status === 'academic_leave'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {academicStatuses[studentInfo.profile.academic_status] || studentInfo.profile.academic_status}
+                  </span>
+                )}
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+              {/* Основная академическая информация */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {studentInfo.profile?.student_id && (
                   <div className="flex items-center text-sm text-gray-700">
-                    <IdentificationIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>{studentInfo.profile.student_id}</span>
+                    <IdentificationIcon className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-xs text-gray-500">Студенческий билет</div>
+                      <div className="font-medium">{studentInfo.profile.student_id}</div>
+                    </div>
                   </div>
                 )}
                 
-                {studentInfo.profile?.faculty && (
+                {(studentInfo.profile?.group || studentInfo.profile?.course) && (
                   <div className="flex items-center text-sm text-gray-700">
-                    <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>
-                      {typeof studentInfo.profile.faculty === 'object' && studentInfo.profile.faculty?.name 
-                        ? studentInfo.profile.faculty.name 
-                        : studentInfo.profile.faculty
-                      }
-                    </span>
+                    <UserGroupIcon className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-xs text-gray-500">Группа / Курс</div>
+                      <div className="font-medium">
+                        {studentInfo.profile.group?.name || 'Не указана'}
+                        {(studentInfo.profile.course || studentInfo.profile.group?.course) && 
+                          ` • ${studentInfo.profile.course || studentInfo.profile.group?.course} курс`
+                        }
+                      </div>
+                    </div>
                   </div>
                 )}
                 
-                {studentInfo.profile?.department && (
+                {(studentInfo.profile?.education_level || studentInfo.profile?.group?.education_level) && (
                   <div className="flex items-center text-sm text-gray-700">
-                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>
-                      {typeof studentInfo.profile.department === 'object' && studentInfo.profile.department?.name 
-                        ? studentInfo.profile.department.name 
-                        : studentInfo.profile.department
-                      }
-                    </span>
+                    <AcademicCapIcon className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-xs text-gray-500">Уровень образования</div>
+                      <div className="font-medium">
+                        {educationLevels[studentInfo.profile.education_level || studentInfo.profile.group?.education_level] || 
+                         studentInfo.profile.education_level || studentInfo.profile.group?.education_level || 'Не указан'}
+                      </div>
+                    </div>
                   </div>
                 )}
                 
-                {studentInfo.profile?.group && (
+                {(studentInfo.profile?.education_form || studentInfo.profile?.group?.education_form) && (
                   <div className="flex items-center text-sm text-gray-700">
-                    <UserGroupIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>
-                      {studentInfo.profile.group.name}
-                      {studentInfo.profile.course && ` (${studentInfo.profile.course} курс)`}
-                    </span>
+                    <CalendarIcon className="h-5 w-5 text-red-500 mr-3" />
+                    <div>
+                      <div className="text-xs text-gray-500">Форма обучения</div>
+                      <div className="font-medium">
+                        {educationForms[studentInfo.profile.education_form || studentInfo.profile.group?.education_form] || 
+                         studentInfo.profile.education_form || studentInfo.profile.group?.education_form || 'Не указана'}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                {studentInfo.profile?.education_level && (
-                  <div className="text-sm">
-                    <span className="text-gray-500">Уровень образования:</span>
-                    <br />
-                    <span className="font-medium">
-                      {educationLevels[studentInfo.profile.education_level] || studentInfo.profile.education_level}
-                    </span>
+              {/* Подробная информация о подразделениях */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Факультет */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <AcademicCapIcon className="h-5 w-5 text-red-500 mr-2" />
+                    Факультет
+                  </h3>
+                  <div className="text-sm text-gray-700">
+                    {studentInfo.profile?.faculty_info?.name || 
+                     studentInfo.profile?.faculty || 
+                     'Не указан'}
                   </div>
-                )}
+                  {studentInfo.profile?.faculty_info?.short_name && 
+                   studentInfo.profile.faculty_info.short_name !== studentInfo.profile.faculty_info.name && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {studentInfo.profile.faculty_info.short_name}
+                    </div>
+                  )}
+                </div>
                 
-                {studentInfo.profile?.education_form && (
-                  <div className="text-sm">
-                    <span className="text-gray-500">Форма обучения:</span>
-                    <br />
-                    <span className="font-medium">
-                      {educationForms[studentInfo.profile.education_form] || studentInfo.profile.education_form}
-                    </span>
+                {/* Кафедра */}
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <BuildingOfficeIcon className="h-5 w-5 text-red-500 mr-2" />
+                    Кафедра
+                  </h3>
+                  <div className="text-sm text-gray-700">
+                    {studentInfo.profile?.department_info?.name || 
+                     studentInfo.profile?.department || 
+                     'Не указана'}
                   </div>
-                )}
-                
-                {studentInfo.profile?.academic_status && (
-                  <div className="text-sm">
-                    <span className="text-gray-500">Статус:</span>
-                    <br />
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      studentInfo.profile.academic_status === 'active' 
-                        ? 'bg-green-100 text-green-800'
-                        : studentInfo.profile.academic_status === 'academic_leave'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {academicStatuses[studentInfo.profile.academic_status] || studentInfo.profile.academic_status}
-                    </span>
-                  </div>
-                )}
+                  {studentInfo.profile?.department_info?.short_name && 
+                   studentInfo.profile.department_info.short_name !== studentInfo.profile.department_info.name && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {studentInfo.profile.department_info.short_name}
+                    </div>
+                  )}
+                  {studentInfo.profile?.department_info?.faculty_name && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Факультет: {studentInfo.profile.department_info.faculty_name}
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Дополнительная информация */}
+              {(studentInfo.profile?.specialization || studentInfo.profile?.group?.specialization || 
+                studentInfo.profile?.semester || studentInfo.profile?.group?.admission_year) && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    {(studentInfo.profile?.specialization || studentInfo.profile?.group?.specialization) && (
+                      <div>
+                        <span className="text-gray-500">Специализация:</span>
+                        <div className="font-medium text-gray-900">
+                          {studentInfo.profile.specialization || studentInfo.profile.group?.specialization}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {studentInfo.profile?.semester && (
+                      <div>
+                        <span className="text-gray-500">Семестр:</span>
+                        <div className="font-medium text-gray-900">{studentInfo.profile.semester}</div>
+                      </div>
+                    )}
+                    
+                    {studentInfo.profile?.group?.admission_year && (
+                      <div>
+                        <span className="text-gray-500">Год поступления:</span>
+                        <div className="font-medium text-gray-900">{studentInfo.profile.group.admission_year}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

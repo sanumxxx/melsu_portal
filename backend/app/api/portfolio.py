@@ -509,10 +509,14 @@ async def get_student_portfolio_info(
             detail="У вас нет доступа к информации об этом студенте"
         )
     
-    # Получаем информацию о студенте
+    # Получаем информацию о студенте с полными связями
+    from ..models.department import Department
+    
     student = db.query(User).options(
         joinedload(User.profile),
-        joinedload(User.profile.group)
+        joinedload(User.profile.group),
+        joinedload(User.profile.faculty_info),
+        joinedload(User.profile.department_info)
     ).filter(User.id == student_id).first()
     
     if not student:
@@ -526,6 +530,42 @@ async def get_student_portfolio_info(
     
     profile = student.profile
     
+    # Получаем информацию о факультете и кафедре
+    faculty_info = None
+    department_info = None
+    
+    if profile:
+        # Через новые ID поля
+        if profile.faculty_id:
+            faculty_info = db.query(Department).filter(Department.id == profile.faculty_id).first()
+        if profile.department_id:
+            department_info = db.query(Department).filter(Department.id == profile.department_id).first()
+        
+        # Через старые текстовые поля (для совместимости)
+        if not faculty_info and profile.faculty:
+            faculty_info = db.query(Department).filter(
+                Department.name == profile.faculty,
+                Department.department_type == 'faculty'
+            ).first()
+        if not department_info and profile.department:
+            department_info = db.query(Department).filter(
+                Department.name == profile.department,
+                Department.department_type == 'department'
+            ).first()
+    
+    # Формируем полную информацию о группе
+    group_info = None
+    if profile and profile.group:
+        group_info = {
+            "id": profile.group.id,
+            "name": profile.group.name,
+            "specialization": profile.group.specialization,
+            "course": profile.group.course,
+            "admission_year": profile.group.parsed_year,
+            "education_level": profile.group.parsed_education_level or profile.group.education_level,
+            "education_form": profile.group.parsed_education_form or profile.group.education_form
+        }
+    
     return {
         "id": student.id,
         "email": student.email,
@@ -534,16 +574,36 @@ async def get_student_portfolio_info(
         "middle_name": student.middle_name,
         "profile": {
             "student_id": profile.student_id if profile else None,
-            "faculty": profile.faculty if profile else None,
-            "department": profile.department if profile else None,
+            "phone": profile.phone if profile else None,
+            "birth_date": profile.birth_date.isoformat() if profile and profile.birth_date else None,
             "course": profile.course if profile else None,
+            "semester": profile.semester if profile else None,
             "education_level": profile.education_level if profile else None,
             "education_form": profile.education_form if profile else None,
             "academic_status": profile.academic_status if profile else None,
-            "group": {
-                "id": profile.group.id,
-                "name": profile.group.name,
-                "specialization": profile.group.specialization
-            } if profile and profile.group else None
+            "specialization": profile.specialization if profile else None,
+            
+            # Факультет
+            "faculty_id": profile.faculty_id if profile else None,
+            "faculty": profile.faculty if profile else None,
+            "faculty_info": {
+                "id": faculty_info.id,
+                "name": faculty_info.name,
+                "short_name": faculty_info.short_name
+            } if faculty_info else None,
+            
+            # Кафедра  
+            "department_id": profile.department_id if profile else None,
+            "department": profile.department if profile else None,
+            "department_info": {
+                "id": department_info.id,
+                "name": department_info.name,
+                "short_name": department_info.short_name,
+                "faculty_name": department_info.parent.name if department_info and department_info.parent else None
+            } if department_info else None,
+            
+            # Группа
+            "group_id": profile.group_id if profile else None,
+            "group": group_info
         }
     } 
