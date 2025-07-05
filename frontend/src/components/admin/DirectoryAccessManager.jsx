@@ -94,7 +94,7 @@ const DirectoryAccessManager = () => {
         )
       };
       
-      const response = await api.get('/admin/directory-access/accesses', { params });
+      const response = await api.get('/api/admin/directory-access/accesses', { params });
       setAccesses(response.data.accesses);
       setPagination(prev => ({ ...prev, total: response.data.pagination.total }));
     } catch (error) {
@@ -108,7 +108,7 @@ const DirectoryAccessManager = () => {
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/directory-access/templates', {
+      const response = await api.get('/api/admin/directory-access/templates', {
         params: { page: pagination.page, limit: pagination.limit }
       });
       setTemplates(response.data.templates);
@@ -124,7 +124,7 @@ const DirectoryAccessManager = () => {
   const loadStatistics = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/directory-access/statistics');
+      const response = await api.get('/api/admin/directory-access/statistics');
       setStatistics(response.data);
     } catch (error) {
       console.error('Ошибка загрузки статистики:', error);
@@ -136,7 +136,7 @@ const DirectoryAccessManager = () => {
 
   const loadDepartments = async () => {
     try {
-      const response = await api.get('/directories/departments');
+      const response = await api.get('/api/directories/departments');
       setDepartments(response.data.departments || []);
     } catch (error) {
       console.error('Ошибка загрузки подразделений:', error);
@@ -147,7 +147,7 @@ const DirectoryAccessManager = () => {
     if (!confirm('Вы уверены, что хотите удалить этот доступ?')) return;
     
     try {
-      await api.delete(`/admin/directory-access/accesses/${accessId}`);
+      await api.delete(`/api/admin/directory-access/accesses/${accessId}`);
       await loadAccesses();
     } catch (error) {
       console.error('Ошибка удаления доступа:', error);
