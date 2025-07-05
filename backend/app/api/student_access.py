@@ -383,6 +383,32 @@ async def get_my_accessible_students(
     offset = (page - 1) * size
     students = students_query.offset(offset).limit(size).all()
     
+    # Определяем причину доступа для каждого студента
+    def get_access_reason(student):
+        reasons = []
+        
+        # Проверяем доступ через группу
+        if student.profile and student.profile.group_id:
+            group = db.query(Group).filter(Group.id == student.profile.group_id).first()
+            if group and group.department_id in all_accessible_dept_ids:
+                dept = db.query(Department).filter(Department.id == group.department_id).first()
+                if dept:
+                    reasons.append(f"Доступ через группу {group.name} ({dept.name})")
+        
+        # Проверяем прямой доступ к факультету
+        if student.profile and student.profile.faculty_id and student.profile.faculty_id in all_accessible_dept_ids:
+            faculty = db.query(Department).filter(Department.id == student.profile.faculty_id).first()
+            if faculty:
+                reasons.append(f"Прямой доступ к факультету {faculty.name}")
+        
+        # Проверяем прямой доступ к кафедре
+        if student.profile and student.profile.department_id and student.profile.department_id in all_accessible_dept_ids:
+            dept = db.query(Department).filter(Department.id == student.profile.department_id).first()
+            if dept:
+                reasons.append(f"Прямой доступ к кафедре {dept.name}")
+        
+        return reasons if reasons else ["Доступ через назначение"]
+
     return {
         "students": [
             {
@@ -420,7 +446,8 @@ async def get_my_accessible_students(
                 "education_level": student.profile.education_level if student.profile else None,
                 "education_form": student.profile.education_form if student.profile else None,
                 "academic_status": student.profile.academic_status if student.profile else None,
-                "phone": student.profile.phone if student.profile else None
+                "phone": student.profile.phone if student.profile else None,
+                "access_reasons": get_access_reason(student)
             }
             for student in students
         ],
@@ -619,7 +646,79 @@ async def get_accessible_students(
         or_(*filter_conditions)
     ).all()
     
-    return students
+    # Определяем причину доступа для каждого студента
+    def get_access_reason(student):
+        reasons = []
+        
+        # Проверяем доступ через группу
+        if student.profile and student.profile.group_id:
+            group = db.query(Group).filter(Group.id == student.profile.group_id).first()
+            if group and group.department_id in all_accessible_dept_ids:
+                dept = db.query(Department).filter(Department.id == group.department_id).first()
+                if dept:
+                    reasons.append(f"Доступ через группу {group.name} ({dept.name})")
+        
+        # Проверяем прямой доступ к факультету
+        if student.profile and student.profile.faculty_id and student.profile.faculty_id in all_accessible_dept_ids:
+            faculty = db.query(Department).filter(Department.id == student.profile.faculty_id).first()
+            if faculty:
+                reasons.append(f"Прямой доступ к факультету {faculty.name}")
+        
+        # Проверяем прямой доступ к кафедре
+        if student.profile and student.profile.department_id and student.profile.department_id in all_accessible_dept_ids:
+            dept = db.query(Department).filter(Department.id == student.profile.department_id).first()
+            if dept:
+                reasons.append(f"Прямой доступ к кафедре {dept.name}")
+        
+        return reasons if reasons else ["Доступ через назначение"]
+    
+    # Преобразуем в расширенный формат для совместимости
+    students_with_access = []
+    for student in students:
+        student_dict = {
+            "id": student.id,
+            "first_name": student.first_name,
+            "last_name": student.last_name,
+            "middle_name": student.middle_name,
+            "email": student.email,
+            "birth_date": student.birth_date.isoformat() if student.birth_date else None,
+            "gender": student.gender,
+            "roles": student.roles,
+            "is_verified": student.is_verified,
+            "is_active": student.is_active,
+            "faculty": student.profile.faculty.name if student.profile and student.profile.faculty else None,
+            "department": student.profile.department.name if student.profile and student.profile.department else None,
+            "faculty_info": {
+                "id": student.profile.faculty.id,
+                "name": student.profile.faculty.name,
+                "short_name": student.profile.faculty.short_name,
+                "department_type": student.profile.faculty.department_type
+            } if student.profile and student.profile.faculty else None,
+            "department_info": {
+                "id": student.profile.department.id, 
+                "name": student.profile.department.name,
+                "short_name": student.profile.department.short_name,
+                "department_type": student.profile.department.department_type
+            } if student.profile and student.profile.department else None,
+            "group_number": student.profile.group.name if student.profile and student.profile.group else None,
+            "group_info": {
+                "id": student.profile.group.id,
+                "name": student.profile.group.name,
+                "specialization": student.profile.group.specialization,
+                "course": student.profile.group.course,
+                "admission_year": student.profile.group.parsed_year
+            } if student.profile and student.profile.group else None,
+            "course": student.profile.course if student.profile else None,
+            "student_id": student.profile.student_id if student.profile else None,
+            "education_level": student.profile.education_level if student.profile else None,
+            "education_form": student.profile.education_form if student.profile else None,
+            "academic_status": student.profile.academic_status if student.profile else None,
+            "phone": student.profile.phone if student.profile else None,
+            "access_reasons": get_access_reason(student)
+        }
+        students_with_access.append(student_dict)
+    
+    return students_with_access
 
 @router.get("/students/by-department/{department_id}", response_model=List[UserResponse])
 async def get_students_by_department(
