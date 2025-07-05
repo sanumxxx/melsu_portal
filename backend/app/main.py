@@ -44,7 +44,9 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .middleware.activity_middleware import ActivityLoggingMiddleware
 from sqlalchemy import text
-from .database import User, Department, FieldType
+from .models.user import User
+from .models.department import Department
+from .models.role import Role
 
 # WebSocket для уведомлений
 try:

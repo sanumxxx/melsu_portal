@@ -475,135 +475,38 @@ EOF
     fi
 }
 
-# Функция инициализации системы управления доступом к справочникам
-init_directory_access_system() {
-    log_step "Инициализация системы управления доступом к справочникам..."
+# Функция очистки таблиц directory_access
+clean_directory_access_tables() {
+    log_info "Удаление старых таблиц directory_access..."
+    
+    # Удаляем таблицы directory_access
+    sudo -u postgres psql melsu_db << 'EOF'
+-- Удаляем таблицы directory_access если они существуют
+DROP TABLE IF EXISTS directory_access CASCADE;
+DROP TABLE IF EXISTS directory_access_template CASCADE;
+
+-- Проверяем, что таблицы удалены
+SELECT COUNT(*) as remaining_tables FROM information_schema.tables 
+WHERE table_name IN ('directory_access', 'directory_access_template');
+EOF
+
+    if [ $? -eq 0 ]; then
+        log_success "✅ Старые таблицы directory_access удалены"
+    else
+        log_warning "⚠️  Предупреждение: Не удалось удалить таблицы directory_access"
+    fi
+}
+
+# Функция инициализации системы с автоматическим созданием таблиц
+init_system() {
+    log_step "Инициализация системы MELSU Portal..."
     
     # Создаем резервную копию перед инициализацией
     log_info "Создание резервной копии БД..."
     backup_database
     
-    # Проверяем и создаем таблицы
-    log_info "Проверка и создание таблиц directory_access..."
-    sudo -u postgres psql melsu_db << 'EOF'
--- Создаем таблицу directory_access_template
-CREATE TABLE IF NOT EXISTS directory_access_template (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    access_type VARCHAR(10) NOT NULL CHECK (access_type IN ('READ', 'write', 'admin')),
-    scope VARCHAR(20) NOT NULL CHECK (scope IN ('students', 'groups', 'departments', 'all')),
-    allows_inheritance BOOLEAN DEFAULT FALSE,
-    inherit_children BOOLEAN DEFAULT TRUE,
-    is_global BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    for_roles JSONB,
-    department_types JSONB,
-    restrictions JSONB,
-    created_by INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Создаем таблицу directory_access
-CREATE TABLE IF NOT EXISTS directory_access (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    department_id INTEGER REFERENCES departments(id) ON DELETE CASCADE,
-    access_type VARCHAR(10) NOT NULL CHECK (access_type IN ('read', 'write', 'admin')),
-    scope VARCHAR(20) NOT NULL CHECK (scope IN ('students', 'groups', 'departments', 'all')),
-    allows_inheritance BOOLEAN DEFAULT FALSE,
-    inherit_children BOOLEAN DEFAULT TRUE,
-    restrictions JSONB DEFAULT '{}',
-    description TEXT,
-    expires_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    granted_by INTEGER REFERENCES users(id),
-    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    template_id INTEGER REFERENCES directory_access_template(id) ON DELETE SET NULL
-);
-
--- Создаем индексы для производительности
-CREATE INDEX IF NOT EXISTS idx_directory_access_user_id ON directory_access(user_id);
-CREATE INDEX IF NOT EXISTS idx_directory_access_department_id ON directory_access(department_id);
-CREATE INDEX IF NOT EXISTS idx_directory_access_scope ON directory_access(scope);
-CREATE INDEX IF NOT EXISTS idx_directory_access_expires_at ON directory_access(expires_at);
-CREATE INDEX IF NOT EXISTS idx_directory_access_is_active ON directory_access(is_active);
-CREATE INDEX IF NOT EXISTS idx_directory_access_template_name ON directory_access_template(name);
-CREATE INDEX IF NOT EXISTS idx_directory_access_template_is_active ON directory_access_template(is_active);
-EOF
-
-    if [ $? -eq 0 ]; then
-        log_success "✅ Таблицы directory_access созданы успешно"
-    else
-        log_error "❌ Ошибка создания таблиц directory_access"
-        return 1
-    fi
-    
-    # Предоставляем права доступа
-    log_info "Предоставление прав доступа пользователю melsu_user..."
-    sudo -u postgres psql melsu_db << 'EOF'
--- Предоставляем права на таблицы directory_access
-GRANT SELECT, INSERT, UPDATE, DELETE ON directory_access TO melsu_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON directory_access_template TO melsu_user;
-
--- Предоставляем права на последовательности (для автоинкремента)
-GRANT USAGE, SELECT ON SEQUENCE directory_access_id_seq TO melsu_user;
-GRANT USAGE, SELECT ON SEQUENCE directory_access_template_id_seq TO melsu_user;
-
--- Предоставляем права на все таблицы и последовательности
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO melsu_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO melsu_user;
-
--- Устанавливаем права по умолчанию для новых объектов
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO melsu_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO melsu_user;
-EOF
-
-    if [ $? -eq 0 ]; then
-        log_success "✅ Права доступа предоставлены успешно"
-    else
-        log_error "❌ Ошибка предоставления прав доступа"
-        return 1
-    fi
-    
-    # Создаем шаблоны доступа
-    log_info "Создание шаблонов доступа..."
-    sudo -u postgres psql melsu_db << 'EOF'
--- Удаляем старые шаблоны (если есть) и создаем новые
-DELETE FROM directory_access_template;
-
--- Вставляем шаблоны доступа
-INSERT INTO directory_access_template (name, description, access_type, scope, allows_inheritance, inherit_children, is_global, is_active) VALUES
-('Работник факультета', 'Доступ для работников факультета ко всем данным подчиненных подразделений', 'read', 'all', true, true, false, true),
-('Работник кафедры', 'Доступ для работников кафедры к данным своего подразделения', 'read', 'all', true, true, false, true),
-('Куратор группы', 'Доступ куратора к студентам своей группы', 'read', 'students', false, false, false, true),
-('Декан факультета', 'Полный доступ декана к данным факультета', 'admin', 'all', true, true, false, true),
-('Заведующий кафедрой', 'Полный доступ заведующего к данным кафедры', 'admin', 'all', true, true, false, true),
-('Сотрудник учебного отдела', 'Доступ к редактированию данных студентов и групп', 'write', 'all', false, false, true, true),
-('Супервизор справочников', 'Полный доступ к управлению справочниками', 'admin', 'all', false, false, true, true),
-('Секретарь факультета', 'Доступ к просмотру и редактированию данных студентов факультета', 'write', 'students', true, true, false, true),
-('Методист кафедры', 'Доступ к просмотру данных студентов и групп кафедры', 'read', 'students', true, true, false, true),
-('Администратор системы', 'Полный доступ ко всем справочникам системы', 'admin', 'all', false, false, true, true);
-
--- Проверяем количество созданных шаблонов
-SELECT COUNT(*) as template_count FROM directory_access_template;
-EOF
-
-    if [ $? -eq 0 ]; then
-        log_success "✅ Шаблоны доступа созданы успешно"
-    else
-        log_error "❌ Ошибка создания шаблонов доступа"
-        return 1
-    fi
-    
-    # Проверяем создание директории admin для API
-    log_info "Проверка структуры API..."
-    mkdir -p $BACKEND_PATH/app/api/admin
-    touch $BACKEND_PATH/app/api/admin/__init__.py
-    chown -R melsu:melsu $BACKEND_PATH/app/api/admin
+    # Удаляем старые таблицы directory_access
+    clean_directory_access_tables
     
     # Исправляем состояние alembic
     log_info "Исправление состояния alembic..."
@@ -616,61 +519,40 @@ EOF
         log_warning "⚠️  Предупреждение: Не удалось исправить состояние alembic"
     fi
     
-    # Инициализируем системные данные
-    log_info "Инициализация системных данных..."
+    # Инициализируем системные данные через Python
+    log_info "Автоматическое создание таблиц и инициализация данных..."
     sudo -u melsu $BACKEND_PATH/venv/bin/python -c "
 import sys
 sys.path.append('$BACKEND_PATH')
 try:
-    from app.startup import init_departments, init_roles, init_request_templates
-    from app.database import get_db
-    from sqlalchemy.orm import Session
+    from app.startup import startup_application
     
-    # Получаем сессию БД
-    db = next(get_db())
+    # Запускаем полную инициализацию
+    startup_application()
     
-    try:
-        print('Инициализация департаментов...')
-        init_departments(db)
-        
-        print('Инициализация ролей...')
-        init_roles(db)
-        
-        print('Инициализация шаблонов заявок...')
-        init_request_templates(db)
-        
-        db.commit()
-        print('✅ Системные данные инициализированы успешно')
-    except Exception as e:
-        db.rollback()
-        print(f'❌ Ошибка инициализации системных данных: {e}')
-        raise
-    finally:
-        db.close()
+    print('✅ Система полностью инициализирована')
 except Exception as e:
     print(f'❌ Ошибка при инициализации: {e}')
     exit(1)
 "
     
-    # Проверяем результат инициализации
-    log_info "Проверка результата инициализации..."
-    local table_count=$(sudo -u postgres psql melsu_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('directory_access', 'directory_access_template');")
-    local template_count=$(sudo -u postgres psql melsu_db -t -c "SELECT COUNT(*) FROM directory_access_template WHERE is_active = true;" 2>/dev/null || echo "0")
-    
-    if [ "$table_count" -eq 2 ] && [ "$template_count" -gt 0 ]; then
-        log_success "✅ Система управления доступом к справочникам инициализирована успешно!"
-        log_info "📊 Создано таблиц: 2"
-        log_info "📋 Создано шаблонов доступа: $template_count"
+    if [ $? -eq 0 ]; then
+        log_success "✅ Система инициализирована успешно!"
         
-        # Показываем созданные шаблоны
-        log_info "Созданные шаблоны доступа:"
-        sudo -u postgres psql melsu_db -c "SELECT id, name, access_type, scope, inherit_children FROM directory_access_template WHERE is_active = true ORDER BY id;"
+        # Проверяем результат инициализации
+        log_info "Проверка результата инициализации..."
+        local table_count=$(sudo -u postgres psql melsu_db -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT IN ('alembic_version');" | xargs)
+        local roles_count=$(sudo -u postgres psql melsu_db -t -c "SELECT COUNT(*) FROM roles;" 2>/dev/null | xargs || echo "0")
+        local departments_count=$(sudo -u postgres psql melsu_db -t -c "SELECT COUNT(*) FROM departments;" 2>/dev/null | xargs || echo "0")
+        
+        log_info "📊 Результаты инициализации:"
+        log_info "   Таблиц создано: $table_count"
+        log_info "   Системных ролей: $roles_count"
+        log_info "   Подразделений: $departments_count"
         
         return 0
     else
         log_error "❌ Инициализация завершена с ошибками"
-        log_error "Таблиц найдено: $table_count (ожидалось: 2)"
-        log_error "Шаблонов создано: $template_count (ожидалось: > 0)"
         return 1
     fi
 }
@@ -823,12 +705,9 @@ main() {
         fix-migrations-complete)
             fix_migrations_complete
             ;;
-        init-directory-access)
-            init_directory_access_system
-            ;;
         init)
             log_info "🔄 Полная инициализация системы MELSU Portal..."
-            init_directory_access_system
+            init_system
             if [ $? -eq 0 ]; then
                 log_info "Перезапуск сервисов после инициализации..."
                 safe_restart
@@ -848,7 +727,7 @@ main() {
             echo "  restart     - Перезапустить сервисы"
             echo "  update      - Обновить проект с Git и применить миграции"
             echo "  status      - Показать статус системы"
-            echo "  init        - Инициализировать систему управления доступом к справочникам"
+            echo "  init        - Автоматическая инициализация системы"
             echo ""
             echo -e "${YELLOW}Управление БД:${NC}"
             echo "  migrate              - Применить миграции БД"
@@ -865,17 +744,15 @@ main() {
             echo -e "${YELLOW}Дополнительно:${NC}"
             echo "  ssl         - Настроить SSL сертификат"
             echo "  deploy      - Полное развертывание системы"
-            echo "  init-directory-access - Инициализировать систему управления доступом к справочникам"
             echo ""
             echo -e "${GREEN}Примеры использования:${NC}"
-            echo "  melsu init                      # Инициализировать систему управления доступом"
+            echo "  melsu init                      # Автоматическая инициализация системы"
             echo "  melsu update                    # Обновить проект"
             echo "  melsu status                    # Проверить статус"
             echo "  melsu fix-migrations            # Исправить конфликты миграций"
             echo "  melsu fix-migrations-complete   # Полное исправление с очисткой"
             echo "  melsu diagnose-migrations       # Диагностика миграций"
             echo "  melsu live-logs                 # Мониторинг в реальном времени"
-            echo "  melsu init-directory-access     # Инициализировать систему управления доступом к справочникам"
             ;;
     esac
 }

@@ -58,7 +58,6 @@ class User(Base):
     portfolio_achievements = relationship("PortfolioAchievement", back_populates="user", cascade="all, delete-orphan")
     created_announcements = relationship("Announcement", back_populates="created_by", cascade="all, delete-orphan")
     announcement_views = relationship("AnnouncementView", back_populates="user", cascade="all, delete-orphan")
-    directory_accesses = relationship("DirectoryAccess", foreign_keys="DirectoryAccess.user_id", back_populates="user", cascade="all, delete-orphan")
     
     # Свойства для работы с назначениями
     @property
