@@ -409,48 +409,118 @@ async def get_my_accessible_students(
         
         return reasons if reasons else ["Доступ через назначение"]
 
+    # Формируем ответ с правильным получением информации о подразделениях
+    result_students = []
+    for student in students:
+        # Получаем информацию о факультете и кафедре для каждого студента
+        faculty_info = None
+        department_info = None
+        faculty_name = None
+        department_name = None
+        
+        if student.profile:
+            # Получаем факультет через faculty_id
+            if student.profile.faculty_id:
+                faculty = db.query(Department).filter(Department.id == student.profile.faculty_id).first()
+                if faculty:
+                    faculty_name = faculty.name
+                    faculty_info = {
+                        "id": faculty.id,
+                        "name": faculty.name,
+                        "short_name": faculty.short_name,
+                        "department_type": faculty.department_type
+                    }
+            
+                         # Получаем кафедру через department_id
+            if student.profile.department_id:
+                department = db.query(Department).options(
+                    joinedload(Department.parent)
+                ).filter(Department.id == student.profile.department_id).first()
+                if department:
+                    department_name = department.name
+                    department_info = {
+                        "id": department.id,
+                        "name": department.name,
+                        "short_name": department.short_name,
+                        "department_type": department.department_type,
+                        "faculty_name": department.parent.name if department.parent else None
+                    }
+            
+            # Если нет прямых связей, пытаемся получить через группу
+            if (not faculty_info or not department_info) and student.profile.group:
+                group = student.profile.group
+                if group.department_id:
+                    group_dept = db.query(Department).options(
+                        joinedload(Department.parent)
+                    ).filter(Department.id == group.department_id).first()
+                    if group_dept:
+                        if group_dept.department_type == 'department' and not department_info:
+                            department_name = group_dept.name
+                            department_info = {
+                                "id": group_dept.id,
+                                "name": group_dept.name,
+                                "short_name": group_dept.short_name,
+                                "department_type": group_dept.department_type,
+                                "faculty_name": group_dept.parent.name if group_dept.parent else None
+                            }
+                            # Получаем родительский факультет
+                            if group_dept.parent and not faculty_info:
+                                faculty_name = group_dept.parent.name
+                                faculty_info = {
+                                    "id": group_dept.parent.id,
+                                    "name": group_dept.parent.name,
+                                    "short_name": group_dept.parent.short_name,
+                                    "department_type": group_dept.parent.department_type
+                                }
+                        elif group_dept.department_type == 'faculty' and not faculty_info:
+                            faculty_name = group_dept.name
+                            faculty_info = {
+                                "id": group_dept.id,
+                                "name": group_dept.name,
+                                "short_name": group_dept.short_name,
+                                "department_type": group_dept.department_type
+                            }
+            
+            # Фоллбэк на старые текстовые поля
+            if not faculty_name and student.profile.faculty:
+                faculty_name = student.profile.faculty
+            if not department_name and student.profile.department:
+                department_name = student.profile.department
+
+        result_students.append({
+            "id": student.id,
+            "first_name": student.first_name,
+            "last_name": student.last_name,
+            "middle_name": student.middle_name,
+            "email": student.email,
+            # Информация о подразделениях
+            "faculty": faculty_name,
+            "department": department_name,
+            "faculty_info": faculty_info,
+            "department_info": department_info,
+            # Информация о группе
+            "group_number": student.profile.group.name if student.profile and student.profile.group else None,
+            "group_info": {
+                "id": student.profile.group.id,
+                "name": student.profile.group.name,
+                "specialization": student.profile.group.specialization,
+                "course": student.profile.group.course,
+                "admission_year": student.profile.group.parsed_year,
+                "education_level": student.profile.group.parsed_education_level,
+                "education_form": student.profile.group.parsed_education_form
+            } if student.profile and student.profile.group else None,
+            # Академическая информация
+            "course": student.profile.course if student.profile else None,
+            "student_id": student.profile.student_id if student.profile else None,
+            "education_level": student.profile.education_level if student.profile else None,
+            "education_form": student.profile.education_form if student.profile else None,
+            "academic_status": student.profile.academic_status if student.profile else None,
+            "phone": student.profile.phone if student.profile else None,
+            "access_reasons": get_access_reason(student)
+        })
+
     return {
-        "students": [
-            {
-                "id": student.id,
-                "first_name": student.first_name,
-                "last_name": student.last_name,
-                "middle_name": student.middle_name,
-                "email": student.email,
-                # Старые текстовые поля для обратной совместимости
-                "faculty": student.profile.faculty.name if student.profile and student.profile.faculty else None,
-                "department": student.profile.department.name if student.profile and student.profile.department else None,
-                # Новые поля с полной информацией о подразделениях
-                "faculty_info": {
-                    "id": student.profile.faculty.id,
-                    "name": student.profile.faculty.name,
-                    "short_name": student.profile.faculty.short_name,
-                    "department_type": student.profile.faculty.department_type
-                } if student.profile and student.profile.faculty else None,
-                "department_info": {
-                    "id": student.profile.department.id, 
-                    "name": student.profile.department.name,
-                    "short_name": student.profile.department.short_name,
-                    "department_type": student.profile.department.department_type
-                } if student.profile and student.profile.department else None,
-                "group_number": student.profile.group.name if student.profile and student.profile.group else None,
-                "group_info": {
-                    "id": student.profile.group.id,
-                    "name": student.profile.group.name,
-                    "specialization": student.profile.group.specialization,
-                    "course": student.profile.group.course,
-                    "admission_year": student.profile.group.parsed_year
-                } if student.profile and student.profile.group else None,
-                "course": student.profile.course if student.profile else None,
-                "student_id": student.profile.student_id if student.profile else None,
-                "education_level": student.profile.education_level if student.profile else None,
-                "education_form": student.profile.education_form if student.profile else None,
-                "academic_status": student.profile.academic_status if student.profile else None,
-                "phone": student.profile.phone if student.profile else None,
-                "access_reasons": get_access_reason(student)
-            }
-            for student in students
-        ],
+        "students": result_students,
         "total": total,
         "page": page,
         "size": size,
