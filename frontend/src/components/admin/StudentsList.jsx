@@ -96,9 +96,27 @@ const StudentsList = () => {
     (student.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Не указано';
-    return new Date(dateString).toLocaleDateString('ru-RU');
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Не указано';
+    
+    // If it's already a Date object
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleDateString('ru-RU');
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof dateValue === 'string') {
+      return new Date(dateValue).toLocaleDateString('ru-RU');
+    }
+    
+    // If it's an object with year, month, day (Python date object)
+    if (dateValue && typeof dateValue === 'object' && 'year' in dateValue) {
+      const { year, month, day } = dateValue;
+      // Note: JavaScript months are 0-indexed, Python's are 1-indexed
+      return new Date(year, month - 1, day).toLocaleDateString('ru-RU');
+    }
+    
+    return 'Неверный формат даты';
   };
 
   const getValueOrNotSpecified = (value) => {
