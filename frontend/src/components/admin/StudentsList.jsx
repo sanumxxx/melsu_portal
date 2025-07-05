@@ -96,36 +96,42 @@ const StudentsList = () => {
     (student.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'Не указано';
-    
-    // If it's already a Date object
-    if (dateValue instanceof Date) {
-      return dateValue.toLocaleDateString('ru-RU');
+  const getValueOrNotSpecified = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return 'Не указано';
     }
-    
-    // If it's a string, try to parse it
-    if (typeof dateValue === 'string') {
-      return new Date(dateValue).toLocaleDateString('ru-RU');
-    }
-    
-    // If it's an object with year, month, day (Python date object)
-    if (dateValue && typeof dateValue === 'object' && 'year' in dateValue) {
-      const { year, month, day } = dateValue;
-      // Note: JavaScript months are 0-indexed, Python's are 1-indexed
-      return new Date(year, month - 1, day).toLocaleDateString('ru-RU');
-    }
-    
-    return 'Неверный формат даты';
+    return value;
   };
 
-  const getValueOrNotSpecified = (value) => {
-    return value || (
-      <span className="flex items-center text-orange-600 text-sm">
-        <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-        Не указано
-      </span>
-    );
+  // Функция для получения названия факультета/кафедры
+  const getDepartmentName = (profile, type) => {
+    if (!profile) return 'Не указано';
+    
+    if (type === 'faculty') {
+      // Проверяем новое поле faculty через связь (если это объект)
+      if (typeof profile.faculty === 'object' && profile.faculty?.name) {
+        return profile.faculty.name;
+      }
+      // Fallback на старое текстовое поле
+      return profile.faculty || 'Не указан';
+    } else if (type === 'department') {
+      // Проверяем новое поле department через связь (если это объект)
+      if (typeof profile.department === 'object' && profile.department?.name) {
+        return profile.department.name;
+      }
+      // Fallback на старое текстовое поле
+      return profile.department || 'Не указана';
+    }
+    return 'Не указано';
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Не указано';
+    try {
+      return new Date(dateString).toLocaleDateString('ru-RU');
+    } catch (error) {
+      return 'Не указано';
+    }
   };
 
   if (loading) {
@@ -236,21 +242,13 @@ const StudentsList = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Факультет</label>
                   <p className="text-gray-900">
-                    {getValueOrNotSpecified(
-                      typeof studentProfile.faculty === 'object' && studentProfile.faculty?.name 
-                        ? studentProfile.faculty.name 
-                        : studentProfile.faculty
-                    )}
+                    {getDepartmentName(studentProfile, 'faculty')}
                   </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Кафедра</label>
                   <p className="text-gray-900">
-                    {getValueOrNotSpecified(
-                      typeof studentProfile.department === 'object' && studentProfile.department?.name 
-                        ? studentProfile.department.name 
-                        : studentProfile.department
-                    )}
+                    {getDepartmentName(studentProfile, 'department')}
                   </p>
                 </div>
                 <div>

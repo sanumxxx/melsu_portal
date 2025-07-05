@@ -252,57 +252,61 @@ async def get_my_accessible_students(
     # Получаем информацию о подразделениях
     departments = db.query(Department).filter(Department.id.in_(department_ids)).all()
     
-    # Для кураторов используем другую логику - через группы
-    curator_assignments = [a for a in user_assignments if a.assignment_type == 'curator']
-    regular_assignments = [a for a in user_assignments if a.assignment_type != 'curator']
+    # Собираем все доступные подразделения с учетом иерархии
+    all_accessible_dept_ids = set(department_ids)
     
-    # Собираем все условия фильтрации
+    for dept in departments:
+        if dept.department_type == 'faculty':
+            # Добавляем все кафедры этого факультета
+            child_departments = db.query(Department).filter(
+                Department.parent_id == dept.id,
+                Department.department_type == 'department',
+                Department.is_active == True
+            ).all()
+            for child in child_departments:
+                all_accessible_dept_ids.add(child.id)
+        elif dept.department_type == 'department':
+            # Добавляем родительский факультет
+            if dept.parent_id:
+                all_accessible_dept_ids.add(dept.parent_id)
+    
+    # Создаем условия фильтрации - теперь включаем ТРИ способа доступа:
+    # 1. Через группы (как раньше)
+    # 2. Через прямую связь с факультетом (faculty_id)
+    # 3. Через прямую связь с кафедрой (department_id)
+    
     filter_conditions = []
     
-    if curator_assignments:
-        # Для кураторов: получаем студентов через группы
-        curator_dept_ids = [a.department_id for a in curator_assignments]
-        
-        # Получаем группы в подразделениях куратора
-        groups = db.query(Group).filter(
-            Group.department_id.in_(curator_dept_ids)
-        ).all()
-        
-        if groups:
-            group_ids = [group.id for group in groups]
-            filter_conditions.append(UserProfile.group_id.in_(group_ids))
+    # 1. Фильтрация через группы (оригинальная логика)
+    groups = db.query(Group).filter(
+        Group.department_id.in_(all_accessible_dept_ids)
+    ).all()
     
-    # Для обычных назначений: используем логику через группы (как у кураторов)
-    if regular_assignments:
-        regular_dept_ids = [a.department_id for a in regular_assignments]
-        regular_departments = db.query(Department).filter(Department.id.in_(regular_dept_ids)).all()
-        
-        # Собираем все подразделения с учетом иерархии
-        all_accessible_dept_ids = set(regular_dept_ids)
-        
-        for dept in regular_departments:
-            if dept.department_type == 'faculty':
-                # Добавляем все кафедры этого факультета
-                child_departments = db.query(Department).filter(
-                    Department.parent_id == dept.id,
-                    Department.department_type == 'department',
-                    Department.is_active == True
-                ).all()
-                for child in child_departments:
-                    all_accessible_dept_ids.add(child.id)
-            elif dept.department_type == 'department':
-                # Добавляем родительский факультет
-                if dept.parent_id:
-                    all_accessible_dept_ids.add(dept.parent_id)
-        
-        # Получаем группы во всех доступных подразделениях
-        groups = db.query(Group).filter(
-            Group.department_id.in_(all_accessible_dept_ids)
-        ).all()
-        
-        if groups:
-            group_ids = [group.id for group in groups]
-            filter_conditions.append(UserProfile.group_id.in_(group_ids))
+    if groups:
+        group_ids = [group.id for group in groups]
+        filter_conditions.append(UserProfile.group_id.in_(group_ids))
+    
+    # 2. Фильтрация через прямую связь с факультетом
+    faculty_ids = [dept_id for dept_id in all_accessible_dept_ids 
+                   if any(d.id == dept_id and d.department_type == 'faculty' for d in departments)]
+    if faculty_ids:
+        filter_conditions.append(UserProfile.faculty_id.in_(faculty_ids))
+    
+    # 3. Фильтрация через прямую связь с кафедрой
+    department_only_ids = [dept_id for dept_id in all_accessible_dept_ids 
+                          if any(d.id == dept_id and d.department_type == 'department' for d in departments)]
+    if department_only_ids:
+        filter_conditions.append(UserProfile.department_id.in_(department_only_ids))
+    
+    # 4. Дополнительно: фильтрация через старые текстовые поля (для совместимости)
+    dept_names = [dept.name for dept in departments]
+    if dept_names:
+        filter_conditions.append(
+            or_(
+                UserProfile.faculty.in_(dept_names),
+                UserProfile.department.in_(dept_names)
+            )
+        )
     
     if not filter_conditions:
         return {
@@ -313,12 +317,14 @@ async def get_my_accessible_students(
             "departments": []
         }
     
-    # Базовый запрос студентов
+    # Базовый запрос студентов с РАСШИРЕННОЙ фильтрацией
     students_query = db.query(User).join(UserProfile).options(
-        joinedload(User.profile)
+        joinedload(User.profile).joinedload(UserProfile.faculty),
+        joinedload(User.profile).joinedload(UserProfile.department), 
+        joinedload(User.profile).joinedload(UserProfile.group)
     ).filter(
         text("roles::text LIKE '%student%'"),
-        or_(*filter_conditions)
+        or_(*filter_conditions)  # Используем OR для всех условий доступа
     )
     
     # Применяем дополнительные фильтры
@@ -338,9 +344,9 @@ async def get_my_accessible_students(
         students_query = students_query.outerjoin(Group, UserProfile.group_id == Group.id)
         students_query = students_query.filter(search_filter)
     
-    # Новая логика фильтрации по факультету
+    # Улучшенная логика фильтрации по факультету
     if faculty_filter:
-        # Ищем факультет по названию и фильтруем по faculty_id
+        # Ищем факультет по названию
         faculty = db.query(Department).filter(
             Department.name == faculty_filter,
             Department.department_type == 'faculty'
@@ -348,14 +354,18 @@ async def get_my_accessible_students(
         if faculty:
             students_query = students_query.filter(
                 or_(
-                    UserProfile.faculty_id == faculty.id,
-                    UserProfile.faculty == faculty_filter  # fallback для старых записей
+                    UserProfile.faculty_id == faculty.id,      # Прямая связь
+                    UserProfile.faculty == faculty_filter,     # Старое текстовое поле
+                    # Также через группы этого факультета
+                    UserProfile.group_id.in_(
+                        db.query(Group.id).filter(Group.department_id == faculty.id).subquery()
+                    )
                 )
             )
     
-    # Новая логика фильтрации по кафедре
+    # Улучшенная логика фильтрации по кафедре
     if department_filter:
-        # Ищем кафедру по названию и фильтруем по department_id
+        # Ищем кафедру по названию
         department = db.query(Department).filter(
             Department.name == department_filter,
             Department.department_type == 'department'
@@ -363,8 +373,12 @@ async def get_my_accessible_students(
         if department:
             students_query = students_query.filter(
                 or_(
-                    UserProfile.department_id == department.id,
-                    UserProfile.department == department_filter  # fallback для старых записей
+                    UserProfile.department_id == department.id,    # Прямая связь
+                    UserProfile.department == department_filter,   # Старое текстовое поле
+                    # Также через группы этой кафедры
+                    UserProfile.group_id.in_(
+                        db.query(Group.id).filter(Group.department_id == department.id).subquery()
+                    )
                 )
             )
     
@@ -386,9 +400,30 @@ async def get_my_accessible_students(
                 "last_name": student.last_name,
                 "middle_name": student.middle_name,
                 "email": student.email,
+                # Старые текстовые поля для обратной совместимости
                 "faculty": student.profile.faculty if student.profile else None,
                 "department": student.profile.department if student.profile else None,
+                # Новые поля с полной информацией о подразделениях
+                "faculty_info": {
+                    "id": student.profile.faculty.id,
+                    "name": student.profile.faculty.name,
+                    "short_name": student.profile.faculty.short_name,
+                    "department_type": student.profile.faculty.department_type
+                } if student.profile and student.profile.faculty else None,
+                "department_info": {
+                    "id": student.profile.department.id, 
+                    "name": student.profile.department.name,
+                    "short_name": student.profile.department.short_name,
+                    "department_type": student.profile.department.department_type
+                } if student.profile and student.profile.department else None,
                 "group_number": student.profile.group.name if student.profile and student.profile.group else None,
+                "group_info": {
+                    "id": student.profile.group.id,
+                    "name": student.profile.group.name,
+                    "specialization": student.profile.group.specialization,
+                    "course": student.profile.group.course,
+                    "admission_year": student.profile.group.parsed_year
+                } if student.profile and student.profile.group else None,
                 "course": student.profile.course if student.profile else None,
                 "student_id": student.profile.student_id if student.profile else None,
                 "education_level": student.profile.education_level if student.profile else None,
@@ -512,7 +547,7 @@ async def get_accessible_students(
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
-    """Получение списка студентов доступных текущему пользователю (деканат/сотрудники)"""
+    """Получить всех студентов, к которым у текущего пользователя есть доступ"""
     
     from ..models.user_assignment import UserDepartmentAssignment
     from ..models.group import Group
@@ -520,7 +555,7 @@ async def get_accessible_students(
     
     today = date.today()
     
-    # Получаем активные назначения пользователя
+    # Получаем активные назначения пользователя в подразделения
     user_assignments = db.query(UserDepartmentAssignment).filter(
         UserDepartmentAssignment.user_id == current_user.id
     ).filter(
@@ -531,7 +566,7 @@ async def get_accessible_students(
     if not user_assignments:
         return []
     
-    # Получаем ID подразделений
+    # Получаем ID подразделений, к которым есть доступ
     department_ids = [assignment.department_id for assignment in user_assignments]
     departments = db.query(Department).filter(Department.id.in_(department_ids)).all()
     
@@ -553,20 +588,51 @@ async def get_accessible_students(
             if dept.parent_id:
                 all_accessible_dept_ids.add(dept.parent_id)
     
-    # Получаем группы во всех доступных подразделениях
+    # Создаем условия фильтрации - используем множественные способы доступа
+    filter_conditions = []
+    
+    # 1. Фильтрация через группы
     groups = db.query(Group).filter(
         Group.department_id.in_(all_accessible_dept_ids)
     ).all()
     
-    if not groups:
+    if groups:
+        group_ids = [group.id for group in groups]
+        filter_conditions.append(UserProfile.group_id.in_(group_ids))
+    
+    # 2. Фильтрация через прямую связь с факультетом
+    faculty_ids = [dept_id for dept_id in all_accessible_dept_ids 
+                   if any(d.id == dept_id and d.department_type == 'faculty' for d in departments)]
+    if faculty_ids:
+        filter_conditions.append(UserProfile.faculty_id.in_(faculty_ids))
+    
+    # 3. Фильтрация через прямую связь с кафедрой
+    department_only_ids = [dept_id for dept_id in all_accessible_dept_ids 
+                          if any(d.id == dept_id and d.department_type == 'department' for d in departments)]
+    if department_only_ids:
+        filter_conditions.append(UserProfile.department_id.in_(department_only_ids))
+    
+    # 4. Фильтрация через старые текстовые поля
+    dept_names = [dept.name for dept in departments]
+    if dept_names:
+        filter_conditions.append(
+            or_(
+                UserProfile.faculty.in_(dept_names),
+                UserProfile.department.in_(dept_names)
+            )
+        )
+    
+    if not filter_conditions:
         return []
     
-    group_ids = [group.id for group in groups]
-    
-    # Получаем студентов через группы
-    students = db.query(User).join(UserProfile).filter(
+    # Получаем студентов с расширенной фильтрацией
+    students = db.query(User).join(UserProfile).options(
+        joinedload(User.profile).joinedload(UserProfile.faculty),
+        joinedload(User.profile).joinedload(UserProfile.department), 
+        joinedload(User.profile).joinedload(UserProfile.group)
+    ).filter(
         text("roles::text LIKE '%student%'"),
-        UserProfile.group_id.in_(group_ids)
+        or_(*filter_conditions)
     ).all()
     
     return students
@@ -577,30 +643,31 @@ async def get_students_by_department(
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user)
 ):
-    """Получение студентов конкретного подразделения"""
+    """Получить студентов конкретного подразделения"""
     
     from ..models.user_assignment import UserDepartmentAssignment
     from ..models.group import Group
+    from datetime import date
     
-    # Проверяем, что пользователь имеет доступ к этому подразделению
-    user_assignment = db.query(UserDepartmentAssignment).filter(
+    today = date.today()
+    
+    # Проверяем доступ к подразделению
+    has_access = db.query(UserDepartmentAssignment).filter(
         UserDepartmentAssignment.user_id == current_user.id,
         UserDepartmentAssignment.department_id == department_id,
-        UserDepartmentAssignment.is_active == True
+        (UserDepartmentAssignment.end_date.is_(None)) | 
+        (UserDepartmentAssignment.end_date >= today)
     ).first()
     
-    if not user_assignment and 'admin' not in (current_user.roles or []):
-        raise HTTPException(
-            status_code=403,
-            detail="Недостаточно прав для просмотра студентов этого подразделения"
-        )
+    if not has_access:
+        raise HTTPException(status_code=403, detail="Нет доступа к этому подразделению")
     
-    # Получаем подразделение
+    # Получаем информацию о подразделении
     department = db.query(Department).filter(Department.id == department_id).first()
     if not department:
         raise HTTPException(status_code=404, detail="Подразделение не найдено")
     
-    # Собираем ID подразделений с учетом иерархии
+    # Собираем ID доступных подразделений с учетом иерархии
     accessible_dept_ids = {department_id}
     
     if department.department_type == 'faculty':
@@ -617,20 +684,39 @@ async def get_students_by_department(
         if department.parent_id:
             accessible_dept_ids.add(department.parent_id)
     
-    # Получаем группы в этих подразделениях
+    # Создаем условия фильтрации
+    filter_conditions = []
+    
+    # 1. Фильтрация через группы
     groups = db.query(Group).filter(
         Group.department_id.in_(accessible_dept_ids)
     ).all()
     
-    if not groups:
+    if groups:
+        group_ids = [group.id for group in groups]
+        filter_conditions.append(UserProfile.group_id.in_(group_ids))
+    
+    # 2. Фильтрация через прямую связь с факультетом
+    if department.department_type == 'faculty':
+        filter_conditions.append(UserProfile.faculty_id == department_id)
+        filter_conditions.append(UserProfile.faculty == department.name)  # Старое поле
+    
+    # 3. Фильтрация через прямую связь с кафедрой
+    if department.department_type == 'department':
+        filter_conditions.append(UserProfile.department_id == department_id)
+        filter_conditions.append(UserProfile.department == department.name)  # Старое поле
+    
+    if not filter_conditions:
         return []
     
-    group_ids = [group.id for group in groups]
-    
-    # Получаем студентов через группы
-    students = db.query(User).join(UserProfile).filter(
+    # Получаем студентов с расширенной фильтрацией
+    students = db.query(User).join(UserProfile).options(
+        joinedload(User.profile).joinedload(UserProfile.faculty),
+        joinedload(User.profile).joinedload(UserProfile.department), 
+        joinedload(User.profile).joinedload(UserProfile.group)
+    ).filter(
         text("roles::text LIKE '%student%'"),
-        UserProfile.group_id.in_(group_ids)
+        or_(*filter_conditions)
     ).all()
     
     return students

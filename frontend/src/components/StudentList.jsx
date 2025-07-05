@@ -54,6 +54,26 @@ const StudentList = () => {
     'expelled': 'Отчислен'
   };
 
+  // Функция для получения названия факультета/кафедры
+  const getDepartmentName = (student, type) => {
+    if (type === 'faculty') {
+      // Проверяем новое поле faculty_id через связь
+      if (student.faculty_info && student.faculty_info.name) {
+        return student.faculty_info.name;
+      }
+      // Fallback на старое текстовое поле
+      return student.faculty || 'Не указан';
+    } else if (type === 'department') {
+      // Проверяем новое поле department_id через связь
+      if (student.department_info && student.department_info.name) {
+        return student.department_info.name;
+      }
+      // Fallback на старое текстовое поле
+      return student.department || 'Не указана';
+    }
+    return 'Не указано';
+  };
+
   useEffect(() => {
     loadStudents();
   }, [currentPage, searchQuery, filters]);
@@ -245,7 +265,15 @@ const StudentList = () => {
                 onChange={(e) => handleFilterChange('faculty_filter', e.target.value)}
               >
                 <option value="">Все факультеты</option>
-                {[...new Set(students.map(s => s.faculty).filter(Boolean))].map(faculty => (
+                {/* Получаем уникальные факультеты из всех источников */}
+                {[...new Set([
+                  // Из старых текстовых полей
+                  ...students.map(s => s.faculty).filter(Boolean),
+                  // Из новых связей через faculty_info
+                  ...students.map(s => s.faculty_info?.name).filter(Boolean),
+                  // Из departments массива (факультеты)
+                  ...departments.filter(d => d.department_type === 'faculty').map(d => d.name)
+                ])].sort().map(faculty => (
                   <option key={faculty} value={faculty}>{faculty}</option>
                 ))}
               </select>
@@ -261,7 +289,15 @@ const StudentList = () => {
                 onChange={(e) => handleFilterChange('department_filter', e.target.value)}
               >
                 <option value="">Все кафедры</option>
-                {[...new Set(students.map(s => s.department).filter(Boolean))].map(department => (
+                {/* Получаем уникальные кафедры из всех источников */}
+                {[...new Set([
+                  // Из старых текстовых полей
+                  ...students.map(s => s.department).filter(Boolean),
+                  // Из новых связей через department_info
+                  ...students.map(s => s.department_info?.name).filter(Boolean),
+                  // Из departments массива (кафедры)
+                  ...departments.filter(d => d.department_type === 'department').map(d => d.name)
+                ])].sort().map(department => (
                   <option key={department} value={department}>{department}</option>
                 ))}
               </select>
@@ -365,7 +401,7 @@ const StudentList = () => {
                         <div className="flex items-center">
                           <AcademicCapIcon className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
-                            {student.faculty || 'Не указан'}
+                            {getDepartmentName(student, 'faculty')}
                           </span>
                         </div>
                       </td>
@@ -373,7 +409,7 @@ const StudentList = () => {
                         <div className="flex items-center">
                           <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900">
-                            {student.department || 'Не указана'}
+                            {getDepartmentName(student, 'department')}
                           </span>
                         </div>
                       </td>
