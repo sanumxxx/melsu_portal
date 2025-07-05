@@ -18,9 +18,9 @@ import AssignedRequests from './components/requests/AssignedRequests';
 import RequestRouter from './components/requests/RequestRouter';
 import Groups from './components/admin/Groups';
 import AnnouncementManager from './components/admin/AnnouncementManager';
-import StudentList from './components/StudentList';
-import StudentsList from './components/admin/StudentsList';
-import GroupList from './components/GroupList';
+
+
+
 import CuratorManager from './components/admin/CuratorManager';
 import Reports from './components/Reports';
 import ReportViewer from './components/ReportViewer';
@@ -29,6 +29,7 @@ import ActivityLogs from './components/admin/ActivityLogs';
 import MyActivity from './components/common/MyActivity';
 import TestRoles from './components/TestRoles';
 import MediaDebugger from './components/common/MediaDebugger';
+import Directories from './components/Directories';
 
 // WebSocket для уведомлений
 import WebSocketService from './services/websocketService';
@@ -174,14 +175,17 @@ function App() {
               <Route path="/my-activity" element={<MyActivity />} />
 
               {/* Справочники */}
-              {user?.roles?.some(role => ['employee', 'teacher', 'admin'].includes(role)) && (
+              {user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role)) && (
                 <>
-                  <Route path="/references/students" element={<StudentList />} />
-                  <Route path="/students/list" element={<StudentsList />} />
-                  <Route path="/references/groups" element={<GroupList />} />
+                  <Route path="/directories/*" element={<Directories />} />
+                  <Route path="/directories/students" element={<Directories />} />
+                  <Route path="/directories/groups" element={<Directories />} />
+                  <Route path="/directories/departments" element={<Directories />} />
                   <Route path="/student-portfolio/:studentId" element={<StudentPortfolio />} />
                 </>
               )}
+
+
 
               {/* Объединенные маршруты для ведомостей */}
               <Route path="/student/grades" element={<Grades user={user} />} />

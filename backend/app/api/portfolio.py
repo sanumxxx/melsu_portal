@@ -59,104 +59,14 @@ def check_student_access(user: User):
         )
 
 async def check_portfolio_view_access(user: User, student_id: int, db: Session) -> bool:
-    """Проверка доступа к просмотру портфолио студента"""
+    """Упрощенная проверка доступа к просмотру портфолио студента"""
     # Студент может смотреть свое портфолио
     if user.id == student_id:
         return True
     
-    # Администраторы имеют полный доступ
-    if 'admin' in user.roles:
+    # Администраторы, сотрудники и преподаватели имеют доступ
+    if any(role in user.roles for role in ['admin', 'employee', 'teacher', 'curator']):
         return True
-    
-    # Проверяем доступ через систему назначений
-    from ..models.user_assignment import UserDepartmentAssignment
-    from ..models.group import Group
-    from ..models.user_profile import UserProfile
-    from datetime import date
-    
-    # Получаем информацию о студенте
-    student = db.query(User).options(joinedload(User.profile)).filter(
-        User.id == student_id
-    ).first()
-    
-    if not student or not student.profile:
-        return False
-    
-    today = date.today()
-    
-    # Получаем активные назначения текущего пользователя
-    user_assignments = db.query(UserDepartmentAssignment).filter(
-        UserDepartmentAssignment.user_id == user.id
-    ).filter(
-        # Назначение активно, если end_date is None или end_date >= today
-        (UserDepartmentAssignment.end_date.is_(None)) | 
-        (UserDepartmentAssignment.end_date >= today)
-    ).all()
-    
-    if not user_assignments:
-        return False
-    
-    # Для кураторов - проверяем через группы
-    curator_assignments = [a for a in user_assignments if a.assignment_type == 'curator']
-    if curator_assignments:
-        curator_dept_ids = [a.department_id for a in curator_assignments]
-        
-        # Получаем группы в подразделениях куратора
-        groups = db.query(Group).filter(
-            Group.department_id.in_(curator_dept_ids)
-        ).all()
-        
-        if groups:
-            group_ids = [group.id for group in groups]
-            if student.profile.group_id in group_ids:
-                return True
-    
-    # Для обычных назначений - проверяем через факультеты/кафедры
-    regular_assignments = [a for a in user_assignments if a.assignment_type != 'curator']
-    if regular_assignments:
-        from ..models.department import Department
-        
-        regular_dept_ids = [a.department_id for a in regular_assignments]
-        departments = db.query(Department).filter(Department.id.in_(regular_dept_ids)).all()
-        
-        # Расширяем список доступных подразделений с учетом иерархии
-        accessible_faculty_names = set()
-        accessible_department_names = set()
-        
-        for dept in departments:
-            if dept.department_type == 'faculty':
-                accessible_faculty_names.add(dept.name)
-                # Добавляем все кафедры этого факультета
-                child_departments = db.query(Department).filter(
-                    Department.parent_id == dept.id,
-                    Department.department_type == 'department',
-                    Department.is_active == True
-                ).all()
-                for child in child_departments:
-                    accessible_department_names.add(child.name)
-            elif dept.department_type == 'department':
-                accessible_department_names.add(dept.name)
-                # Добавляем факультет этой кафедры
-                if dept.parent:
-                    accessible_faculty_names.add(dept.parent.name)
-        
-        # Проверяем принадлежность студента к доступным подразделениям
-        # Преобразуем имена в ID для сравнения
-        accessible_faculty_ids = set()
-        accessible_department_ids = set()
-        
-        for dept in departments:
-            if dept.department_type == "faculty":
-                accessible_faculty_ids.add(dept.id)
-            elif dept.department_type == "department":
-                accessible_department_ids.add(dept.id)
-                # Добавляем родительский факультет если есть
-                if dept.parent:
-                    accessible_faculty_ids.add(dept.parent.id)
-        
-        if student.profile.faculty_id in accessible_faculty_ids or \
-           student.profile.department_id in accessible_department_ids:
-            return True
     
     return False
 

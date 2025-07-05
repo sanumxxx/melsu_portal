@@ -14,7 +14,7 @@ from ..models.user import User
 from ..models.field import Field
 from ..models.request import Request
 from ..models.department import Department
-from ..models.student_access import StudentAccess
+
 from ..models.user_assignment import UserDepartmentAssignment
 from ..utils.profile_fields import get_profile_field_info, ProfileFieldType
 
@@ -94,131 +94,9 @@ class ProfileUpdateService:
         
         result = self._update_profile_fields(request.author_id, fields, form_data, "approve")
         
-        # Если обновились поля факультета/кафедры студента, создаем доступ для сотрудников
-        if result.get("success") and result.get("updated_fields"):
-            self._create_student_access_for_departments(request.author_id, result["updated_fields"])
-        
         return result
     
-    def _create_student_access_for_departments(self, student_id: int, updated_fields: List[Dict]) -> None:
-        """
-        Создает доступ к студенту для сотрудников факультета/кафедры при обновлении профиля.
-        
-        Args:
-            student_id: ID студента
-            updated_fields: Список обновленных полей
-        """
-        try:
-            # Проверяем, что пользователь - студент
-            user = self.db.query(User).filter(User.id == student_id).first()
-            if not user or 'student' not in (user.roles or []):
-                logger.debug(f"Пользователь {student_id} не является студентом, пропускаем создание доступа")
-                return
-            
-            # Проверяем, обновились ли поля факультета или кафедры
-            faculty_updated = any(field.get("field_name") == "faculty" for field in updated_fields)
-            department_updated = any(field.get("field_name") == "department" for field in updated_fields)
-            
-            if not (faculty_updated or department_updated):
-                logger.debug(f"Поля факультета/кафедры не обновлялись для студента {student_id}")
-                return
-            
-            logger.info(f"Создание доступа для сотрудников к студенту {student_id}")
-            
-            # Получаем текущий профиль студента
-            profile = self.db.query(UserProfile).filter(UserProfile.user_id == student_id).first()
-            if not profile:
-                logger.warning(f"Профиль студента {student_id} не найден")
-                return
-            
-            departments_to_grant_access = []
-            
-            # Ищем подразделения по ID из профиля
-            if profile.faculty_id:
-                faculty_dept = self.db.query(Department).filter(
-                    Department.id == profile.faculty_id,
-                    Department.department_type == 'faculty',
-                    Department.is_active == True
-                ).first()
-                if faculty_dept:
-                    departments_to_grant_access.append(faculty_dept)
-                    logger.info(f"Найден факультет: {faculty_dept.name} (ID: {faculty_dept.id})")
-            
-            if profile.department_id:
-                department_dept = self.db.query(Department).filter(
-                    Department.id == profile.department_id,
-                    Department.department_type == 'department',
-                    Department.is_active == True
-                ).first()
-                if department_dept:
-                    departments_to_grant_access.append(department_dept)
-                    logger.info(f"Найдена кафедра: {department_dept.name} (ID: {department_dept.id})")
-            
-            if not departments_to_grant_access:
-                logger.warning(f"Не найдены подразделения для создания доступа к студенту {student_id}")
-                return
-            
-            # Создаем доступ для всех сотрудников найденных подразделений
-            access_created_count = 0
-            
-            for department in departments_to_grant_access:
-                # Получаем всех сотрудников этого подразделения
-                assignments = self.db.query(UserDepartmentAssignment).filter(
-                    UserDepartmentAssignment.department_id == department.id,
-                    UserDepartmentAssignment.is_active == True
-                ).all()
-                
-                for assignment in assignments:
-                    employee = self.db.query(User).filter(User.id == assignment.user_id).first()
-                    if not employee:
-                        continue
-                    
-                    # Проверяем, что это сотрудник или преподаватель
-                    if not any(role in (employee.roles or []) for role in ['employee', 'teacher', 'admin']):
-                        logger.debug(f"Пользователь {employee.id} не является сотрудником/преподавателем")
-                        continue
-                    
-                    # Проверяем, нет ли уже доступа
-                    existing_access = self.db.query(StudentAccess).filter(
-                        StudentAccess.employee_id == employee.id,
-                        StudentAccess.department_id == department.id,
-                        StudentAccess.is_active == True
-                    ).first()
-                    
-                    if existing_access:
-                        logger.debug(f"Доступ уже существует для сотрудника {employee.id} к подразделению {department.id}")
-                        continue
-                    
-                    # Создаем новый доступ
-                    access_level = "read"  # По умолчанию только чтение
-                    if 'admin' in (employee.roles or []):
-                        access_level = "full"
-                    elif assignment.role in ['head', 'deputy_head']:
-                        access_level = "write"
-                    
-                    new_access = StudentAccess(
-                        employee_id=employee.id,
-                        department_id=department.id,
-                        access_level=access_level,
-                        assigned_by_id=1,  # Системное назначение (можно использовать ID системного пользователя)
-                        assigned_at=datetime.utcnow(),
-                        notes=f"Автоматически создан при обновлении профиля студента {user.first_name} {user.last_name}"
-                    )
-                    
-                    self.db.add(new_access)
-                    access_created_count += 1
-                    
-                    logger.info(f"Создан доступ уровня '{access_level}' для сотрудника {employee.first_name} {employee.last_name} к подразделению {department.name}")
-            
-            if access_created_count > 0:
-                self.db.commit()
-                logger.info(f"Создано {access_created_count} записей доступа для студента {student_id}")
-            else:
-                logger.info(f"Не создано ни одной записи доступа для студента {student_id}")
-                
-        except Exception as e:
-            logger.error(f"Ошибка при создании доступа для сотрудников к студенту {student_id}: {str(e)}")
-            self.db.rollback()
+
     
     def _update_profile_fields(
         self, 

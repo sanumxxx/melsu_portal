@@ -3,7 +3,7 @@ from .user import User, EmailVerification, Gender, UserRole
 from .user_profile import UserProfile
 from .department import Department
 from .user_assignment import UserDepartmentAssignment
-from .student_access import StudentAccess
+
 from .request_template import RequestTemplate, RoutingType
 from .field import FieldType, Field
 from .request import Request, RequestComment, RequestStatus

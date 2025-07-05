@@ -185,9 +185,11 @@ app.include_router(assignments.router, prefix="/api", tags=["assignments"])
 from .api import portfolio
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
 
-# Система доступа к студентам
-from .api import student_access
-app.include_router(student_access.router, prefix="/api", tags=["student-access"])
+# Справочники
+from .api import directories
+app.include_router(directories.router, prefix="/api/directories", tags=["directories"])
+
+
 
 # Система доступа к группам
 from .api import group_access

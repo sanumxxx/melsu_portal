@@ -10,7 +10,7 @@ from ..models.role import Role
 from ..models.group import Group
 from ..dependencies import get_current_user
 from typing import Optional, List
-from ..models.student_access import StudentAccess
+
 
 router = APIRouter()
 

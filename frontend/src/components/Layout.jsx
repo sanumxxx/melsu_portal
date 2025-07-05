@@ -130,14 +130,17 @@ const Layout = ({ children, user, onLogout }) => {
       });
     }
 
+
+
     // Справочники для сотрудников, преподавателей, кураторов и админов
     if (user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role))) {
       baseNavigation.push({
         name: 'Справочники',
         icon: FolderIcon,
         children: [
-          { name: 'Студенты', href: '/students/list' },
-          { name: 'Список групп', href: '/references/groups' }
+          { name: 'Студенты', href: '/directories/students' },
+          { name: 'Группы', href: '/directories/groups' },
+          { name: 'Подразделения', href: '/directories/departments' }
         ]
       });
     }
