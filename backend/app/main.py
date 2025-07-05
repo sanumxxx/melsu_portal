@@ -43,6 +43,8 @@ from .schemas.user import UserRoleUpdate
 from sqlalchemy.orm import Session
 from .database import get_db
 from .middleware.activity_middleware import ActivityLoggingMiddleware
+from sqlalchemy import text
+from .database import User, Department, FieldType
 
 # WebSocket для уведомлений
 try:
@@ -184,16 +186,6 @@ app.include_router(assignments.router, prefix="/api", tags=["assignments"])
 # Система портфолио
 from .api import portfolio
 app.include_router(portfolio.router, prefix="/api/portfolio", tags=["portfolio"])
-
-# Справочники
-from .api import directories
-app.include_router(directories.router, prefix="/api/directories", tags=["directories"])
-
-# Управление доступом к справочникам
-from .api.admin import directory_access
-app.include_router(directory_access.router, prefix="/api/admin/directory-access", tags=["admin-directory-access"])
-
-
 
 # Система доступа к группам
 from .api import group_access
@@ -663,52 +655,109 @@ async def manual_system_initialization(current_user: UserInfo = Depends(get_curr
 
 @app.get("/admin/system-status")
 async def get_system_status(current_user: UserInfo = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Проверка состояния системных компонентов (только для админа)"""
-    
-    # Проверяем админские права
-    user_full = db.query(UserModel).filter(UserModel.email == current_user.email).first()
-    if not user_full or "admin" not in (user_full.roles or []):
-        raise HTTPException(status_code=403, detail="Доступ запрещен: требуются права администратора")
-    
+    """
+    Получение статуса системы
+    """
     try:
-        # Проверяем роли
+        # Проверяем права админа
+        if not has_admin_role(current_user):
+            raise HTTPException(status_code=403, detail="Нет прав доступа")
+        
+        # Получаем статистику по таблицам
+        tables_count = db.execute(text("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'")).scalar()
+        
+        # Получаем количество пользователей
+        users_count = db.query(User).count()
+        
+        # Получаем количество ролей
         roles_count = db.query(Role).count()
-        system_roles_count = db.query(Role).filter(Role.is_system == True).count()
         
-        # Проверяем типы полей
-        field_types_count = db.query(FieldType).count()
-        
-        # Проверяем департаменты
+        # Получаем количество департаментов
         departments_count = db.query(Department).count()
         
         return {
-            "database_connected": True,
-            "roles": {
-                "total": roles_count,
-                "system_roles": system_roles_count,
-                "expected_system_roles": 8  # Количество ролей в SYSTEM_ROLES
+            "status": "active",
+            "database": {
+                "tables_count": tables_count,
+                "users_count": users_count,
+                "roles_count": roles_count,
+                "departments_count": departments_count
             },
-            "field_types": {
-                "total": field_types_count,
-                "expected": 12  # Количество типов в FIELD_TYPES
-            },
-            "departments": {
-                "total": departments_count,
-                "expected": 7  # Количество департаментов в BASE_DEPARTMENTS
-            },
-            "initialization_needed": {
-                "roles": system_roles_count < 8,
-                "field_types": field_types_count < 12,
-                "departments": departments_count < 7
-            }
+            "version": "1.0.0",
+            "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        logger.error(f"Ошибка при проверке статуса системы: {e}")
-        return {
-            "database_connected": False,
-            "error": str(e)
-        }
+        logger.error(f"Error getting system status: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка получения статуса системы: {str(e)}")
+
+@app.post("/admin/create-tables")
+async def create_tables_endpoint(current_user: UserInfo = Depends(get_current_user)):
+    """
+    Ручное создание таблиц из моделей
+    """
+    try:
+        # Проверяем права админа
+        if not has_admin_role(current_user):
+            raise HTTPException(status_code=403, detail="Нет прав доступа")
+        
+        from .startup import auto_create_tables
+        
+        result = auto_create_tables()
+        
+        if result['success']:
+            return {
+                "success": True,
+                "message": "Таблицы успешно созданы/проверены",
+                "tables_count": result['tables_count'],
+                "tables": result['tables'],
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Ошибка при создании таблиц",
+                "error": result['error'],
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании таблиц: {str(e)}")
+
+@app.get("/admin/database-schema")
+async def get_database_schema(current_user: UserInfo = Depends(get_current_user)):
+    """
+    Получение информации о схеме базы данных
+    """
+    try:
+        # Проверяем права админа
+        if not has_admin_role(current_user):
+            raise HTTPException(status_code=403, detail="Нет прав доступа")
+        
+        from .startup import check_database_schema
+        
+        result = check_database_schema()
+        
+        if result['success']:
+            return {
+                "success": True,
+                "existing_tables": result['existing_tables'],
+                "model_tables": result['model_tables'],
+                "missing_tables": result['missing_tables'],
+                "extra_tables": result['extra_tables'],
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "success": False,
+                "error": result['error'],
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting database schema: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении схемы БД: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

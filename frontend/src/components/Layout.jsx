@@ -159,7 +159,6 @@ const Layout = ({ children, user, onLogout }) => {
         { name: 'Группы', href: '/admin/groups' },
         { name: 'Объявления', href: '/admin/announcements' },
         { name: 'Кураторы', href: '/admin/curator-manager' },
-        { name: 'Доступ к справочникам', href: '/admin/directory-access' },
         { name: 'Журнал активности', href: '/admin/activity-logs' }
           ]
         },

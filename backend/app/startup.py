@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import text
 from datetime import datetime
 
-from .database import get_db
+from .database import get_db, engine, Base
 from .models.role import Role
 from .models.field import FieldType, Field
 from .models.department import Department
@@ -21,6 +21,107 @@ from .models.request_template import RequestTemplate
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# =====================================================
+# АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ТАБЛИЦ
+# =====================================================
+
+def auto_create_tables():
+    """
+    Автоматически создает все таблицы из моделей SQLAlchemy.
+    
+    Эта функция использует metadata из Base для создания всех таблиц,
+    определенных в моделях. Если таблица уже существует, она не будет пересоздана.
+    """
+    try:
+        logger.info("🔧 Автоматическое создание таблиц из моделей...")
+        
+        # Импортируем все модели для регистрации в Base.metadata
+        from .models import (
+            user, role, field, department, request_template, 
+            request, portfolio, group, announcement, user_assignment,
+            user_profile, request_file, report_template, report, activity_log
+        )
+        
+        # Создаем все таблицы
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        
+        # Получаем список созданных таблиц
+        table_names = list(Base.metadata.tables.keys())
+        logger.info(f"✅ Проверены/созданы таблицы для {len(table_names)} моделей")
+        logger.info(f"📋 Таблицы: {', '.join(sorted(table_names))}")
+        
+        return {
+            'success': True,
+            'tables_count': len(table_names),
+            'tables': table_names
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Ошибка при создании таблиц: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'tables_count': 0,
+            'tables': []
+        }
+
+def check_database_schema():
+    """
+    Проверяет схему базы данных и выводит информацию о существующих таблицах.
+    """
+    try:
+        logger.info("🔍 Проверка схемы базы данных...")
+        
+        db: Session = next(get_db())
+        
+        try:
+            # Получаем список всех таблиц в БД
+            result = db.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                ORDER BY table_name
+            """))
+            
+            existing_tables = [row[0] for row in result.fetchall()]
+            
+            logger.info(f"📊 Найдено таблиц в БД: {len(existing_tables)}")
+            if existing_tables:
+                logger.info(f"📋 Существующие таблицы: {', '.join(existing_tables)}")
+            
+            # Сравниваем с моделями
+            model_tables = list(Base.metadata.tables.keys())
+            
+            missing_tables = set(model_tables) - set(existing_tables)
+            extra_tables = set(existing_tables) - set(model_tables) - {'alembic_version'}
+            
+            if missing_tables:
+                logger.warning(f"⚠️  Отсутствующие таблицы: {', '.join(missing_tables)}")
+            
+            if extra_tables:
+                logger.info(f"ℹ️ Дополнительные таблицы (не в моделях): {', '.join(extra_tables)}")
+            
+            if not missing_tables:
+                logger.info("✅ Все таблицы моделей существуют в БД")
+            
+            return {
+                'success': True,
+                'existing_tables': existing_tables,
+                'model_tables': model_tables,
+                'missing_tables': list(missing_tables),
+                'extra_tables': list(extra_tables)
+            }
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"❌ Ошибка при проверке схемы БД: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 # =====================================================
 # СИСТЕМНЫЕ РОЛИ
@@ -498,6 +599,7 @@ def startup_application():
     Выполняет полную инициализацию приложения при запуске.
     
     Включает:
+    - Автоматическое создание таблиц из моделей
     - Проверку подключения к базе данных
     - Инициализацию системных ролей
     - Инициализацию типов полей
@@ -507,6 +609,18 @@ def startup_application():
     logger.info("🚀 Запуск приложения University Portal...")
     
     try:
+        # Автоматически создаем таблицы из моделей
+        tables_result = auto_create_tables()
+        
+        if not tables_result['success']:
+            logger.error(f"❌ Ошибка при создании таблиц: {tables_result['error']}")
+            logger.info("⚠️ Приложение запускается без автоматического создания таблиц")
+        else:
+            logger.info(f"✅ Автосоздание таблиц завершено успешно")
+        
+        # Проверяем схему БД
+        schema_result = check_database_schema()
+        
         # Получаем сессию базы данных
         db: Session = next(get_db())
         
@@ -536,6 +650,7 @@ def startup_application():
             total_errors = roles_stats['errors'] + fields_stats['errors'] + depts_stats['errors'] + templates_stats['errors']
             
             logger.info("📊 Общая статистика инициализации:")
+            logger.info(f"   🔧 Таблиц проверено/создано: {tables_result.get('tables_count', 0)}")
             logger.info(f"   ✅ Создано объектов: {total_created}")
             logger.info(f"   🔄 Обновлено объектов: {total_updated}")
             logger.info(f"   ❌ Ошибок: {total_errors}")

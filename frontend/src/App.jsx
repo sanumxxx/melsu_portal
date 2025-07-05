@@ -22,7 +22,6 @@ import AnnouncementManager from './components/admin/AnnouncementManager';
 
 
 import CuratorManager from './components/admin/CuratorManager';
-import DirectoryAccessManager from './components/admin/DirectoryAccessManager';
 import Reports from './components/Reports';
 import ReportViewer from './components/ReportViewer';
 import ReportTemplateManager from './components/admin/ReportTemplateManager';
@@ -30,7 +29,6 @@ import ActivityLogs from './components/admin/ActivityLogs';
 import MyActivity from './components/common/MyActivity';
 import TestRoles from './components/TestRoles';
 import MediaDebugger from './components/common/MediaDebugger';
-import Directories from './components/Directories';
 
 // WebSocket для уведомлений
 import WebSocketService from './services/websocketService';
@@ -175,16 +173,7 @@ function App() {
               <Route path="/digital-resources" element={<DigitalResources />} />
               <Route path="/my-activity" element={<MyActivity />} />
 
-              {/* Справочники */}
-              {user?.roles?.some(role => ['employee', 'teacher', 'admin', 'curator'].includes(role)) && (
-                <>
-                  <Route path="/directories/*" element={<Directories />} />
-                  <Route path="/directories/students" element={<Directories />} />
-                  <Route path="/directories/groups" element={<Directories />} />
-                  <Route path="/directories/departments" element={<Directories />} />
-                  <Route path="/student-portfolio/:studentId" element={<StudentPortfolio />} />
-                </>
-              )}
+
 
 
 
@@ -230,7 +219,6 @@ function App() {
                   <Route path="/admin/groups" element={<Groups />} />
                   <Route path="/admin/announcements" element={<AnnouncementManager />} />
                   <Route path="/admin/curator-manager" element={<CuratorManager />} />
-                  <Route path="/admin/directory-access" element={<DirectoryAccessManager />} />
                   <Route path="/admin/report-templates" element={<ReportTemplateManager />} />
                   <Route path="/admin/activity-logs" element={<ActivityLogs />} />
                   <Route path="/test-roles" element={<TestRoles />} />
